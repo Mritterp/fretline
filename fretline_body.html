@@ -1,0 +1,1470 @@
+<meta charset="UTF-8">
+<title>Fretline</title>
+<style>
+:root {
+  --parchment: #f5f0e8;
+  --linen: #e8e0d0;
+  --linen-hover: #e0d7c4;
+  --wheat: #c4b89a;
+  --sage: #8a9e7e;
+  --moss: #5c6b52;
+  --clay: #b07a5a;
+  --bark: #3d3a30;
+  --font-display: Georgia, 'Times New Roman', serif;
+  --font-body: Helvetica, Arial, sans-serif;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: var(--parchment);
+  color: var(--bark);
+  font-family: var(--font-body);
+  -webkit-font-smoothing: antialiased;
+}
+
+a { color: var(--bark); border-bottom: 1px solid var(--clay); text-decoration: none; }
+a:hover { color: var(--clay); }
+
+select:focus, input:focus, button:focus-visible {
+  outline: 1px solid var(--moss);
+  outline-offset: 2px;
+}
+
+header.masthead {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px 32px;
+  padding: 30px 40px 22px;
+  border-bottom: 1px solid var(--wheat);
+}
+
+.title-group { display: flex; align-items: flex-end; gap: 14px; }
+
+h1 {
+  margin: 0;
+  font-family: var(--font-display);
+  font-weight: 400;
+  font-size: 34px;
+  letter-spacing: -0.015em;
+  line-height: 1;
+}
+
+.eyebrow-brand {
+  font-size: 9px;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--sage);
+  padding-bottom: 5px;
+}
+
+.tagline {
+  margin: 0;
+  font-size: 10px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--moss);
+  padding-bottom: 4px;
+}
+
+main.rig {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: stretch;
+}
+
+/* ---- control column ---- */
+.panel {
+  flex: 0 1 320px;
+  min-width: 288px;
+  background: var(--linen);
+  border-right: 1px solid var(--wheat);
+  padding: 30px 28px 40px;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.panel-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  border-bottom: 1px solid var(--wheat);
+  padding-bottom: 10px;
+}
+.panel-head span:first-child {
+  font-size: 9px; letter-spacing: 0.2em; text-transform: uppercase; color: var(--bark);
+}
+.panel-head span:last-child {
+  font-size: 9px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--sage);
+}
+
+.panel-section { display: flex; flex-direction: column; gap: 24px; }
+
+.field { display: flex; flex-direction: column; gap: 7px; }
+
+.field label {
+  font-size: 9px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--moss);
+}
+
+.select-wrap { position: relative; display: flex; }
+.select-wrap select {
+  appearance: none;
+  -webkit-appearance: none;
+  width: 100%;
+  padding: 10px 32px 10px 11px;
+  border: 1px solid var(--bark);
+  border-radius: 0;
+  background: var(--parchment);
+  color: var(--bark);
+  font-family: var(--font-body);
+  font-size: 13px;
+  line-height: 1.25;
+}
+.select-wrap.tight select { padding: 10px 28px 10px 11px; }
+.select-wrap svg { position: absolute; top: 50%; transform: translateY(-50%); pointer-events: none; }
+.select-wrap.wide svg { right: 11px; }
+.select-wrap.tight svg { right: 9px; }
+
+.field .hint { margin: 2px 0 0; font-size: 11px; line-height: 1.5; color: var(--moss); }
+
+.segmented {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  border: 1px solid var(--bark);
+}
+.segmented button {
+  border: none;
+  border-radius: 0;
+  padding: 11px 8px;
+  cursor: pointer;
+  font-family: var(--font-body);
+  font-size: 10px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  transition: background-color 200ms ease-out, opacity 200ms ease-out;
+  background: transparent;
+  color: var(--bark);
+}
+.segmented button[aria-pressed="true"] { background: var(--bark); color: var(--parchment); }
+.segmented button:hover { opacity: 0.92; }
+
+.subpanel {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  padding: 14px 13px 15px;
+  background: var(--parchment);
+  border-left: 2px solid var(--sage);
+}
+.subpanel .subpanel-label {
+  font-size: 9px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--sage);
+}
+.subpanel-row { display: flex; gap: 10px; }
+.subpanel-row .field { flex: 1; min-width: 0; }
+
+.two-up { display: flex; gap: 14px; }
+.two-up .field { flex: 1; min-width: 0; }
+
+.tempo-head { display: flex; align-items: baseline; justify-content: space-between; }
+.tempo-value { font-family: var(--font-display); font-size: 17px; color: var(--bark); }
+.tempo-value .unit { font-family: var(--font-body); font-size: 9px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--sage); margin-left: 6px; }
+input[type="range"] { width: 100%; accent-color: var(--bark); height: 18px; margin: 0; }
+
+.actions {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding-top: 6px;
+  border-top: 1px solid var(--wheat);
+}
+button.btn {
+  border-radius: 0;
+  cursor: pointer;
+  font-family: var(--font-body);
+  font-size: 10px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+}
+.btn-primary {
+  border: 1px solid var(--bark);
+  background: var(--bark);
+  color: var(--parchment);
+  padding: 14px 24px;
+  transition: opacity 200ms ease-out;
+}
+.btn-primary:hover { opacity: 0.92; }
+.btn-outline {
+  border: 1px solid var(--bark);
+  background: transparent;
+  color: var(--bark);
+  padding: 13px 24px;
+  transition: background-color 200ms ease-out;
+}
+.btn-outline:hover { background: var(--linen-hover); }
+.btn-outline:disabled { opacity: 0.4; cursor: default; }
+.btn-outline:disabled:hover { background: transparent; }
+
+.session-counter {
+  display: flex;
+  justify-content: space-between;
+  padding-top: 12px;
+  border-top: 1px solid var(--wheat);
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--moss);
+}
+.session-counter strong { color: var(--bark); font-weight: 700; }
+
+/* ---- stage ---- */
+.stage {
+  flex: 1 1 560px;
+  min-width: 0;
+  padding: 34px 40px 48px;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.stage-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 20px;
+}
+.stage-head span:first-child { font-size: 9px; letter-spacing: 0.2em; text-transform: uppercase; color: var(--sage); }
+.stage-head span:last-child { font-size: 9px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--moss); white-space: nowrap; }
+
+.stage-card {
+  border: 1px solid var(--wheat);
+  background: var(--parchment);
+  padding: 26px 22px 22px;
+}
+
+#notation-scroll { overflow-x: auto; }
+#notation-scroll svg { display: block; max-width: 100%; }
+
+.notation-svg * { fill: var(--bark); stroke: var(--bark); }
+.notation-svg .measure-hit { fill: transparent; stroke: none; pointer-events: all; cursor: pointer; }
+.notation-svg .measure-hit:hover { fill: color-mix(in srgb, var(--sage) 14%, transparent); }
+.notation-svg .measure-hit.measure-selected { fill: color-mix(in srgb, var(--clay) 20%, transparent); }
+.notation-svg .measure-number { fill: var(--sage); font-family: var(--font-body); }
+.notation-svg .note-active rect, .notation-svg .note-active path, .notation-svg .note-active ellipse {
+  fill: var(--clay); stroke: var(--clay);
+}
+
+.meta-strip {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px 24px;
+  align-items: baseline;
+  justify-content: space-between;
+  border-top: 1px solid var(--wheat);
+  padding-top: 14px;
+}
+.meta-strip .meta-line {
+  font-size: 10px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--moss);
+  text-wrap: pretty;
+}
+.meta-strip .meta-count {
+  font-size: 10px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--bark); white-space: nowrap;
+}
+.meta-strip .meta-count strong { font-weight: 700; }
+
+/* ---- fretboard + mode panel ---- */
+.mode-panel {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 24px 40px;
+  align-items: flex-start;
+  padding-top: 12px;
+  border-top: 1px solid var(--wheat);
+}
+.mode-panel .fretboard-col { flex: 0 1 300px; min-width: 260px; }
+.mode-panel .info-col { flex: 1 1 260px; min-width: 230px; display: flex; flex-direction: column; gap: 12px; }
+.mode-panel .info-head { display: flex; align-items: baseline; justify-content: space-between; gap: 16px; }
+.mode-panel .info-head span:first-child { font-size: 9px; letter-spacing: 0.2em; text-transform: uppercase; color: var(--sage); }
+.mode-panel .info-head span:last-child { font-size: 9px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--moss); white-space: nowrap; }
+.mode-panel h2 {
+  margin: 0; font-family: var(--font-display); font-size: 26px; font-weight: 400;
+  line-height: 1; letter-spacing: -0.01em;
+}
+.mode-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.mode-chip {
+  font-size: 9px; letter-spacing: 0.18em; text-transform: uppercase;
+  padding: 6px 9px; white-space: nowrap; border: 1px solid var(--wheat);
+  background: transparent; color: var(--sage);
+}
+.mode-chip.active { border-color: var(--bark); background: var(--bark); color: var(--parchment); }
+.mode-panel .mode-copy {
+  margin: 0; font-family: var(--font-display); font-size: 14px; line-height: 1.65; color: var(--bark);
+  text-wrap: pretty;
+}
+
+@media (max-width: 860px) {
+  header.masthead { padding: 24px 20px 18px; }
+  .panel { border-right: none; border-bottom: 1px solid var(--wheat); flex-basis: auto; }
+  .stage { padding: 24px 20px 32px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * { transition: none !important; }
+}
+</style>
+
+<div class="app-shell">
+  <header class="masthead">
+    <div class="title-group">
+      <h1>Fretline</h1>
+      <span class="eyebrow-brand">Ambience first</span>
+    </div>
+    <p class="tagline">Sight reading for guitar · one line at a time</p>
+  </header>
+
+  <main class="rig">
+    <section class="panel" aria-label="Generator controls">
+      <div class="panel-head">
+        <span>Parameters</span>
+        <span>Fretline · Practice</span>
+      </div>
+
+      <div class="panel-section">
+        <div class="field">
+          <label for="clef-select">Clef</label>
+          <div class="select-wrap wide">
+            <select id="clef-select"></select>
+            <svg width="11" height="7" viewBox="0 0 11 7" fill="none"><path d="M1 1l4.5 4.5L10 1" stroke="#3D3A30" stroke-width="1.2"/></svg>
+          </div>
+          <p class="hint" id="clef-hint"></p>
+        </div>
+
+        <div class="field">
+          <label for="key-select">Key</label>
+          <div class="select-wrap wide">
+            <select id="key-select"></select>
+            <svg width="11" height="7" viewBox="0 0 11 7" fill="none"><path d="M1 1l4.5 4.5L10 1" stroke="#3D3A30" stroke-width="1.2"/></svg>
+          </div>
+        </div>
+
+        <div class="field">
+          <label>Pitch source</label>
+          <div class="segmented" role="group" aria-label="Pitch source mode">
+            <button type="button" id="mode-position" aria-pressed="true">Position</button>
+            <button type="button" id="mode-range" aria-pressed="false">Range</button>
+          </div>
+
+          <div class="subpanel" id="position-field">
+            <span class="subpanel-label">Fretboard position</span>
+            <div class="select-wrap wide">
+              <select id="position-select"></select>
+              <svg width="11" height="7" viewBox="0 0 11 7" fill="none"><path d="M1 1l4.5 4.5L10 1" stroke="#3D3A30" stroke-width="1.2"/></svg>
+            </div>
+            <p class="hint" id="position-hint"></p>
+          </div>
+
+          <div class="subpanel" id="range-field" style="display:none;">
+            <div class="subpanel-row">
+              <div class="field">
+                <span class="subpanel-label">Low note</span>
+                <div class="select-wrap tight">
+                  <select id="low-select"></select>
+                  <svg width="11" height="7" viewBox="0 0 11 7" fill="none"><path d="M1 1l4.5 4.5L10 1" stroke="#3D3A30" stroke-width="1.2"/></svg>
+                </div>
+              </div>
+              <div class="field">
+                <span class="subpanel-label">High note</span>
+                <div class="select-wrap tight">
+                  <select id="high-select"></select>
+                  <svg width="11" height="7" viewBox="0 0 11 7" fill="none"><path d="M1 1l4.5 4.5L10 1" stroke="#3D3A30" stroke-width="1.2"/></svg>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="two-up">
+          <div class="field">
+            <label for="time-select">Time</label>
+            <div class="select-wrap tight">
+              <select id="time-select">
+                <option value="4/4">4/4</option>
+                <option value="3/4">3/4</option>
+                <option value="2/4">2/4</option>
+              </select>
+              <svg width="11" height="7" viewBox="0 0 11 7" fill="none"><path d="M1 1l4.5 4.5L10 1" stroke="#3D3A30" stroke-width="1.2"/></svg>
+            </div>
+          </div>
+          <div class="field">
+            <label for="measures-select">Measures</label>
+            <div class="select-wrap tight">
+              <select id="measures-select">
+                <option value="4">4</option>
+                <option value="8" selected>8</option>
+                <option value="12">12</option>
+                <option value="16">16</option>
+              </select>
+              <svg width="11" height="7" viewBox="0 0 11 7" fill="none"><path d="M1 1l4.5 4.5L10 1" stroke="#3D3A30" stroke-width="1.2"/></svg>
+            </div>
+          </div>
+        </div>
+
+        <div class="field">
+          <label for="level-select">Rhythmic difficulty</label>
+          <div class="select-wrap wide">
+            <select id="level-select">
+              <option value="1">Level 1</option>
+              <option value="2">Level 2</option>
+              <option value="3">Level 3</option>
+              <option value="4">Level 4</option>
+            </select>
+            <svg width="11" height="7" viewBox="0 0 11 7" fill="none"><path d="M1 1l4.5 4.5L10 1" stroke="#3D3A30" stroke-width="1.2"/></svg>
+          </div>
+          <p class="hint" id="level-hint"></p>
+        </div>
+
+        <div class="field">
+          <div class="tempo-head">
+            <label style="padding-bottom:0;">Tempo</label>
+            <span class="tempo-value"><span id="tempo-value">88</span><span class="unit">bpm</span></span>
+          </div>
+          <input type="range" id="tempo-range" min="40" max="168" value="88" step="1">
+        </div>
+      </div>
+
+      <div class="actions">
+        <button type="button" class="btn btn-primary" id="generate-btn">Generate new line</button>
+        <button type="button" class="btn btn-outline" id="play-btn">Play back</button>
+        <button type="button" class="btn btn-outline" id="stop-btn" disabled>Stop</button>
+      </div>
+
+      <div class="session-counter">
+        <span>Lines read this session</span>
+        <strong id="session-count">0</strong>
+      </div>
+    </section>
+
+    <section class="stage" aria-label="Notation">
+      <div class="stage-head">
+        <span>Notation stage</span>
+        <span id="stage-meta"></span>
+      </div>
+
+      <div class="stage-card">
+        <div id="notation-scroll">
+          <div id="notation"></div>
+        </div>
+      </div>
+
+      <div class="meta-strip">
+        <span class="meta-line" id="meta-line"></span>
+        <span class="meta-count">Lines generated · <strong id="total-count">0</strong></span>
+      </div>
+
+      <div class="mode-panel" id="mode-panel">
+        <div class="fretboard-col" id="fretboard-host"></div>
+        <div class="info-col">
+          <div class="info-head">
+            <span>Mode in use</span>
+            <span id="mode-summary"></span>
+          </div>
+          <h2 id="mode-name"></h2>
+          <div class="mode-chips" id="mode-chips"></div>
+          <p class="mode-copy" id="mode-copy"></p>
+        </div>
+      </div>
+    </section>
+  </main>
+</div>
+
+<script>
+/*__VEXFLOW_BUNDLE__*/
+</script>
+
+<script>
+(function () {
+  "use strict";
+  const { Renderer, Stave, StaveNote, Voice, Formatter, Beam, Accidental, Dot, StaveConnector } = VexFlow;
+  const SVG_NS = "http://www.w3.org/2000/svg";
+
+  // ---------- music theory tables ----------
+  const OPEN_STRING_MIDI = [40, 45, 50, 55, 59, 64]; // low E .. high E
+  const NATURAL_PC = { C: 0, D: 2, E: 4, F: 5, G: 7, A: 9, B: 11 };
+  const LETTER_ORDER = ["C", "D", "E", "F", "G", "A", "B"];
+
+  const KEYS = [
+    { id: "C", label: "C major", acc: {} },
+    { id: "G", label: "G major", acc: { F: 1 } },
+    { id: "D", label: "D major", acc: { F: 1, C: 1 } },
+    { id: "A", label: "A major", acc: { F: 1, C: 1, G: 1 } },
+    { id: "E", label: "E major", acc: { F: 1, C: 1, G: 1, D: 1 } },
+    { id: "B", label: "B major", acc: { F: 1, C: 1, G: 1, D: 1, A: 1 } },
+    { id: "F", label: "F major", acc: { B: -1 } },
+    { id: "Bb", label: "B♭ major", acc: { B: -1, E: -1 } },
+    { id: "Eb", label: "E♭ major", acc: { B: -1, E: -1, A: -1 } },
+    { id: "Ab", label: "A♭ major", acc: { B: -1, E: -1, A: -1, D: -1 } },
+    { id: "Db", label: "D♭ major", acc: { B: -1, E: -1, A: -1, D: -1, G: -1 } },
+    { id: "Chromatic", label: "Chromatic (all notes)", acc: null },
+  ];
+
+  function pcToLetterMap(accMap) {
+    const map = {};
+    if (accMap === null) {
+      // Chromatic: natural letters on their own pitch class, sharp spelling for the rest.
+      for (const letter of LETTER_ORDER) map[NATURAL_PC[letter]] = { letter, acc: 0 };
+      for (const letter of ["C", "D", "F", "G", "A"]) {
+        map[(NATURAL_PC[letter] + 1) % 12] = { letter, acc: 1 };
+      }
+      return map;
+    }
+    for (const letter of LETTER_ORDER) {
+      const acc = accMap[letter] || 0;
+      const pc = (NATURAL_PC[letter] + acc + 12) % 12;
+      map[pc] = { letter, acc };
+    }
+    return map;
+  }
+
+  function keyById(id) {
+    return KEYS.find((k) => k.id === id);
+  }
+
+  // Diatonic pitch-class set for a key (null accMap = chromatic = all 12).
+  function diatonicPcSet(key) {
+    if (key.acc === null) return null;
+    return new Set(Object.keys(NATURAL_PC).map((l) => (NATURAL_PC[l] + (key.acc[l] || 0) + 12) % 12));
+  }
+
+  // Tonic pitch class of a major key id like "C", "Bb", "F#" (none of ours use sharps
+  // in the id itself, only flats, but this stays generic either way).
+  function tonicPc(keyId) {
+    const letter = keyId[0];
+    const acc = keyId.length > 1 ? (keyId[1] === "b" ? -1 : 1) : 0;
+    return (NATURAL_PC[letter] + acc + 12) % 12;
+  }
+
+  const CLEFS = [
+    {
+      id: "guitar",
+      label: "Guitar (standard notation)",
+      shortLabel: "Guitar",
+      hint: "Treble clef, written an octave higher than it sounds — matches real guitar sheet music.",
+      staves: ["treble"],
+      transposeWritten: 12,
+    },
+    {
+      id: "treble",
+      label: "Treble (concert pitch)",
+      shortLabel: "Treble",
+      hint: "Treble clef at true sounding pitch, no octave transposition.",
+      staves: ["treble"],
+      transposeWritten: 0,
+    },
+    {
+      id: "bass",
+      label: "Bass (concert pitch)",
+      shortLabel: "Bass",
+      hint: "Bass clef at true sounding pitch. Most of the guitar's range sits below the staff here.",
+      staves: ["bass"],
+      transposeWritten: 0,
+    },
+    {
+      id: "piano",
+      label: "Piano (grand staff)",
+      shortLabel: "Piano",
+      hint: "Treble + bass grand staff at true sounding pitch, split at middle C.",
+      staves: ["treble", "bass"],
+      transposeWritten: 0,
+      splitAt: 60,
+    },
+  ];
+  const REST_KEY = { treble: "b/4", bass: "d/3" };
+
+  function clefById(id) {
+    return CLEFS.find((c) => c.id === id);
+  }
+
+  const POSITIONS = [
+    { id: "open", label: "Open — frets 0–3", start: 0, span: 3, hint: "Open strings through the third fret — the first reading ground." },
+    { id: "2", label: "Position II — frets 2–5", start: 2, span: 3, hint: "Index at the second fret. No open strings." },
+    { id: "3", label: "Position III — frets 3–6", start: 3, span: 3, hint: "Just past the second position, still low on the neck." },
+    { id: "5", label: "Position V — frets 5–8", start: 5, span: 3, hint: "Middle neck. Ledger lines start to thin out." },
+    { id: "7", label: "Position VII — frets 7–10", start: 7, span: 3, hint: "Upper middle neck, sitting mostly inside the staff." },
+    { id: "9", label: "Position IX — frets 9–12", start: 9, span: 3, hint: "Toward the twelfth fret. Reads high on the staff." },
+    { id: "12", label: "Position XII — frets 12–15", start: 12, span: 3, hint: "Past the octave marker. Consistently high on the staff." },
+  ];
+
+  const NOTE_NAMES_SHARP = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
+  function midiName(m) {
+    const pc = ((m % 12) + 12) % 12;
+    const octave = Math.floor(m / 12) - 1;
+    return NOTE_NAMES_SHARP[pc] + octave;
+  }
+
+  const RHYTHM_POOLS = {
+    1: { pool: [4, 2, 1], restProb: 0.12 },
+    2: { pool: [4, 2, 1, 0.5], restProb: 0.16 },
+    3: { pool: [4, 3, 2, 1.5, 1, 0.75, 0.5], restProb: 0.18 },
+    4: { pool: [4, 3, 2, 1.5, 1, 0.75, 0.5, 0.25], restProb: 0.2 },
+  };
+  const LEVEL_HINTS = {
+    1: "Whole, half & quarter notes, with half & quarter rests.",
+    2: "Adds beamed eighth-note pairs and eighth rests.",
+    3: "Adds dotted quarters, dotted halves and dotted eighths.",
+    4: "Adds sixteenth-note groups for quicker passages.",
+  };
+  const DUR_VF = { 4: "w", 3: "hd", 2: "h", 1.5: "qd", 1: "q", 0.75: "8d", 0.5: "8", 0.25: "16" };
+
+  const TIME_BEATS = { "4/4": 4, "3/4": 3, "2/4": 2 };
+
+  // ---------- modes ----------
+  const MODES = ["Ionian", "Dorian", "Phrygian", "Lydian", "Mixolydian", "Aeolian", "Locrian"];
+  const MODE_CHAR = {
+    Ionian: "the parent major shape — roots on the sixth, fourth and first strings",
+    Dorian: "minor with a raised sixth — the pattern sits one degree up from Ionian",
+    Phrygian: "minor with a flat second, rooted on the open-position E shape",
+    Lydian: "major with a raised fourth — the brightest of the seven",
+    Mixolydian: "major with a flat seventh — dominant colour",
+    Aeolian: "the natural minor shape",
+    Locrian: "flat second and flat fifth — the unstable one",
+  };
+  const MAJOR_STEPS = [0, 2, 4, 5, 7, 9, 11];
+
+  // Given the current key and a fret window on the low E string, find which
+  // mode that window's lowest in-scale fret represents (see Mode patterns.pdf).
+  function modeInfo(keyObj, lo, hi) {
+    const parent = tonicPc(keyObj.id);
+    const scale = MAJOR_STEPS.map((i) => (parent + i) % 12);
+    let rootPc = scale[0];
+    let idx = 0;
+    for (let f = lo; f <= hi; f++) {
+      const pc = (OPEN_STRING_MIDI[0] + f) % 12;
+      const i = scale.indexOf(pc);
+      if (i !== -1) {
+        rootPc = pc;
+        idx = i;
+        break;
+      }
+    }
+    const parentLetter = keyObj.id[0];
+    const letter = LETTER_ORDER[(LETTER_ORDER.indexOf(parentLetter) + idx) % 7];
+    const natural = NATURAL_PC[letter];
+    const off = ((rootPc - natural) % 12 + 12) % 12;
+    const rootName = letter + (off === 0 ? "" : off === 1 ? "♯" : "♭");
+    return { rootPc, idx, name: MODES[idx], rootName };
+  }
+
+  // ---------- pitch pool ----------
+  function buildPositionPool(position, key) {
+    const diatonicPCs = diatonicPcSet(key);
+    const set = new Set();
+    for (const open of OPEN_STRING_MIDI) {
+      for (let f = 0; f <= position.span; f++) {
+        const midi = open + position.start + f;
+        const pc = ((midi % 12) + 12) % 12;
+        if (diatonicPCs === null || diatonicPCs.has(pc)) set.add(midi);
+      }
+    }
+    return Array.from(set).sort((a, b) => a - b);
+  }
+
+  function buildRangePool(lowMidi, highMidi, key) {
+    const diatonicPCs = diatonicPcSet(key);
+    const set = [];
+    for (let m = lowMidi; m <= highMidi; m++) {
+      const pc = ((m % 12) + 12) % 12;
+      if (diatonicPCs === null || diatonicPCs.has(pc)) set.push(m);
+    }
+    return set;
+  }
+
+  function pickNextPitch(pool, prevMidi) {
+    if (!pool.length) return null;
+    if (prevMidi == null) return pool[Math.floor(Math.random() * pool.length)];
+    const weights = pool.map((p) => 1 / (1 + Math.abs(p - prevMidi)));
+    const total = weights.reduce((a, b) => a + b, 0);
+    let r = Math.random() * total;
+    for (let i = 0; i < pool.length; i++) {
+      r -= weights[i];
+      if (r <= 0) return pool[i];
+    }
+    return pool[pool.length - 1];
+  }
+
+  // ---------- rhythm ----------
+  function fillMeasure(remaining, pool, restProb) {
+    const events = [];
+    let guard = 0;
+    while (remaining > 1e-6 && guard < 64) {
+      guard++;
+      let candidates = pool.filter((d) => d <= remaining + 1e-6);
+      if (!candidates.length) candidates = [remaining];
+      const dur = candidates[Math.floor(Math.random() * candidates.length)];
+      const isRest = Math.random() < restProb;
+      events.push({ durationBeats: dur, isRest });
+      remaining -= dur;
+    }
+    if (events.length && events.every((e) => e.isRest)) events[events.length - 1].isRest = false;
+    return events;
+  }
+
+  function generateMeasures(settings, pool) {
+    const measures = [];
+    let prevMidi = null;
+    const beatsPerMeasure = TIME_BEATS[settings.timeSig];
+    const { pool: durPool, restProb } = RHYTHM_POOLS[settings.level];
+    for (let m = 0; m < settings.measureCount; m++) {
+      const events = fillMeasure(beatsPerMeasure, durPool, restProb);
+      const measureNotes = events.map((ev) => {
+        if (ev.isRest) return { rest: true, durationBeats: ev.durationBeats };
+        const midi = pickNextPitch(pool, prevMidi);
+        prevMidi = midi;
+        return { rest: false, durationBeats: ev.durationBeats, midi };
+      });
+      measures.push(measureNotes);
+    }
+    return measures;
+  }
+
+  // ---------- rendering ----------
+  function getAccidentalSymbol(letter, octave, actualAcc, expectedAcc, measureState) {
+    const stateKey = letter + octave;
+    const priorAcc = measureState.has(stateKey) ? measureState.get(stateKey) : expectedAcc;
+    measureState.set(stateKey, actualAcc);
+    if (actualAcc === priorAcc) return null;
+    if (actualAcc === 0) return "n";
+    return actualAcc > 0 ? "#" : "b";
+  }
+
+  let playbackEvents = [];
+  let playbackTotalBeats = 0;
+  let measureStartBeats = [];
+
+  function buildStaveNote(ev, staveName, key, pcMap, accState) {
+    if (ev.rest) {
+      const dur = DUR_VF[ev.durationBeats] + "r";
+      const note = new StaveNote({ keys: [REST_KEY[staveName]], duration: dur, clef: staveName });
+      if ([3, 1.5, 0.75].includes(ev.durationBeats)) {
+        Dot.buildAndAttach([note], { all: true });
+      }
+      return note;
+    }
+    const writtenMidi = ev.writtenMidi;
+    const pc = ((writtenMidi % 12) + 12) % 12;
+    const spelling = pcMap[pc] || { letter: "C", acc: 0 };
+    const octave = Math.floor(writtenMidi / 12) - 1;
+    const accSuffix = spelling.acc > 0 ? "#" : spelling.acc < 0 ? "b" : "";
+    const vfKey = spelling.letter.toLowerCase() + accSuffix + "/" + octave;
+    const expectedAcc = key.acc === null ? 0 : key.acc[spelling.letter] || 0;
+    const symbol = getAccidentalSymbol(spelling.letter, octave, spelling.acc, expectedAcc, accState);
+
+    const dur = DUR_VF[ev.durationBeats];
+    const note = new StaveNote({ keys: [vfKey], duration: dur, clef: staveName });
+    if ([3, 1.5, 0.75].includes(ev.durationBeats)) {
+      Dot.buildAndAttach([note], { all: true });
+    }
+    if (symbol) note.addModifier(new Accidental(symbol), 0);
+    return note;
+  }
+
+  // Routes one measure's events onto the active staves — every stave gets a
+  // same-duration rest wherever another stave has the real note, so voices on
+  // every stave stay in sync tick-for-tick.
+  function routeMeasureToStaves(measureNotes, staveNames, isGrand, clefDef) {
+    const perStave = {};
+    staveNames.forEach((name) => (perStave[name] = []));
+    measureNotes.forEach((ev) => {
+      if (ev.rest) {
+        staveNames.forEach((name) => perStave[name].push({ rest: true, durationBeats: ev.durationBeats }));
+        return;
+      }
+      const writtenMidi = ev.midi + clefDef.transposeWritten;
+      const targetStave = isGrand ? (writtenMidi >= clefDef.splitAt ? "treble" : "bass") : staveNames[0];
+      staveNames.forEach((name) => {
+        if (name === targetStave) {
+          perStave[name].push({ rest: false, durationBeats: ev.durationBeats, midi: ev.midi, writtenMidi });
+        } else {
+          perStave[name].push({ rest: true, durationBeats: ev.durationBeats });
+        }
+      });
+    });
+    return perStave;
+  }
+
+  function buildVoicesForMeasure(measureNotes, settings, staveNames, isGrand, clefDef, key, pcMap) {
+    const beatsPerMeasure = TIME_BEATS[settings.timeSig];
+    const perStave = routeMeasureToStaves(measureNotes, staveNames, isGrand, clefDef);
+    const voices = [];
+    const notesByStave = {};
+    staveNames.forEach((name) => {
+      const accState = new Map();
+      const vfNotes = perStave[name].map((ev) => buildStaveNote(ev, name, key, pcMap, accState));
+      notesByStave[name] = vfNotes;
+      const voice = new Voice({ num_beats: beatsPerMeasure, beat_value: 4 }).setStrict(false);
+      voice.addTickables(vfNotes);
+      voices.push(voice);
+    });
+    return { voices, notesByStave };
+  }
+
+  // Wrap measures into rows ("systems") that fit within the available width.
+  // Every bar gets the same width and every row carries the same number of
+  // bars — the bar count is sized to the tighter first row (which reserves
+  // extra room for the time signature) so it stays constant across rows.
+  function computeRows(measureCount, containerWidth) {
+    const ROW_EXTRA = 85; // clef + key signature, repeated at the start of every row
+    const TIME_SIG_EXTRA = 34; // extra room for the time signature, only on the piece's first measure
+    const MARGIN = 20;
+    const MIN_BAR_WIDTH = 130;
+
+    const firstRowAvail = Math.max(containerWidth - ROW_EXTRA - TIME_SIG_EXTRA - MARGIN, MIN_BAR_WIDTH);
+    const barsPerRow = Math.max(1, Math.floor(firstRowAvail / MIN_BAR_WIDTH));
+    const widthPerMeasure = firstRowAvail / barsPerRow;
+
+    const rows = [];
+    let idx = 0;
+    let rowIdx = 0;
+    while (idx < measureCount) {
+      const count = Math.min(barsPerRow, measureCount - idx);
+      const extra = ROW_EXTRA + (rowIdx === 0 ? TIME_SIG_EXTRA : 0);
+      rows.push({ startIndex: idx, count, extra, widthPerMeasure });
+      idx += count;
+      rowIdx++;
+    }
+    return rows;
+  }
+
+  function renderScore(measures, settings) {
+    const container = document.getElementById("notation");
+    const scrollHost = document.getElementById("notation-scroll");
+    container.innerHTML = "";
+    playbackEvents = [];
+    measureStartBeats = new Array(measures.length).fill(0);
+
+    const clefDef = settings.clefObj;
+    const staveNames = clefDef.staves;
+    const isGrand = staveNames.length > 1;
+    const beatsPerMeasure = TIME_BEATS[settings.timeSig];
+    playbackTotalBeats = measures.length * beatsPerMeasure;
+
+    const key = settings.keyObj;
+    const pcMap = pcToLetterMap(key.acc);
+
+    const containerWidth = Math.max(scrollHost.clientWidth || 640, 260);
+    const rows = computeRows(measures.length, containerWidth);
+
+    const ROW_HEIGHT = isGrand ? 260 : 150;
+    const TOP_MARGIN = 40;
+    const totalWidth = containerWidth;
+    const totalHeight = TOP_MARGIN + rows.length * ROW_HEIGHT + 30;
+
+    const renderer = new Renderer(container, Renderer.Backends.SVG);
+    renderer.resize(totalWidth, totalHeight);
+    const context = renderer.getContext();
+    const svgEl = container.querySelector("svg");
+    svgEl.classList.add("notation-svg");
+
+    let globalBeat = 0;
+
+    rows.forEach((row, rowIdx) => {
+      const rowY = TOP_MARGIN + rowIdx * ROW_HEIGHT;
+      const TREBLE_Y = rowY;
+      const BASS_Y = rowY + 100;
+      let x = 10;
+      const rowStartX = x;
+
+      const numEl = document.createElementNS(SVG_NS, "text");
+      numEl.setAttribute("x", String(rowStartX + 1));
+      numEl.setAttribute("y", String(rowY - 11));
+      numEl.setAttribute("class", "measure-number");
+      numEl.setAttribute("font-size", "8.5");
+      numEl.setAttribute("letter-spacing", "0.14em");
+      numEl.textContent = String(row.startIndex + 1).padStart(2, "0");
+      svgEl.appendChild(numEl);
+
+      if (clefDef.id === "guitar") {
+        const ovaEl = document.createElementNS(SVG_NS, "text");
+        ovaEl.setAttribute("x", String(rowStartX + 18));
+        ovaEl.setAttribute("y", String(TREBLE_Y + 40 + 22));
+        ovaEl.setAttribute("font-family", "Georgia, serif");
+        ovaEl.setAttribute("font-size", "13");
+        ovaEl.textContent = "8";
+        svgEl.appendChild(ovaEl);
+      }
+
+      for (let i = 0; i < row.count; i++) {
+        const mi = row.startIndex + i;
+        const measureNotes = measures[mi];
+        const isRowFirst = i === 0;
+        const isPieceFirst = mi === 0;
+        const w = isRowFirst ? row.widthPerMeasure + row.extra : row.widthPerMeasure;
+
+        measureStartBeats[mi] = globalBeat;
+
+        const hitRect = document.createElementNS(SVG_NS, "rect");
+        hitRect.setAttribute("x", String(x));
+        hitRect.setAttribute("y", String(rowY - 35));
+        hitRect.setAttribute("width", String(w));
+        hitRect.setAttribute("height", String(ROW_HEIGHT - 15));
+        hitRect.setAttribute("class", "measure-hit");
+        hitRect.setAttribute("data-measure-index", String(mi));
+        hitRect.addEventListener("click", () => onMeasureClick(mi));
+        svgEl.appendChild(hitRect);
+
+        const staves = {};
+        staveNames.forEach((name) => {
+          const y = isGrand ? (name === "bass" ? BASS_Y : TREBLE_Y) : TREBLE_Y;
+          const stave = new Stave(x, y, w);
+          if (isRowFirst) {
+            stave.addClef(name);
+            if (key.acc !== null) stave.addKeySignature(key.id === "Chromatic" ? "C" : key.id);
+            if (isPieceFirst) stave.addTimeSignature(settings.timeSig);
+          }
+          stave.setContext(context).draw();
+          staves[name] = stave;
+        });
+
+        if (isGrand && isRowFirst) {
+          try {
+            const brace = new StaveConnector(staves.treble, staves.bass);
+            brace.setType(StaveConnector.type.BRACE);
+            brace.setContext(context).draw();
+            const barLine = new StaveConnector(staves.treble, staves.bass);
+            barLine.setType(StaveConnector.type.SINGLE_LEFT);
+            barLine.setContext(context).draw();
+          } catch (e) {}
+        }
+
+        x += w;
+
+        const { voices, notesByStave } = buildVoicesForMeasure(measureNotes, settings, staveNames, isGrand, clefDef, key, pcMap);
+
+        new Formatter().joinVoices(voices).format(voices, w - (isRowFirst ? row.extra + 20 : 20));
+
+        staveNames.forEach((name, idx) => {
+          voices[idx].draw(context, staves[name]);
+          const beams = Beam.generateBeams(notesByStave[name]);
+          beams.forEach((b) => b.setContext(context).draw());
+        });
+
+        measureNotes.forEach((ev, idx) => {
+          if (ev.rest) {
+            globalBeat += ev.durationBeats;
+            return;
+          }
+          const writtenMidi = ev.midi + clefDef.transposeWritten;
+          const targetStave = isGrand ? (writtenMidi >= clefDef.splitAt ? "treble" : "bass") : staveNames[0];
+          const vfNote = notesByStave[targetStave][idx];
+          let el = null;
+          try { el = vfNote.getSVGElement && vfNote.getSVGElement(); } catch (e) { el = null; }
+          playbackEvents.push({
+            element: el,
+            midi: ev.midi,
+            startBeatGlobal: globalBeat,
+            durationBeats: ev.durationBeats,
+          });
+          globalBeat += ev.durationBeats;
+        });
+      }
+    });
+
+    highlightMeasureIndex(selectedMeasureIndex);
+  }
+
+  // ---------- fretboard + mode diagram ----------
+  function renderFretboard(position, key, modeRootPc) {
+    const lo = position.start, hi = position.start + position.span;
+    const frets = hi - lo + 1;
+    const W = 300, H = 150, x0 = 34, y0 = 16;
+    const cw = (W - x0 - 14) / frets;
+    const rh = (H - y0 - 30) / 5;
+    const pcs = diatonicPcSet(key);
+    const parts = [];
+
+    for (let s = 0; s < 6; s++) {
+      const yy = y0 + s * rh;
+      parts.push('<line x1="' + x0 + '" x2="' + (W - 14) + '" y1="' + yy + '" y2="' + yy + '" stroke="#3D3A30" stroke-width="0.8"></line>');
+    }
+    for (let f = 0; f <= frets; f++) {
+      const fx = x0 + f * cw;
+      const isNut = f === 0 && lo === 0;
+      parts.push('<line x1="' + fx + '" x2="' + fx + '" y1="' + y0 + '" y2="' + (y0 + 5 * rh) + '" stroke="#C4B89A" stroke-width="' + (isNut ? 3 : 0.8) + '"></line>');
+      if (f < frets) {
+        parts.push('<text x="' + (fx + cw / 2) + '" y="138" font-family="Helvetica, Arial, sans-serif" font-size="8.5" letter-spacing="0.12em" fill="#8A9E7E" text-anchor="middle">' + (lo + f) + '</text>');
+      }
+    }
+    for (let s = 0; s < 6; s++) {
+      for (let f = lo; f <= hi; f++) {
+        const midi = OPEN_STRING_MIDI[s] + f;
+        const pc = ((midi % 12) + 12) % 12;
+        if (pcs !== null && !pcs.has(pc)) continue;
+        const cx = x0 + (f - lo) * cw + cw / 2;
+        const cy = y0 + (5 - s) * rh;
+        const isRoot = pc === modeRootPc;
+        parts.push('<circle cx="' + cx + '" cy="' + cy + '" r="4.2" fill="' + (isRoot ? "#5C6B52" : "none") + '" stroke="#5C6B52" stroke-width="1.2"></circle>');
+      }
+    }
+    ["E", "A", "D", "G", "B", "E"].forEach((n, i) => {
+      parts.push('<text x="20" y="' + (y0 + (5 - i) * rh + 3.2) + '" font-family="Helvetica, Arial, sans-serif" font-size="8.5" letter-spacing="0.12em" fill="#5C6B52" text-anchor="middle">' + n + '</text>');
+    });
+
+    return '<svg viewBox="0 0 ' + W + ' ' + H + '" width="100%" style="display:block">' + parts.join("") + "</svg>";
+  }
+
+  function renderModePanel(settings) {
+    const panel = document.getElementById("mode-panel");
+    const show = settings.mode === "position" && settings.keyObj.id !== "Chromatic";
+    panel.style.display = show ? "flex" : "none";
+    if (!show) return;
+
+    const pos = POSITIONS.find((p) => p.id === settings.positionId);
+    const lo = pos.start, hi = pos.start + pos.span;
+    const mi = modeInfo(settings.keyObj, lo, hi);
+
+    // The diagram shows one fret beyond the position's own box — a plain
+    // position-box width can cut the pattern off before it reaches the
+    // octave (e.g. Mixolydian's flat seventh often lands just past it).
+    const diagramPos = { start: pos.start, span: pos.span + 1 };
+    const diagramHi = hi + 1;
+
+    document.getElementById("fretboard-host").innerHTML = renderFretboard(diagramPos, settings.keyObj, mi.rootPc);
+    document.getElementById("mode-summary").textContent = mi.rootName + " " + mi.name + " · frets " + lo + "–" + diagramHi;
+    document.getElementById("mode-name").textContent = mi.name;
+    document.getElementById("mode-copy").textContent =
+      "This window of " + settings.keyObj.label + " starts on " + mi.rootName +
+      ", so the shape reads as " + mi.name + " — " + MODE_CHAR[mi.name] + ". Filled dots are the mode root.";
+
+    const chipsHost = document.getElementById("mode-chips");
+    chipsHost.innerHTML = "";
+    MODES.forEach((m, i) => {
+      const span = document.createElement("span");
+      span.className = "mode-chip" + (i === mi.idx ? " active" : "");
+      span.textContent = m;
+      chipsHost.appendChild(span);
+    });
+  }
+
+  // ---------- audio playback ----------
+  // playbackState: "stopped" | "playing" | "paused". Pausing suspends the
+  // AudioContext itself (rather than tearing down scheduled nodes) so every
+  // already-scheduled note and metronome click simply waits — resuming
+  // continues them exactly where they left off, with no rescheduling needed.
+  let audioCtx = null;
+  let playbackState = "stopped";
+  let allOscNodes = []; // every oscillator (notes AND metronome) for the current run, so Stop can hard-stop all of them
+  let scheduleList = []; // {element, absStart, absEnd} for the notes being highlighted this run
+  let pollTimerId = null; // setInterval, not requestAnimationFrame — rAF can stall indefinitely in a backgrounded/inactive tab, which would silently freeze the highlight mid-playback
+  let playbackTotalEndTime = 0; // absolute ctx.currentTime when this run's audio finishes
+  let playbackAnchorCtxTime = 0; // ctx.currentTime that corresponds to playbackFromBeat
+  let playbackSecPerBeat = 0.5;
+  let playbackFromBeat = 0;
+  let lastTrackedMeasureIdx = null; // which measure the highlight is currently on, so tick() only touches the DOM on change
+  let selectedMeasureIndex = null;
+
+  // Which measure a given global beat falls in (last measure whose start <= beat).
+  function currentMeasureIndexForBeat(beat) {
+    let idx = 0;
+    for (let i = 0; i < measureStartBeats.length; i++) {
+      if (measureStartBeats[i] <= beat + 1e-6) idx = i;
+      else break;
+    }
+    return idx;
+  }
+
+  function ensureAudioCtx() {
+    if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    return audioCtx;
+  }
+  function midiToFreq(m) {
+    return 440 * Math.pow(2, (m - 69) / 12);
+  }
+  function clearNoteHighlights() {
+    document.querySelectorAll(".note-active").forEach((el) => el.classList.remove("note-active"));
+  }
+  function setPlayPauseUI() {
+    const playBtn = document.getElementById("play-btn");
+    const stopBtn = document.getElementById("stop-btn");
+    if (playbackState === "playing") {
+      playBtn.textContent = "Pause";
+      stopBtn.disabled = false;
+    } else if (playbackState === "paused") {
+      playBtn.textContent = "Resume";
+      stopBtn.disabled = false;
+    } else {
+      playBtn.textContent = "Play back";
+      stopBtn.disabled = true;
+    }
+  }
+
+  function tick() {
+    if (playbackState !== "playing" || !audioCtx) return;
+    const now = audioCtx.currentTime;
+    scheduleList.forEach((item) => {
+      const active = now >= item.absStart && now < item.absEnd;
+      const has = item.element.classList.contains("note-active");
+      if (active && !has) item.element.classList.add("note-active");
+      else if (!active && has) item.element.classList.remove("note-active");
+    });
+
+    const currentBeat = playbackFromBeat + (now - playbackAnchorCtxTime) / playbackSecPerBeat;
+    const mIdx = currentMeasureIndexForBeat(currentBeat);
+    if (mIdx !== lastTrackedMeasureIdx) {
+      lastTrackedMeasureIdx = mIdx;
+      highlightMeasureIndex(mIdx);
+    }
+
+    if (now >= playbackTotalEndTime) {
+      stopPlayback();
+    }
+  }
+
+  function startPollLoop() {
+    if (pollTimerId != null) clearInterval(pollTimerId);
+    pollTimerId = setInterval(tick, 50);
+  }
+  function stopPollLoop() {
+    if (pollTimerId != null) {
+      clearInterval(pollTimerId);
+      pollTimerId = null;
+    }
+  }
+
+  // Hard-stops every scheduled oscillator (notes AND metronome clicks — a
+  // metronome click already scheduled for a later beat keeps sounding on its
+  // own timer otherwise, since only its start/stop times were queued) and
+  // halts the highlight loop.
+  function hardStopAudio() {
+    allOscNodes.forEach((o) => {
+      try { o.stop(); } catch (e) {}
+    });
+    allOscNodes = [];
+    stopPollLoop();
+  }
+
+  function stopPlayback() {
+    hardStopAudio();
+    clearNoteHighlights();
+    playbackState = "stopped";
+    lastTrackedMeasureIdx = null;
+    highlightMeasureIndex(selectedMeasureIndex);
+    setPlayPauseUI();
+  }
+
+  function pausePlayback() {
+    if (playbackState !== "playing" || !audioCtx) return;
+    audioCtx.suspend();
+    playbackState = "paused";
+    stopPollLoop();
+    setPlayPauseUI();
+  }
+
+  function resumePlayback() {
+    if (playbackState !== "paused" || !audioCtx) return;
+    audioCtx.resume();
+    playbackState = "playing";
+    setPlayPauseUI();
+    startPollLoop();
+  }
+
+  // Schedules the whole line from a given global beat onward (0 = the very
+  // start; a clicked measure's own start beat otherwise) and begins playing.
+  function startPlaybackFrom(fromBeat, bpm, beatsPerMeasure) {
+    if (!playbackEvents.length) return;
+    hardStopAudio();
+    clearNoteHighlights();
+    const ctx = ensureAudioCtx();
+    if (ctx.state === "suspended") ctx.resume();
+    const secPerBeat = 60 / bpm;
+    const anchorCtxTime = ctx.currentTime + 0.12;
+
+    const startBeatInt = Math.max(0, Math.ceil(fromBeat - 1e-6));
+    for (let b = startBeatInt; b < playbackTotalBeats; b++) {
+      const t = anchorCtxTime + (b - fromBeat) * secPerBeat;
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.frequency.value = b % beatsPerMeasure === 0 ? 1600 : 1000;
+      gain.gain.setValueAtTime(0.0001, t);
+      gain.gain.linearRampToValueAtTime(0.13, t + 0.002);
+      gain.gain.exponentialRampToValueAtTime(0.0001, t + 0.05);
+      osc.connect(gain).connect(ctx.destination);
+      osc.start(t);
+      osc.stop(t + 0.06);
+      allOscNodes.push(osc);
+    }
+
+    scheduleList = [];
+    playbackEvents.forEach((ev) => {
+      if (ev.startBeatGlobal < fromBeat - 1e-6) return;
+      const t0 = anchorCtxTime + (ev.startBeatGlobal - fromBeat) * secPerBeat;
+      const dur = ev.durationBeats * secPerBeat * 0.85;
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = "triangle";
+      osc.frequency.value = midiToFreq(ev.midi);
+      gain.gain.setValueAtTime(0.0001, t0);
+      gain.gain.linearRampToValueAtTime(0.22, t0 + 0.012);
+      gain.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
+      osc.connect(gain).connect(ctx.destination);
+      osc.start(t0);
+      osc.stop(t0 + dur + 0.02);
+      allOscNodes.push(osc);
+      if (ev.element) scheduleList.push({ element: ev.element, absStart: t0, absEnd: t0 + dur });
+    });
+
+    playbackTotalEndTime = anchorCtxTime + (playbackTotalBeats - fromBeat) * secPerBeat + 0.25;
+    playbackAnchorCtxTime = anchorCtxTime;
+    playbackSecPerBeat = secPerBeat;
+    playbackFromBeat = fromBeat;
+    lastTrackedMeasureIdx = currentMeasureIndexForBeat(fromBeat);
+    highlightMeasureIndex(lastTrackedMeasureIdx);
+    playbackState = "playing";
+    setPlayPauseUI();
+    startPollLoop();
+  }
+
+  // Highlights exactly one measure (by index), used both for the static
+  // "will resume from here" marker and for the moving now-playing tracker.
+  function highlightMeasureIndex(idx) {
+    document.querySelectorAll(".measure-hit").forEach((el) => el.classList.remove("measure-selected"));
+    if (idx != null) {
+      const el = document.querySelector('.measure-hit[data-measure-index="' + idx + '"]');
+      if (el) el.classList.add("measure-selected");
+    }
+  }
+
+  function onMeasureClick(mi) {
+    selectedMeasureIndex = mi;
+    startPlaybackFrom(measureStartBeats[mi], parseInt(tempoRange.value, 10), TIME_BEATS[timeSelect.value]);
+  }
+
+  // ---------- UI wiring ----------
+  const clefSelect = document.getElementById("clef-select");
+  const clefHint = document.getElementById("clef-hint");
+  const keySelect = document.getElementById("key-select");
+  const positionSelect = document.getElementById("position-select");
+  const positionHint = document.getElementById("position-hint");
+  const lowSelect = document.getElementById("low-select");
+  const highSelect = document.getElementById("high-select");
+  const positionField = document.getElementById("position-field");
+  const rangeField = document.getElementById("range-field");
+  const modePositionBtn = document.getElementById("mode-position");
+  const modeRangeBtn = document.getElementById("mode-range");
+  const timeSelect = document.getElementById("time-select");
+  const levelSelect = document.getElementById("level-select");
+  const levelHint = document.getElementById("level-hint");
+  const measuresSelect = document.getElementById("measures-select");
+  const tempoRange = document.getElementById("tempo-range");
+  const tempoValue = document.getElementById("tempo-value");
+  const stageMetaEl = document.getElementById("stage-meta");
+  const metaLineEl = document.getElementById("meta-line");
+  const totalCountEl = document.getElementById("total-count");
+  const sessionCountEl = document.getElementById("session-count");
+
+  CLEFS.forEach((c) => {
+    const opt = document.createElement("option");
+    opt.value = c.id;
+    opt.textContent = c.label;
+    clefSelect.appendChild(opt);
+  });
+  clefSelect.value = "guitar";
+  clefHint.textContent = clefById(clefSelect.value).hint;
+
+  KEYS.forEach((k) => {
+    const opt = document.createElement("option");
+    opt.value = k.id;
+    opt.textContent = k.label;
+    keySelect.appendChild(opt);
+  });
+  keySelect.value = "C";
+
+  POSITIONS.forEach((p) => {
+    const opt = document.createElement("option");
+    opt.value = p.id;
+    opt.textContent = p.label;
+    positionSelect.appendChild(opt);
+  });
+  positionHint.textContent = POSITIONS[0].hint;
+
+  for (let m = 40; m <= 88; m++) {
+    const opt1 = document.createElement("option");
+    opt1.value = m;
+    opt1.textContent = midiName(m);
+    lowSelect.appendChild(opt1);
+    const opt2 = document.createElement("option");
+    opt2.value = m;
+    opt2.textContent = midiName(m);
+    highSelect.appendChild(opt2);
+  }
+  lowSelect.value = "40";
+  highSelect.value = "64";
+
+  let mode = "position";
+  function setMode(next) {
+    mode = next;
+    modePositionBtn.setAttribute("aria-pressed", String(mode === "position"));
+    modeRangeBtn.setAttribute("aria-pressed", String(mode === "range"));
+    positionField.style.display = mode === "position" ? "" : "none";
+    rangeField.style.display = mode === "range" ? "flex" : "none";
+  }
+  modePositionBtn.addEventListener("click", () => { setMode("position"); generateNewLine(); });
+  modeRangeBtn.addEventListener("click", () => { setMode("range"); generateNewLine(); });
+  setMode("position");
+
+  // Any parameter change regenerates the line immediately (tempo excepted —
+  // it only re-times playback, it doesn't change what was written).
+  [clefSelect, keySelect, positionSelect, lowSelect, highSelect, timeSelect, levelSelect, measuresSelect].forEach((el) => {
+    el.addEventListener("change", generateNewLine);
+  });
+  clefSelect.addEventListener("change", () => {
+    clefHint.textContent = clefById(clefSelect.value).hint;
+  });
+  positionSelect.addEventListener("change", () => {
+    positionHint.textContent = POSITIONS.find((p) => p.id === positionSelect.value).hint;
+  });
+  levelSelect.addEventListener("change", () => {
+    levelHint.textContent = LEVEL_HINTS[levelSelect.value];
+  });
+  levelHint.textContent = LEVEL_HINTS[levelSelect.value];
+
+  tempoRange.addEventListener("input", () => {
+    tempoValue.textContent = tempoRange.value;
+    stageMetaEl.textContent = tempoRange.value + " bpm · " + measuresSelect.value + " bars";
+  });
+
+  let sessionCount = 0;
+  function getTotalCount() {
+    try {
+      return parseInt(localStorage.getItem("fretline-total-lines") || "0", 10) || 0;
+    } catch (e) {
+      return 0;
+    }
+  }
+  function bumpTotalCount() {
+    try {
+      const next = getTotalCount() + 1;
+      localStorage.setItem("fretline-total-lines", String(next));
+      totalCountEl.textContent = String(next);
+    } catch (e) {}
+  }
+  totalCountEl.textContent = String(getTotalCount());
+
+  function currentSettings() {
+    const keyObj = keyById(keySelect.value);
+    const clefObj = clefById(clefSelect.value);
+    return {
+      keyObj,
+      clefObj,
+      timeSig: timeSelect.value,
+      level: levelSelect.value,
+      measureCount: parseInt(measuresSelect.value, 10),
+      mode,
+      positionId: positionSelect.value,
+      low: parseInt(lowSelect.value, 10),
+      high: parseInt(highSelect.value, 10),
+    };
+  }
+
+  function renderMeta(settings) {
+    const pos = POSITIONS.find((p) => p.id === settings.positionId);
+    const src = settings.mode === "position" ? pos.label : "Range " + midiName(settings.low) + "–" + midiName(settings.high);
+    const items = [settings.clefObj.shortLabel, settings.keyObj.label, src, settings.timeSig, "Level " + settings.level];
+    metaLineEl.textContent = items.join(" · ");
+    stageMetaEl.textContent = tempoRange.value + " bpm · " + settings.measureCount + " bars";
+  }
+
+  let lastMeasures = null;
+  let lastSettings = null;
+
+  function generateNewLine() {
+    stopPlayback();
+    selectedMeasureIndex = null;
+    const settings = currentSettings();
+    let pool;
+    if (settings.mode === "position") {
+      const pos = POSITIONS.find((p) => p.id === settings.positionId);
+      pool = buildPositionPool(pos, settings.keyObj);
+    } else {
+      const low = Math.min(settings.low, settings.high);
+      const high = Math.max(settings.low, settings.high);
+      pool = buildRangePool(low, high, settings.keyObj);
+    }
+    if (!pool.length) pool = buildRangePool(40, 64, keyById("Chromatic"));
+    const measures = generateMeasures(settings, pool);
+    lastMeasures = measures;
+    lastSettings = settings;
+    renderScore(measures, settings);
+    renderMeta(settings);
+    renderModePanel(settings);
+    sessionCount++;
+    sessionCountEl.textContent = String(sessionCount);
+    bumpTotalCount();
+  }
+
+  // Re-lays out the *same* line for a new container width (e.g. window resize).
+  // Deliberately does not touch the practice counters — reflowing isn't a new line.
+  function rerenderForWidth() {
+    if (!lastMeasures) return;
+    stopPlayback();
+    renderScore(lastMeasures, lastSettings);
+    renderMeta(lastSettings);
+  }
+
+  // Picking "Generate" also rolls a fresh key, so repeated practice reps
+  // cover different keys automatically rather than sitting on whichever key
+  // was last selected. "Chromatic" is excluded — it isn't a musical key.
+  function randomizeKey() {
+    const musicalKeys = KEYS.filter((k) => k.id !== "Chromatic");
+    const pick = musicalKeys[Math.floor(Math.random() * musicalKeys.length)];
+    keySelect.value = pick.id;
+  }
+
+  document.getElementById("generate-btn").addEventListener("click", () => {
+    randomizeKey();
+    generateNewLine();
+  });
+  document.getElementById("play-btn").addEventListener("click", () => {
+    if (playbackState === "playing") {
+      pausePlayback();
+    } else if (playbackState === "paused") {
+      resumePlayback();
+    } else {
+      const fromBeat = selectedMeasureIndex != null && measureStartBeats[selectedMeasureIndex] != null ? measureStartBeats[selectedMeasureIndex] : 0;
+      startPlaybackFrom(fromBeat, parseInt(tempoRange.value, 10), TIME_BEATS[timeSelect.value]);
+    }
+  });
+  document.getElementById("stop-btn").addEventListener("click", stopPlayback);
+  setPlayPauseUI();
+
+  // Wrapping the notation to the available width means the very first render
+  // has to wait until the container actually has a real width — not just until
+  // 'load' fires, since a hidden/backgrounded tab can still report a 0 or stale
+  // width at that point. ResizeObserver reliably reports the container's real
+  // size as soon as it has one (firing once immediately on observe(), and again
+  // on every genuine resize after that), so it drives both the first render and
+  // later reflows; only genuine width CHANGES after the first render re-lay the
+  // existing line out rather than generating a new one.
+  const notationScrollEl = document.getElementById("notation-scroll");
+  let hasGeneratedOnce = false;
+  let resizeDebounce = null;
+  const resizeObserver = new ResizeObserver((entries) => {
+    const width = entries[0].contentRect.width;
+    if (width <= 0) return;
+    clearTimeout(resizeDebounce);
+    resizeDebounce = setTimeout(() => {
+      if (!hasGeneratedOnce) {
+        hasGeneratedOnce = true;
+        generateNewLine();
+      } else {
+        rerenderForWidth();
+      }
+    }, 150);
+  });
+  resizeObserver.observe(notationScrollEl);
+})();
+</script>
