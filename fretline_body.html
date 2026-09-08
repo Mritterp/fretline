@@ -180,8 +180,9 @@ input[type="range"] { width: 100%; accent-color: var(--bark); height: 18px; marg
   display: flex;
   flex-direction: column;
   gap: 10px;
-  padding-top: 6px;
+  padding: 6px 0 16px;
   border-top: 1px solid var(--wheat);
+  order: 1; /* desktop: after the field panel, matching its old position */
 }
 .btn-row { display: flex; gap: 8px; }
 .btn-row .btn { flex: 1; }
@@ -327,8 +328,9 @@ button.btn {
   .panel-summary-toggle .label { font-size: 9px; letter-spacing: 0.2em; text-transform: uppercase; color: var(--bark); }
   .panel-summary-toggle .summary { font-size: 10px; letter-spacing: 0.06em; color: var(--moss); text-overflow: ellipsis; overflow: hidden; white-space: nowrap; }
   .panel-summary-toggle .edit { font-size: 9px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--bark); white-space: nowrap; flex-shrink: 0; }
-  #panel-body { display: none; padding: 30px 28px 40px; }
+  #panel-body { display: none; padding: 30px 28px 40px; order: 1; }
   #panel-body.open { display: flex; }
+  .actions { order: 0; padding-left: 18px; padding-right: 18px; border-top: none; } /* always visible, right below the summary bar regardless of drawer state; toggle's own border-bottom is the only separator needed here */
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -356,6 +358,14 @@ button.btn {
         <span class="summary" id="panel-summary-text"></span>
         <span class="edit" id="panel-summary-edit">Edit</span>
       </button>
+
+      <div class="actions">
+        <button type="button" class="btn btn-primary" id="generate-btn">Generate new line</button>
+        <div class="btn-row">
+          <button type="button" class="btn btn-outline" id="play-btn">Play back</button>
+          <button type="button" class="btn btn-outline" id="stop-btn" disabled>Stop</button>
+        </div>
+      </div>
 
       <div id="panel-body">
       <div class="panel-section">
@@ -460,13 +470,17 @@ button.btn {
           </div>
           <input type="range" id="tempo-range" min="40" max="168" value="88" step="1">
         </div>
-      </div>
 
-      <div class="actions">
-        <button type="button" class="btn btn-primary" id="generate-btn">Generate new line</button>
-        <div class="btn-row">
-          <button type="button" class="btn btn-outline" id="play-btn">Play back</button>
-          <button type="button" class="btn btn-outline" id="stop-btn" disabled>Stop</button>
+        <div class="field">
+          <label for="tone-select">Tone</label>
+          <div class="select-wrap wide">
+            <select id="tone-select">
+              <option value="sine">Sine</option>
+              <option value="triangle" selected>Triangle</option>
+              <option value="square">Square</option>
+            </select>
+            <svg width="11" height="7" viewBox="0 0 11 7" fill="none"><path d="M1 1l4.5 4.5L10 1" stroke="#3D3A30" stroke-width="1.2"/></svg>
+          </div>
         </div>
       </div>
 
@@ -1334,7 +1348,7 @@ button.btn {
       const dur = ev.durationBeats * secPerBeat * 0.85;
       const osc = ctx.createOscillator();
       const gain = ctx.createGain();
-      osc.type = "triangle";
+      osc.type = toneSelect.value;
       osc.frequency.value = midiToFreq(ev.midi);
       gain.gain.setValueAtTime(0.0001, t0);
       gain.gain.linearRampToValueAtTime(0.22, t0 + 0.012);
@@ -1390,6 +1404,7 @@ button.btn {
   const measuresSelect = document.getElementById("measures-select");
   const tempoRange = document.getElementById("tempo-range");
   const tempoValue = document.getElementById("tempo-value");
+  const toneSelect = document.getElementById("tone-select");
   const stageMetaEl = document.getElementById("stage-meta");
   const metaLineEl = document.getElementById("meta-line");
   const totalCountEl = document.getElementById("total-count");
