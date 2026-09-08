@@ -159,8 +159,7 @@ main.rig {
   display: flex;
   flex-direction: column;
   gap: 7px;
-  padding: 14px 13px 15px;
-  background: var(--parchment);
+  padding: 10px 0 0 12px;
   border-left: 2px solid var(--sage);
 }
 .subpanel .subpanel-label {
@@ -184,6 +183,8 @@ input[type="range"] { width: 100%; accent-color: var(--bark); height: 18px; marg
   padding-top: 6px;
   border-top: 1px solid var(--wheat);
 }
+.btn-row { display: flex; gap: 8px; }
+.btn-row .btn { flex: 1; }
 button.btn {
   border-radius: 0;
   cursor: pointer;
@@ -283,11 +284,12 @@ button.btn {
   display: flex;
   flex-wrap: wrap;
   gap: 24px 40px;
-  align-items: flex-start;
+  align-items: center;
   padding-top: 12px;
   border-top: 1px solid var(--wheat);
 }
-.mode-panel .fretboard-col { flex: 0 1 300px; min-width: 260px; }
+.mode-panel .diagrams-col { flex: 0 1 300px; min-width: 260px; display: flex; flex-direction: column; gap: 20px; }
+.mode-panel .diagram-caption { display: block; font-size: 9px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--sage); margin-bottom: 8px; }
 .mode-panel .info-col { flex: 1 1 260px; min-width: 230px; display: flex; flex-direction: column; gap: 12px; }
 .mode-panel .info-head { display: flex; align-items: baseline; justify-content: space-between; gap: 16px; }
 .mode-panel .info-head span:first-child { font-size: 9px; letter-spacing: 0.2em; text-transform: uppercase; color: var(--sage); }
@@ -308,10 +310,25 @@ button.btn {
   text-wrap: pretty;
 }
 
+#panel-body { display: flex; flex-direction: column; gap: 24px; }
+.panel-summary-toggle { display: none; }
+
 @media (max-width: 860px) {
   header.masthead { padding: 24px 20px 18px; }
-  .panel { border-right: none; border-bottom: 1px solid var(--wheat); flex-basis: auto; }
+  .panel { flex: 1 1 100%; min-width: 0; border-right: none; border-bottom: 1px solid var(--wheat); padding: 0; }
   .stage { padding: 24px 20px 32px; }
+
+  .panel-head { display: none; }
+  .panel-summary-toggle {
+    display: flex; align-items: center; justify-content: space-between; gap: 12px;
+    width: 100%; border: none; border-bottom: 1px solid var(--wheat);
+    background: var(--linen); padding: 14px 18px; cursor: pointer; font-family: var(--font-body); text-align: left;
+  }
+  .panel-summary-toggle .label { font-size: 9px; letter-spacing: 0.2em; text-transform: uppercase; color: var(--bark); }
+  .panel-summary-toggle .summary { font-size: 10px; letter-spacing: 0.06em; color: var(--moss); text-overflow: ellipsis; overflow: hidden; white-space: nowrap; }
+  .panel-summary-toggle .edit { font-size: 9px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--bark); white-space: nowrap; flex-shrink: 0; }
+  #panel-body { display: none; padding: 30px 28px 40px; }
+  #panel-body.open { display: flex; }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -334,22 +351,30 @@ button.btn {
         <span>Parameters</span>
         <span>Fretline · Practice</span>
       </div>
+      <button type="button" class="panel-summary-toggle" id="panel-summary-toggle">
+        <span class="label">Parameters</span>
+        <span class="summary" id="panel-summary-text"></span>
+        <span class="edit" id="panel-summary-edit">Edit</span>
+      </button>
 
+      <div id="panel-body">
       <div class="panel-section">
-        <div class="field">
-          <label for="clef-select">Clef</label>
-          <div class="select-wrap wide">
-            <select id="clef-select"></select>
-            <svg width="11" height="7" viewBox="0 0 11 7" fill="none"><path d="M1 1l4.5 4.5L10 1" stroke="#3D3A30" stroke-width="1.2"/></svg>
+        <div class="two-up">
+          <div class="field">
+            <label for="clef-select">Clef</label>
+            <div class="select-wrap wide">
+              <select id="clef-select"></select>
+              <svg width="11" height="7" viewBox="0 0 11 7" fill="none"><path d="M1 1l4.5 4.5L10 1" stroke="#3D3A30" stroke-width="1.2"/></svg>
+            </div>
+            <p class="hint" id="clef-hint"></p>
           </div>
-          <p class="hint" id="clef-hint"></p>
-        </div>
 
-        <div class="field">
-          <label for="key-select">Key</label>
-          <div class="select-wrap wide">
-            <select id="key-select"></select>
-            <svg width="11" height="7" viewBox="0 0 11 7" fill="none"><path d="M1 1l4.5 4.5L10 1" stroke="#3D3A30" stroke-width="1.2"/></svg>
+          <div class="field">
+            <label for="key-select">Key</label>
+            <div class="select-wrap wide">
+              <select id="key-select"></select>
+              <svg width="11" height="7" viewBox="0 0 11 7" fill="none"><path d="M1 1l4.5 4.5L10 1" stroke="#3D3A30" stroke-width="1.2"/></svg>
+            </div>
           </div>
         </div>
 
@@ -413,21 +438,20 @@ button.btn {
               <svg width="11" height="7" viewBox="0 0 11 7" fill="none"><path d="M1 1l4.5 4.5L10 1" stroke="#3D3A30" stroke-width="1.2"/></svg>
             </div>
           </div>
-        </div>
-
-        <div class="field">
-          <label for="level-select">Rhythmic difficulty</label>
-          <div class="select-wrap wide">
-            <select id="level-select">
-              <option value="1">Level 1</option>
-              <option value="2">Level 2</option>
-              <option value="3">Level 3</option>
-              <option value="4">Level 4</option>
-            </select>
-            <svg width="11" height="7" viewBox="0 0 11 7" fill="none"><path d="M1 1l4.5 4.5L10 1" stroke="#3D3A30" stroke-width="1.2"/></svg>
+          <div class="field">
+            <label for="level-select">Level</label>
+            <div class="select-wrap tight">
+              <select id="level-select">
+                <option value="1">Level 1</option>
+                <option value="2">Level 2</option>
+                <option value="3">Level 3</option>
+                <option value="4">Level 4</option>
+              </select>
+              <svg width="11" height="7" viewBox="0 0 11 7" fill="none"><path d="M1 1l4.5 4.5L10 1" stroke="#3D3A30" stroke-width="1.2"/></svg>
+            </div>
           </div>
-          <p class="hint" id="level-hint"></p>
         </div>
+        <p class="hint" id="level-hint"></p>
 
         <div class="field">
           <div class="tempo-head">
@@ -440,14 +464,17 @@ button.btn {
 
       <div class="actions">
         <button type="button" class="btn btn-primary" id="generate-btn">Generate new line</button>
-        <button type="button" class="btn btn-outline" id="play-btn">Play back</button>
-        <button type="button" class="btn btn-outline" id="stop-btn" disabled>Stop</button>
+        <div class="btn-row">
+          <button type="button" class="btn btn-outline" id="play-btn">Play back</button>
+          <button type="button" class="btn btn-outline" id="stop-btn" disabled>Stop</button>
+        </div>
       </div>
 
       <div class="session-counter">
         <span>Lines read this session</span>
         <strong id="session-count">0</strong>
       </div>
+      </div><!-- #panel-body -->
     </section>
 
     <section class="stage" aria-label="Notation">
@@ -468,7 +495,16 @@ button.btn {
       </div>
 
       <div class="mode-panel" id="mode-panel">
-        <div class="fretboard-col" id="fretboard-host"></div>
+        <div class="diagrams-col">
+          <div>
+            <span class="diagram-caption">One octave, root at the bottom</span>
+            <div id="keyboard-host"></div>
+          </div>
+          <div>
+            <span class="diagram-caption" id="fretboard-caption"></span>
+            <div id="fretboard-host"></div>
+          </div>
+        </div>
         <div class="info-col">
           <div class="info-head">
             <span>Mode in use</span>
@@ -529,6 +565,14 @@ button.btn {
       map[pc] = { letter, acc };
     }
     return map;
+  }
+
+  // Display name for a pitch class, spelled per the current key's letters
+  // (sharp/flat/natural) rather than a fixed enharmonic choice.
+  function pcToName(pc, key) {
+    const entry = pcToLetterMap(key.acc)[pc];
+    if (!entry) return "";
+    return entry.letter + (entry.acc === 1 ? "♯" : entry.acc === -1 ? "♭" : "");
   }
 
   function keyById(id) {
@@ -1038,11 +1082,63 @@ button.btn {
         const cx = x0 + (f - lo) * cw + cw / 2;
         const cy = y0 + (5 - s) * rh;
         const isRoot = pc === modeRootPc;
-        parts.push('<circle cx="' + cx + '" cy="' + cy + '" r="4.2" fill="' + (isRoot ? "#5C6B52" : "none") + '" stroke="#5C6B52" stroke-width="1.2"></circle>');
+        const name = pcToName(pc, key);
+        parts.push('<circle cx="' + cx + '" cy="' + cy + '" r="9" fill="' + (isRoot ? "#5C6B52" : "#F5F0E8") + '" stroke="#5C6B52" stroke-width="1.2"></circle>');
+        parts.push('<text x="' + cx + '" y="' + (cy + 2.8) + '" font-family="Helvetica, Arial, sans-serif" font-size="8" font-weight="700" fill="' + (isRoot ? "#F5F0E8" : "#5C6B52") + '" text-anchor="middle">' + name + '</text>');
       }
     }
     ["E", "A", "D", "G", "B", "E"].forEach((n, i) => {
       parts.push('<text x="20" y="' + (y0 + (5 - i) * rh + 3.2) + '" font-family="Helvetica, Arial, sans-serif" font-size="8.5" letter-spacing="0.12em" fill="#5C6B52" text-anchor="middle">' + n + '</text>');
+    });
+
+    return '<svg viewBox="0 0 ' + W + ' ' + H + '" width="100%" style="display:block">' + parts.join("") + "</svg>";
+  }
+
+  // Piano equivalent of renderFretboard, for clefs with no fretboard position
+  // to draw — one octave, same dot/root convention. The octave starts on the
+  // mode root itself, so root sits at the low (leftmost) end of the keyboard
+  // rather than always starting the window on C.
+  const WHITE_LETTER = { 0: "C", 2: "D", 4: "E", 5: "F", 7: "G", 9: "A", 11: "B" };
+  function renderKeyboard(key, modeRootPc) {
+    const W = 300, H = 130, x0 = 10, y0 = 20, keyH = 82;
+    const pcs = diatonicPcSet(key);
+    const parts = [];
+
+    const startPc = modeRootPc;
+    const steps = [];
+    for (let s = 0; s <= 12; s++) steps.push((startPc + s) % 12);
+
+    let whiteIdx = -1;
+    const positions = steps.map((pc) => {
+      if (WHITE_LETTER[pc]) {
+        whiteIdx++;
+        return { pc, white: true, whiteIdx };
+      }
+      return { pc, white: false, afterWhiteIdx: whiteIdx };
+    });
+    const whiteCount = whiteIdx + 1;
+    const keyW = (W - x0 * 2) / whiteCount;
+    const blackW = keyW * 0.6, blackH = keyH * 0.6;
+
+    positions.filter((p) => p.white).forEach((p) => {
+      const x = x0 + p.whiteIdx * keyW;
+      parts.push('<rect x="' + x + '" y="' + y0 + '" width="' + keyW + '" height="' + keyH + '" fill="none" stroke="#3D3A30" stroke-width="1.2"></rect>');
+    });
+    positions.filter((p) => !p.white).forEach((p) => {
+      const cx = x0 + (p.afterWhiteIdx + 1) * keyW;
+      parts.push('<rect x="' + (cx - blackW / 2) + '" y="' + y0 + '" width="' + blackW + '" height="' + blackH + '" fill="#3D3A30" stroke="#3D3A30" stroke-width="1.2"></rect>');
+    });
+
+    positions.forEach((p) => {
+      if (pcs !== null && !pcs.has(p.pc)) return;
+      const cx = p.white ? x0 + p.whiteIdx * keyW + keyW / 2 : x0 + (p.afterWhiteIdx + 1) * keyW;
+      const isRoot = p.pc === modeRootPc;
+      parts.push('<circle cx="' + cx + '" cy="10" r="4.2" fill="' + (isRoot ? "#5C6B52" : "none") + '" stroke="#5C6B52" stroke-width="1.2"></circle>');
+    });
+
+    positions.filter((p) => p.white).forEach((p) => {
+      const cx = x0 + p.whiteIdx * keyW + keyW / 2;
+      parts.push('<text x="' + cx + '" y="' + (y0 + keyH + 12) + '" font-family="Helvetica, Arial, sans-serif" font-size="8.5" letter-spacing="0.06em" fill="#5C6B52" text-anchor="middle">' + WHITE_LETTER[p.pc] + '</text>');
     });
 
     return '<svg viewBox="0 0 ' + W + ' ' + H + '" width="100%" style="display:block">' + parts.join("") + "</svg>";
@@ -1064,12 +1160,14 @@ button.btn {
     const diagramPos = { start: pos.start, span: pos.span + 1 };
     const diagramHi = hi + 1;
 
+    document.getElementById("keyboard-host").innerHTML = renderKeyboard(settings.keyObj, mi.rootPc);
     document.getElementById("fretboard-host").innerHTML = renderFretboard(diagramPos, settings.keyObj, mi.rootPc);
-    document.getElementById("mode-summary").textContent = mi.rootName + " " + mi.name + " · frets " + lo + "–" + diagramHi;
+    document.getElementById("fretboard-caption").textContent = "Frets " + lo + "–" + diagramHi;
+    document.getElementById("mode-summary").textContent = mi.rootName + " " + mi.name;
     document.getElementById("mode-name").textContent = mi.name;
     document.getElementById("mode-copy").textContent =
-      "This window of " + settings.keyObj.label + " starts on " + mi.rootName +
-      ", so the shape reads as " + mi.name + " — " + MODE_CHAR[mi.name] + ". Filled dots are the mode root.";
+      settings.keyObj.label + " starting on " + mi.rootName +
+      " reads as " + mi.name + " — " + MODE_CHAR[mi.name] + ". Filled dots on each diagram mark the mode root.";
 
     const chipsHost = document.getElementById("mode-chips");
     chipsHost.innerHTML = "";
@@ -1296,6 +1394,15 @@ button.btn {
   const metaLineEl = document.getElementById("meta-line");
   const totalCountEl = document.getElementById("total-count");
   const sessionCountEl = document.getElementById("session-count");
+  const panelBody = document.getElementById("panel-body");
+  const panelSummaryToggle = document.getElementById("panel-summary-toggle");
+  const panelSummaryText = document.getElementById("panel-summary-text");
+  const panelSummaryEdit = document.getElementById("panel-summary-edit");
+
+  panelSummaryToggle.addEventListener("click", () => {
+    const open = panelBody.classList.toggle("open");
+    panelSummaryEdit.textContent = open ? "Close" : "Edit";
+  });
 
   CLEFS.forEach((c) => {
     const opt = document.createElement("option");
@@ -1404,8 +1511,9 @@ button.btn {
   function renderMeta(settings) {
     const pos = POSITIONS.find((p) => p.id === settings.positionId);
     const src = settings.mode === "position" ? pos.label : "Range " + midiName(settings.low) + "–" + midiName(settings.high);
-    const items = [settings.clefObj.shortLabel, settings.keyObj.label, src, settings.timeSig, "Level " + settings.level];
+    const items = [settings.keyObj.label, src, settings.timeSig, "Level " + settings.level];
     metaLineEl.textContent = items.join(" · ");
+    panelSummaryText.textContent = items.join(" · ");
     stageMetaEl.textContent = tempoRange.value + " bpm · " + settings.measureCount + " bars";
   }
 
