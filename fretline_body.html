@@ -813,27 +813,48 @@ button.btn {
     return { voices, notesByStave };
   }
 
+  const MIN_BAR_WIDTH = 130;
+  // How much extra space long notes get relative to short ones when a bar
+  // is stretched to fill its row. VexFlow's own default is 10, which reads
+  // as quite aggressive for auto-generated lines mixing long notes with
+  // dense 16th-note runs — a lower value keeps the row looking more evenly
+  // spaced instead of ballooning gaps around the long notes.
+  const SPACING_SOFTMAX_FACTOR = 5;
+
   // Wrap measures into rows ("systems") that fit within the available width.
-  // Every bar gets the same width and every row carries the same number of
-  // bars — the bar count is sized to the tighter first row (which reserves
-  // extra room for the time signature) so it stays constant across rows.
-  function computeRows(measureCount, containerWidth) {
+  // Bars are sized to their own note content (measureMinWidths, from
+  // VexFlow's own minimum-width calculation) so dense rhythms get more room
+  // instead of overflowing a fixed-width bar. Rows are packed greedily and
+  // each row's bars are scaled up — never down, since shrinking below the
+  // content's minimum is exactly what caused the overflow — to fill the row.
+  function computeRows(measureMinWidths, containerWidth) {
     const ROW_EXTRA = 85; // clef + key signature, repeated at the start of every row
     const TIME_SIG_EXTRA = 34; // extra room for the time signature, only on the piece's first measure
     const MARGIN = 20;
-    const MIN_BAR_WIDTH = 130;
-
-    const firstRowAvail = Math.max(containerWidth - ROW_EXTRA - TIME_SIG_EXTRA - MARGIN, MIN_BAR_WIDTH);
-    const barsPerRow = Math.max(1, Math.floor(firstRowAvail / MIN_BAR_WIDTH));
-    const widthPerMeasure = firstRowAvail / barsPerRow;
 
     const rows = [];
     let idx = 0;
     let rowIdx = 0;
-    while (idx < measureCount) {
-      const count = Math.min(barsPerRow, measureCount - idx);
+    const total = measureMinWidths.length;
+
+    while (idx < total) {
       const extra = ROW_EXTRA + (rowIdx === 0 ? TIME_SIG_EXTRA : 0);
-      rows.push({ startIndex: idx, count, extra, widthPerMeasure });
+      const avail = Math.max(containerWidth - extra - MARGIN, MIN_BAR_WIDTH);
+
+      let used = 0;
+      let count = 0;
+      while (idx + count < total) {
+        const need = measureMinWidths[idx + count];
+        if (count > 0 && used + need > avail) break;
+        used += need;
+        count++;
+      }
+
+      const scale = Math.max(1, avail / used);
+      const widths = [];
+      for (let i = 0; i < count; i++) widths.push(measureMinWidths[idx + i] * scale);
+
+      rows.push({ startIndex: idx, count, extra, widths });
       idx += count;
       rowIdx++;
     }
@@ -856,8 +877,18 @@ button.btn {
     const key = settings.keyObj;
     const pcMap = pcToLetterMap(key.acc);
 
+    const measureData = measures.map((measureNotes) =>
+      buildVoicesForMeasure(measureNotes, settings, staveNames, isGrand, clefDef, key, pcMap)
+    );
+    const MEASURE_PADDING = 30; // room for accidentals/dots beyond VexFlow's own minimum
+    const measureMinWidths = measureData.map(({ voices }) => {
+      const preFormatter = new Formatter();
+      preFormatter.joinVoices(voices);
+      return Math.max(MIN_BAR_WIDTH, preFormatter.preCalculateMinTotalWidth(voices) + MEASURE_PADDING);
+    });
+
     const containerWidth = Math.max(scrollHost.clientWidth || 640, 260);
-    const rows = computeRows(measures.length, containerWidth);
+    const rows = computeRows(measureMinWidths, containerWidth);
 
     const ROW_HEIGHT = isGrand ? 260 : 150;
     const TOP_MARGIN = 40;
@@ -903,7 +934,7 @@ button.btn {
         const measureNotes = measures[mi];
         const isRowFirst = i === 0;
         const isPieceFirst = mi === 0;
-        const w = isRowFirst ? row.widthPerMeasure + row.extra : row.widthPerMeasure;
+        const w = row.widths[i] + (isRowFirst ? row.extra : 0);
 
         measureStartBeats[mi] = globalBeat;
 
@@ -943,13 +974,13 @@ button.btn {
 
         x += w;
 
-        const { voices, notesByStave } = buildVoicesForMeasure(measureNotes, settings, staveNames, isGrand, clefDef, key, pcMap);
+        const { voices, notesByStave } = measureData[mi];
 
-        new Formatter().joinVoices(voices).format(voices, w - (isRowFirst ? row.extra + 20 : 20));
+        new Formatter({ softmaxFactor: SPACING_SOFTMAX_FACTOR }).joinVoices(voices).format(voices, w - (isRowFirst ? row.extra + 20 : 20));
 
         staveNames.forEach((name, idx) => {
-          voices[idx].draw(context, staves[name]);
           const beams = Beam.generateBeams(notesByStave[name]);
+          voices[idx].draw(context, staves[name]);
           beams.forEach((b) => b.setContext(context).draw());
         });
 
