@@ -21,6 +21,15 @@ Live app: https://claude.ai/code/artifact/b0f71811-d152-4e1b-a595-7abeb8a99003
 - `fretline.html` — the built, publish-ready file. **Generated — don't edit
   directly**, run `node splice.js` after editing `fretline_body.html` instead.
 - `serve.js` — a tiny static file server for local preview (no dependencies).
+- `manifest.webmanifest`, `sw.js`, `icons/` — PWA support: installable
+  (desktop/mobile "Add to Home Screen") and works fully offline after the
+  first load, via a cache-first service worker. Bump `CACHE_NAME` in `sw.js`
+  on every release so installed clients pick up the new `fretline.html`
+  instead of serving a stale cached copy. Only applies when `fretline.html`
+  is served from its own origin (`node serve.js` locally, or a real static
+  host like GitHub Pages) — service workers don't run over `file://`, and
+  the published Claude Artifact copy above is a sandboxed iframe, not a
+  navigable origin, so it can't be installed either way.
 
 ## Workflow
 

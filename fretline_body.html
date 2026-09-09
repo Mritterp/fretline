@@ -1,5 +1,16 @@
 <meta charset="UTF-8">
 <title>Fretline</title>
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#3D3A30">
+<link rel="icon" href="icons/favicon-32.png" sizes="32x32">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon-180.png">
+<script>
+  if ("serviceWorker" in navigator) {
+    window.addEventListener("load", () => {
+      navigator.serviceWorker.register("sw.js").catch(() => {});
+    });
+  }
+</script>
 <style>
 :root {
   --parchment: #f5f0e8;
