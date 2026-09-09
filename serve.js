@@ -15,7 +15,9 @@ http.createServer((req, res) => {
       : ext === '.webmanifest' ? 'application/manifest+json'
       : ext === '.png' ? 'image/png'
       : 'application/octet-stream';
-    res.writeHead(200, { 'Content-Type': type });
+    // no-store: this is a local dev preview, never let the browser serve a
+    // stale cached copy after an edit + rebuild.
+    res.writeHead(200, { 'Content-Type': type, 'Cache-Control': 'no-store' });
     res.end(data);
   });
 }).listen(port, '127.0.0.1', () => console.log('listening on ' + port));

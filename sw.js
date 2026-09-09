@@ -24,23 +24,21 @@ self.addEventListener("activate", (event) => {
   );
 });
 
-// Cache-first, falling back to the network (and refreshing the cache from
-// it) — the whole app is one self-contained file, so this is enough to make
-// it work fully offline once it's been opened while online.
+// Network-first, falling back to the cache only when offline (and always
+// refreshing the cache from a successful network response) — so an online
+// viewer always gets the current fretline.html, never a stale precached
+// copy, while offline use still works from whatever was last cached.
 self.addEventListener("fetch", (event) => {
   if (event.request.method !== "GET") return;
   event.respondWith(
-    caches.match(event.request).then((cached) => {
-      const network = fetch(event.request)
-        .then((response) => {
-          if (response.ok) {
-            const copy = response.clone();
-            caches.open(CACHE_NAME).then((cache) => cache.put(event.request, copy));
-          }
-          return response;
-        })
-        .catch(() => cached);
-      return cached || network;
-    })
+    fetch(event.request)
+      .then((response) => {
+        if (response.ok) {
+          const copy = response.clone();
+          caches.open(CACHE_NAME).then((cache) => cache.put(event.request, copy));
+        }
+        return response;
+      })
+      .catch(() => caches.match(event.request))
   );
 });
