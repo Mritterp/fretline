@@ -183,8 +183,10 @@ main.rig {
 .two-up .field { flex: 1; min-width: 0; }
 
 .tempo-head { display: flex; align-items: baseline; justify-content: space-between; }
+.level-hint-row { display: flex; align-items: flex-start; justify-content: space-between; gap: 14px; }
+.level-hint-row .hint { flex: 1 1 auto; min-width: 0; }
 .checkbox-row {
-  display: flex; align-items: center; gap: 8px; cursor: pointer;
+  display: flex; align-items: center; gap: 8px; cursor: pointer; flex-shrink: 0; white-space: nowrap;
   font-size: 9px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--moss);
 }
 .checkbox-row input[type="checkbox"] { width: 14px; height: 14px; margin: 0; accent-color: var(--bark); cursor: pointer; }
@@ -477,7 +479,13 @@ button.btn {
             </div>
           </div>
         </div>
-        <p class="hint" id="level-hint"></p>
+        <div class="level-hint-row">
+          <p class="hint" id="level-hint"></p>
+          <label class="checkbox-row">
+            <input type="checkbox" id="show-note-names">
+            Show note names
+          </label>
+        </div>
 
         <div class="field">
           <div class="tempo-head">
@@ -661,6 +669,14 @@ button.btn {
       transposeWritten: 0,
     },
     {
+      id: "alto",
+      label: "Alto (concert pitch)",
+      shortLabel: "Alto",
+      hint: "Alto clef at true sounding pitch — middle C sits on the middle line.",
+      staves: ["alto"],
+      transposeWritten: 0,
+    },
+    {
       id: "piano",
       label: "Piano (grand staff)",
       shortLabel: "Piano",
@@ -670,7 +686,7 @@ button.btn {
       splitAt: 60,
     },
   ];
-  const REST_KEY = { treble: "b/4", bass: "d/3" };
+  const REST_KEY = { treble: "b/4", bass: "d/3", alto: "c/4" };
 
   function clefById(id) {
     return CLEFS.find((c) => c.id === id);
@@ -1085,6 +1101,11 @@ button.btn {
             midi: ev.midi,
             startBeatGlobal: globalBeat,
             durationBeats: ev.durationBeats,
+            // Same y for every note in this row (the measure-number's own
+            // line, inside the row's hover-highlight band) rather than a
+            // per-note height — keeps note-name labels uniform and clear
+            // of the row above's low notes regardless of this note's pitch.
+            labelY: rowY - 11,
           });
           globalBeat += ev.durationBeats;
         });
@@ -1529,6 +1550,7 @@ button.btn {
   const tempoValue = document.getElementById("tempo-value");
   const toneSelect = document.getElementById("tone-select");
   const metronomeDuringPlayback = document.getElementById("metronome-during-playback");
+  const showNoteNames = document.getElementById("show-note-names");
   const stageMetaEl = document.getElementById("stage-meta");
   const metaLineEl = document.getElementById("meta-line");
   const totalCountEl = document.getElementById("total-count");
@@ -1659,6 +1681,33 @@ button.btn {
   let lastMeasures = null;
   let lastSettings = null;
 
+  // Draws (or clears) a small letter-name label above each note's own glyph,
+  // using its already-rendered bounding box — called after every renderScore
+  // so it always matches the current layout, and again on its own when the
+  // checkbox is toggled (no need to regenerate the line for that).
+  function renderNoteNameLabels(settings) {
+    const svgEl = document.querySelector("#notation svg");
+    if (!svgEl) return;
+    svgEl.querySelectorAll(".note-name-label").forEach((el) => el.remove());
+    if (!showNoteNames.checked) return;
+    playbackEvents.forEach((ev) => {
+      if (!ev.element) return;
+      let bbox;
+      try { bbox = ev.element.getBBox(); } catch (e) { return; }
+      const pc = ((ev.midi % 12) + 12) % 12;
+      const label = document.createElementNS(SVG_NS, "text");
+      label.setAttribute("class", "note-name-label");
+      label.setAttribute("x", String(bbox.x + bbox.width / 2));
+      label.setAttribute("y", String(ev.labelY));
+      label.setAttribute("text-anchor", "middle");
+      label.setAttribute("font-family", "Helvetica, Arial, sans-serif");
+      label.setAttribute("font-size", "9");
+      label.setAttribute("fill", "#8A9E7E");
+      label.textContent = pcToName(pc, settings.keyObj);
+      svgEl.appendChild(label);
+    });
+  }
+
   function generateNewLine() {
     stopPlayback();
     selectedMeasureIndex = null;
@@ -1677,6 +1726,7 @@ button.btn {
     lastMeasures = measures;
     lastSettings = settings;
     renderScore(measures, settings);
+    renderNoteNameLabels(settings);
     renderMeta(settings);
     renderModePanel(settings);
     sessionCount++;
@@ -1690,6 +1740,7 @@ button.btn {
     if (!lastMeasures) return;
     stopPlayback();
     renderScore(lastMeasures, lastSettings);
+    renderNoteNameLabels(lastSettings);
     renderMeta(lastSettings);
   }
 
@@ -1722,6 +1773,10 @@ button.btn {
   document.getElementById("metronome-btn").addEventListener("click", () => {
     if (metronomeTimerId != null) stopMetronome();
     else startMetronome();
+  });
+
+  showNoteNames.addEventListener("change", () => {
+    if (lastSettings) renderNoteNameLabels(lastSettings);
   });
 
   // Spacebar always stops whatever's currently making sound (line playback
