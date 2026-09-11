@@ -1118,7 +1118,13 @@ button.btn {
   // ---------- fretboard + mode diagram ----------
   function renderFretboard(position, key, modeRootPc) {
     const lo = position.start, hi = position.start + position.span;
-    const frets = hi - lo + 1;
+    // Open strings (fret 0) don't get their own grid column — a scale tone
+    // that would land there is shown as a labeled circle merged into the
+    // string-identification spot instead, so the grid itself always starts
+    // at fret 1 when this position includes the open strings.
+    const openAsCircles = lo === 0;
+    const gridLo = openAsCircles ? 1 : lo;
+    const frets = hi - gridLo + 1;
     const W = 300, H = 150, x0 = 34, y0 = 16;
     const cw = (W - x0 - 14) / frets;
     const rh = (H - y0 - 30) / 5;
@@ -1131,18 +1137,18 @@ button.btn {
     }
     for (let f = 0; f <= frets; f++) {
       const fx = x0 + f * cw;
-      const isNut = f === 0 && lo === 0;
+      const isNut = f === 0 && openAsCircles;
       parts.push('<line x1="' + fx + '" x2="' + fx + '" y1="' + y0 + '" y2="' + (y0 + 5 * rh) + '" stroke="#C4B89A" stroke-width="' + (isNut ? 3 : 0.8) + '"></line>');
       if (f < frets) {
-        parts.push('<text x="' + (fx + cw / 2) + '" y="138" font-family="Helvetica, Arial, sans-serif" font-size="8.5" letter-spacing="0.12em" fill="#8A9E7E" text-anchor="middle">' + (lo + f) + '</text>');
+        parts.push('<text x="' + (fx + cw / 2) + '" y="138" font-family="Helvetica, Arial, sans-serif" font-size="8.5" letter-spacing="0.12em" fill="#8A9E7E" text-anchor="middle">' + (gridLo + f) + '</text>');
       }
     }
     for (let s = 0; s < 6; s++) {
-      for (let f = lo; f <= hi; f++) {
+      for (let f = gridLo; f <= hi; f++) {
         const midi = OPEN_STRING_MIDI[s] + f;
         const pc = ((midi % 12) + 12) % 12;
         if (pcs !== null && !pcs.has(pc)) continue;
-        const cx = x0 + (f - lo) * cw + cw / 2;
+        const cx = x0 + (f - gridLo) * cw + cw / 2;
         const cy = y0 + (5 - s) * rh;
         const isRoot = pc === modeRootPc;
         const name = pcToName(pc, key);
@@ -1153,7 +1159,21 @@ button.btn {
       }
     }
     ["E", "A", "D", "G", "B", "E"].forEach((n, i) => {
-      parts.push('<text x="20" y="' + (y0 + (5 - i) * rh + 3.2) + '" font-family="Helvetica, Arial, sans-serif" font-size="8.5" letter-spacing="0.12em" fill="#5C6B52" text-anchor="middle">' + n + '</text>');
+      const y = y0 + (5 - i) * rh;
+      if (openAsCircles) {
+        const openMidi = OPEN_STRING_MIDI[i];
+        const pc = ((openMidi % 12) + 12) % 12;
+        if (pcs === null || pcs.has(pc)) {
+          const isRoot = pc === modeRootPc;
+          const name = pcToName(pc, key);
+          parts.push('<g data-midi="' + openMidi + '" style="cursor:pointer">');
+          parts.push('<circle cx="20" cy="' + y + '" r="9" fill="' + (isRoot ? "#5C6B52" : "#F5F0E8") + '" stroke="#5C6B52" stroke-width="1.2"></circle>');
+          parts.push('<text x="20" y="' + (y + 2.8) + '" font-family="Helvetica, Arial, sans-serif" font-size="8" font-weight="700" fill="' + (isRoot ? "#F5F0E8" : "#5C6B52") + '" text-anchor="middle">' + name + '</text>');
+          parts.push('</g>');
+          return;
+        }
+      }
+      parts.push('<text x="20" y="' + (y + 3.2) + '" font-family="Helvetica, Arial, sans-serif" font-size="8.5" letter-spacing="0.12em" fill="#5C6B52" text-anchor="middle">' + n + '</text>');
     });
 
     return '<svg viewBox="0 0 ' + W + ' ' + H + '" width="100%" style="display:block">' + parts.join("") + "</svg>";
@@ -1243,7 +1263,8 @@ button.btn {
 
     document.getElementById("keyboard-host").innerHTML = renderKeyboard(settings.keyObj, mi.rootPc);
     document.getElementById("fretboard-host").innerHTML = renderFretboard(diagramPos, settings.keyObj, mi.rootPc);
-    document.getElementById("fretboard-caption").textContent = "Frets " + lo + "–" + diagramHi;
+    document.getElementById("fretboard-caption").textContent =
+      lo === 0 ? "Open strings + frets 1–" + diagramHi : "Frets " + lo + "–" + diagramHi;
     document.getElementById("mode-summary").textContent = mi.rootName + " " + mi.name;
     document.getElementById("mode-name").textContent = mi.name;
     document.getElementById("mode-copy").textContent =
