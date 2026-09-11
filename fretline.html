@@ -721,6 +721,9 @@ button.btn {
     3: "Adds dotted quarters, dotted halves and dotted eighths.",
     4: "Adds sixteenth-note groups for quicker passages.",
   };
+  // Max sharps/flats a generated key signature may have at each level, so
+  // "Generate" only rolls harder keys once the rhythm has also gotten harder.
+  const LEVEL_MAX_ACCIDENTALS = { 1: 1, 2: 3, 3: 4, 4: 5 };
   const DUR_VF = { 4: "w", 3: "hd", 2: "h", 1.5: "qd", 1: "q", 0.75: "8d", 0.5: "8", 0.25: "16" };
 
   const TIME_BEATS = { "4/4": 4, "3/4": 3, "2/4": 2 };
@@ -1637,10 +1640,12 @@ button.btn {
   setMode("position");
 
   // Any parameter change regenerates the line immediately (tempo excepted —
-  // it only re-times playback, it doesn't change what was written).
-  [clefSelect, keySelect, positionSelect, lowSelect, highSelect, timeSelect, levelSelect, measuresSelect].forEach((el) => {
+  // it only re-times playback, it doesn't change what was written). The key
+  // is the exception: it re-notates the current line in place, see rekeyCurrentLine.
+  [clefSelect, positionSelect, lowSelect, highSelect, timeSelect, levelSelect, measuresSelect].forEach((el) => {
     el.addEventListener("change", generateNewLine);
   });
+  keySelect.addEventListener("change", rekeyCurrentLine);
   clefSelect.addEventListener("change", () => {
     clefHint.textContent = clefById(clefSelect.value).hint;
   });
@@ -1765,11 +1770,31 @@ button.btn {
     renderMeta(lastSettings);
   }
 
+  // Changing the key signature re-notates the *same* pitches and rhythm
+  // under the new key (new accidentals, new key signature at the clef)
+  // rather than rolling a brand-new line — the underlying MIDI notes in
+  // lastMeasures never change, only how they're spelled.
+  function rekeyCurrentLine() {
+    if (!lastMeasures) { generateNewLine(); return; }
+    stopPlayback();
+    const settings = currentSettings();
+    lastSettings = settings;
+    renderScore(lastMeasures, settings);
+    renderNoteNameLabels(settings);
+    renderMeta(settings);
+    renderModePanel(settings);
+  }
+
   // Picking "Generate" also rolls a fresh key, so repeated practice reps
   // cover different keys automatically rather than sitting on whichever key
   // was last selected. "Chromatic" is excluded — it isn't a musical key.
+  // The pool of candidate keys is capped by the current level's max
+  // accidental count (LEVEL_MAX_ACCIDENTALS), so harder key signatures only
+  // show up once the rhythm difficulty has also ramped up. This only shapes
+  // what Generate rolls — the manual key dropdown is never filtered.
   function randomizeKey() {
-    const musicalKeys = KEYS.filter((k) => k.id !== "Chromatic");
+    const maxAcc = LEVEL_MAX_ACCIDENTALS[levelSelect.value];
+    const musicalKeys = KEYS.filter((k) => k.id !== "Chromatic" && Object.keys(k.acc).length <= maxAcc);
     const pick = musicalKeys[Math.floor(Math.random() * musicalKeys.length)];
     keySelect.value = pick.id;
   }
