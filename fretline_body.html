@@ -26,7 +26,9 @@
      technique scale-degree tab/fretboard tools commonly use to make each
      tone's role instantly recognizable regardless of key. */
   --tone-root: #a6433d;
+  --tone-second: #6e8f4c;
   --tone-third: #a67c1e;
+  --tone-fourth: #b8763f;
   --tone-fifth: #3e6d8e;
   --tone-seventh: #7a5c9e;
   --font-display: Georgia, 'Times New Roman', serif;
@@ -70,23 +72,6 @@ h1 {
   font-size: 34px;
   letter-spacing: -0.015em;
   line-height: 1;
-}
-
-.eyebrow-brand {
-  font-size: 9px;
-  letter-spacing: 0.22em;
-  text-transform: uppercase;
-  color: var(--sage);
-  padding-bottom: 5px;
-}
-
-.tagline {
-  margin: 0;
-  font-size: 10px;
-  letter-spacing: 0.18em;
-  text-transform: uppercase;
-  color: var(--moss);
-  padding-bottom: 4px;
 }
 
 main.rig {
@@ -359,20 +344,49 @@ button.mode-chip.active:hover { color: var(--parchment); }
   width: 8px; height: 8px; border-radius: 50%; background: var(--tone-color); display: inline-block;
 }
 
-/* Clicking a modal chord highlights its chord tones on both diagrams —
-   overrides the dots'/keys' own presentation attributes with a role color
-   (root/3rd/5th/7th) carried per-element via the --tone-color custom
-   property set in highlightChordTones(). */
+/* Chord-quality override, centered underneath the keyboard + fretboard
+   diagrams — shown only while a modal chord chip is active. */
+.quality-panel {
+  text-align: center;
+  padding-top: 16px;
+  border-top: 1px solid var(--wheat);
+}
+.quality-chips { justify-content: center; }
+/* text-transform: none — these labels carry glyphs (ø, °, Δ) that CSS
+   uppercasing would silently swap for the wrong character (e.g. ø → Ø). */
+.quality-chips .mode-chip { letter-spacing: 0.06em; text-transform: none; }
+/* The chip matching the chord's own native, mode-diatonic quality always
+   carries this ring, regardless of which quality is currently active/shown
+   — so "what's native" and "what's currently selected" stay visually
+   distinct even when they're different chips. */
+.quality-chips .mode-chip.native { box-shadow: inset 0 0 0 1px var(--moss); }
+.quality-legend { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; margin-top: 10px; }
+.quality-category {
+  display: block; margin-top: 10px; font-size: 9px; letter-spacing: 0.2em;
+  text-transform: uppercase; color: var(--clay);
+}
+.quality-theory {
+  margin: 4px 0 0; font-size: 10.5px; line-height: 1.55; color: var(--sage);
+}
+
+/* Clicking a modal chord (or changing its quality) highlights its chord
+   tones on both diagrams in place — every other note stays exactly where
+   it was, just not colored — overriding the dots'/keys' own presentation
+   attributes with a role color carried per-element via the --tone-color
+   custom property set in highlightKeyboardTones()/highlightFretboardVoicing(). */
 #fretboard-host .chord-highlight circle,
-#keyboard-host .chord-highlight circle {
+#keyboard-host .chord-highlight circle,
+#keyboard-host .chord-highlight rect {
   fill: var(--tone-color, var(--clay)); stroke: var(--tone-color, var(--clay));
 }
 #fretboard-host .chord-highlight text {
   fill: var(--parchment);
 }
-#keyboard-host .chord-highlight rect {
-  fill: var(--tone-color, var(--clay)); stroke: var(--tone-color, var(--clay));
-}
+/* A dot exists at every fret/string so a borrowed/chromatic chord tone
+   (outside the current key) always has somewhere to appear — but it only
+   actually shows once a selected chord/quality needs it. */
+#fretboard-host .out-of-scale { visibility: hidden; }
+#fretboard-host .out-of-scale.chord-highlight { visibility: visible; }
 
 #panel-body { display: flex; flex-direction: column; gap: 24px; }
 .panel-summary-toggle { display: none; }
@@ -405,9 +419,7 @@ button.mode-chip.active:hover { color: var(--parchment); }
   <header class="masthead">
     <div class="title-group">
       <h1>Fretline</h1>
-      <span class="eyebrow-brand">Ambience first</span>
     </div>
-    <p class="tagline">Sight reading for guitar · one line at a time</p>
   </header>
 
   <main class="rig">
@@ -594,6 +606,20 @@ button.mode-chip.active:hover { color: var(--parchment); }
             <span class="diagram-caption" id="fretboard-caption"></span>
             <div id="fretboard-host"></div>
           </div>
+          <div class="quality-panel" id="quality-panel" hidden>
+            <span class="diagram-caption">Chord quality</span>
+            <div class="mode-chips quality-chips" id="quality-chips"></div>
+            <div class="chord-legend quality-legend">
+              <span class="chord-legend-item"><i class="chord-legend-swatch" style="--tone-color: var(--tone-root)"></i>Root</span>
+              <span class="chord-legend-item"><i class="chord-legend-swatch" style="--tone-color: var(--tone-second)"></i>2nd</span>
+              <span class="chord-legend-item"><i class="chord-legend-swatch" style="--tone-color: var(--tone-third)"></i>3rd</span>
+              <span class="chord-legend-item"><i class="chord-legend-swatch" style="--tone-color: var(--tone-fourth)"></i>4th</span>
+              <span class="chord-legend-item"><i class="chord-legend-swatch" style="--tone-color: var(--tone-fifth)"></i>5th</span>
+              <span class="chord-legend-item"><i class="chord-legend-swatch" style="--tone-color: var(--tone-seventh)"></i>7th</span>
+            </div>
+            <span class="quality-category" id="quality-category"></span>
+            <p class="quality-theory" id="quality-theory"></p>
+          </div>
         </div>
         <div class="info-col">
           <div class="info-head">
@@ -679,6 +705,15 @@ button.mode-chip.active:hover { color: var(--parchment); }
     const entry = pcToLetterMap(key.acc)[pc];
     if (!entry) return "";
     return entry.letter + (entry.acc === 1 ? "♯" : entry.acc === -1 ? "♭" : "");
+  }
+
+  // Same, but always returns a name even for a pitch outside the key's own
+  // 7 letters — falling back to the chromatic (sharp) spelling for it. Used
+  // wherever a chord tone might be a genuine borrowed/chromatic note (e.g.
+  // a parallel-major 3rd in a minor-mode key), which pcToName alone can't
+  // name because it isn't one of the key's diatonic pitches.
+  function pcToNameAny(pc, key) {
+    return pcToName(pc, key) || pcToLetterMap(null)[pc].letter + "♯";
   }
 
   function keyById(id) {
@@ -852,6 +887,10 @@ button.mode-chip.active:hover { color: var(--parchment); }
       else quality = "ø7";
       chords.push({
         name: pcToName(root, keyObj) + quality,
+        root,
+        quality,
+        parentDegree: degree, // fixed position in the parent major scale (0=I..6=vii) — used for pitch/half-step facts
+        modeDegree: d,        // position within the CURRENT mode's own numbering (0=I..6=vii of the mode itself) — used for display
         tones: [
           { pc: root, role: "root" },
           { pc: third, role: "third" },
@@ -861,6 +900,147 @@ button.mode-chip.active:hover { color: var(--parchment); }
       });
     }
     return chords;
+  }
+
+  // ---------- chord quality override ----------
+  // Every quality offered as an override for whichever modal chord chip is
+  // active: the three plain triads + both suspensions first, then the six
+  // seventh-chord qualities (the modal chord chips themselves only ever
+  // carry a seventh-chord quality — see diatonicSeventhChords — so these
+  // triad/sus options are always alternatives to, never the source of, a
+  // chip's native quality). `bright` marks the major-3rd family (""/7) vs
+  // the minor-3rd family (-/°/-7/ø7/°7/-Δ7) — used below to tell
+  // parallel-major/minor borrowing apart from same-family modal borrowing.
+  // sus2/sus4 have no 3rd at all (bright: null — handled as its own case).
+  const QUALITY_ORDER = ["", "-", "°", "sus2", "sus4", "Δ7", "7", "-7", "ø7", "°7", "-Δ7"];
+  const QUALITIES = {
+    "":    { desc: "major",             tones: [{ i: 4, role: "third" }, { i: 7, role: "fifth" }], bright: true },
+    "-":   { desc: "minor",             tones: [{ i: 3, role: "third" }, { i: 7, role: "fifth" }], bright: false },
+    "°":   { desc: "diminished",        tones: [{ i: 3, role: "third" }, { i: 6, role: "fifth" }], bright: false },
+    "sus2":{ desc: "suspended 2nd",     tones: [{ i: 2, role: "second" }, { i: 7, role: "fifth" }], bright: null },
+    "sus4":{ desc: "suspended 4th",     tones: [{ i: 5, role: "fourth" }, { i: 7, role: "fifth" }], bright: null },
+    "Δ7":  { desc: "major 7",           tones: [{ i: 4, role: "third" }, { i: 7, role: "fifth" }, { i: 11, role: "seventh" }], bright: true },
+    "7":   { desc: "dominant 7",        tones: [{ i: 4, role: "third" }, { i: 7, role: "fifth" }, { i: 10, role: "seventh" }], bright: true },
+    "-7":  { desc: "minor 7",           tones: [{ i: 3, role: "third" }, { i: 7, role: "fifth" }, { i: 10, role: "seventh" }], bright: false },
+    "ø7":  { desc: "half-diminished 7", tones: [{ i: 3, role: "third" }, { i: 6, role: "fifth" }, { i: 10, role: "seventh" }], bright: false },
+    "°7":  { desc: "diminished 7",      tones: [{ i: 3, role: "third" }, { i: 6, role: "fifth" }, { i: 9,  role: "seventh" }], bright: false },
+    "-Δ7": { desc: "minor-major 7",     tones: [{ i: 3, role: "third" }, { i: 7, role: "fifth" }, { i: 11, role: "seventh" }], bright: false },
+  };
+
+  // Full {pc, role} tone list for a quality built on rootPc, root included.
+  function qualityChordTones(rootPc, qualityKey) {
+    const mod = (n) => ((n % 12) + 12) % 12;
+    return [{ pc: mod(rootPc), role: "root" }].concat(
+      QUALITIES[qualityKey].tones.map((t) => ({ pc: mod(rootPc + t.i), role: t.role }))
+    );
+  }
+
+  // pc -> role map for a chord of the given quality built on rootPc, in the
+  // same shape highlightKeyboardTones() already expects.
+  function qualityToneMap(rootPc, qualityKey) {
+    return new Map(qualityChordTones(rootPc, qualityKey).map((t) => [t.pc, t.role]));
+  }
+
+  function intervalOfRole(qualityKey, role) {
+    const t = QUALITIES[qualityKey].tones.find((t) => t.role === role);
+    return t ? t.i : null;
+  }
+
+  const ROMAN_NUMERALS = ["I", "II", "III", "IV", "V", "VI", "VII"];
+  // Real-book-style roman numeral for a parent-major-scale degree carrying a
+  // given chord quality — lowercase for the minor-3rd family, uppercase for
+  // the major-3rd family (sus qualities, which have no 3rd, keep the
+  // uppercase numeral by convention, matching how "Vsus4" etc. are usually
+  // written), matching the mDecks Mapping Tonal Harmony convention of
+  // naming every diatonic/borrowed function by scale degree + quality
+  // symbol (e.g. ii-7, V7, viiø7).
+  function romanForDegree(parentDegree, qualityKey) {
+    const bright = QUALITIES[qualityKey].bright;
+    const base = bright === false ? ROMAN_NUMERALS[parentDegree].toLowerCase() : ROMAN_NUMERALS[parentDegree];
+    return base + qualityKey;
+  }
+
+  // Best-effort explanation of a chosen chord quality relative to its
+  // native, mode-diatonic quality, phrased with the vocabulary mDecks'
+  // Mapping Tonal Harmony map uses for the same relationships: diatonic
+  // scale-degree function, parallel major/minor borrowing (modal
+  // interchange), modal borrowing between same-root modes, and tritone
+  // substitution (SubV7) — plus two categories of its own for options the
+  // map itself doesn't cover: a plain triad (just the 7th dropped) and a
+  // suspension (3rd swapped out entirely). This is a heuristic
+  // classification derived from triad-brightness and half-step-approach
+  // logic, not a lookup against mDecks' own proprietary chart, so treat the
+  // label as a teaching approximation rather than a definitive analysis.
+  function describeQuality(ctx, qualityKey) {
+    const parentChords = diatonicSeventhChords(ctx.keyObj, 0); // parent-degree-indexed (I..vii)
+    const rootName = pcToName(ctx.rootPc, ctx.keyObj);
+    const nativeRoman = romanForDegree(ctx.modeDegree, ctx.nativeQuality);
+    const selRoman = romanForDegree(ctx.modeDegree, qualityKey);
+    const selLabel = rootName + qualityKey;
+
+    if (qualityKey === ctx.nativeQuality) {
+      return {
+        category: "Diatonic",
+        text: selLabel + " (" + nativeRoman + ") is the native seventh chord this degree carries in " + ctx.modeFullName + " — no borrowing involved.",
+      };
+    }
+
+    if (QUALITIES[qualityKey].bright === null) {
+      return {
+        category: "Suspended",
+        text: selLabel + " (" + selRoman + ") drops the 3rd entirely in favor of the " + QUALITIES[qualityKey].desc.replace("suspended ", "") + " — neither major nor minor, a step of unresolved tension that conventionally wants to resolve back down into the native " + rootName + ctx.nativeQuality + "'s 3rd.",
+      };
+    }
+
+    // A plain triad that shares its native chord's 3rd AND 5th exactly is
+    // just that chord with the 7th dropped — a simplification, not a real
+    // substitution, so it skips the borrowing framework below entirely.
+    if (!QUALITIES[qualityKey].tones.some((t) => t.role === "seventh")) {
+      const sameTriad = intervalOfRole(qualityKey, "third") === intervalOfRole(ctx.nativeQuality, "third")
+        && intervalOfRole(qualityKey, "fifth") === intervalOfRole(ctx.nativeQuality, "fifth");
+      if (sameTriad) {
+        return {
+          category: "Triad",
+          text: selLabel + " (" + selRoman + ") is just the native " + rootName + ctx.nativeQuality + " with the 7th dropped — same triad, no borrowing involved.",
+        };
+      }
+    }
+
+    // SubV7: a dominant chord built a half-step above another diatonic
+    // degree resolves down by half-step exactly like a real V7 resolves
+    // down a 5th — the shared tritone (3rd & 7th) is what makes it a
+    // substitute. Within a plain major scale that half-step relationship
+    // only exists in two places: IV sits a half-step above iii, and I sits
+    // a half-step above vii — so those are the only two roots this can
+    // ever legitimately label. This is a pitch-collection fact (true
+    // regardless of which mode is active), so it's checked on parentDegree,
+    // not modeDegree — but the target chord is still named with its
+    // mode-relative roman numeral, to match the rest of the panel.
+    if (qualityKey === "7" && (ctx.parentDegree === 3 || ctx.parentDegree === 0)) {
+      const targetParentDegree = ctx.parentDegree === 3 ? 2 : 6;
+      const target = parentChords[targetParentDegree];
+      const targetModeDegree = ((targetParentDegree - ctx.modeIdx) % 7 + 7) % 7;
+      const targetRoman = romanForDegree(targetModeDegree, target.quality);
+      return {
+        category: "Tritone substitution",
+        text: rootName + "7 sits a half-step above " + target.name + " (" + targetRoman + ") and shares its tritone (3rd & 7th) — the SubV7 relationship. As a dominant, it can stand in for the V7 that would normally resolve down a 5th into " + target.name + ", resolving down a half-step into it instead.",
+      };
+    }
+
+    const nativeBright = QUALITIES[ctx.nativeQuality].bright;
+    const selBright = QUALITIES[qualityKey].bright;
+    if (nativeBright !== selBright) {
+      const category = selBright ? "Parallel major" : "Parallel minor";
+      return {
+        category,
+        text: selLabel + " (" + selRoman + ") trades the native " + rootName + ctx.nativeQuality + "'s " + (nativeBright ? "major" : "minor") + " triad for a " + (selBright ? "major" : "minor") + " one on the same root — " + category.toLowerCase() + " borrowing (modal interchange) from " + rootName + "'s parallel " + (selBright ? "major" : "minor") + ".",
+      };
+    }
+
+    return {
+      category: "Modal borrowing",
+      text: selLabel + " (" + selRoman + ") keeps the same triad quality as the native " + rootName + ctx.nativeQuality + " but reshapes its 5th/7th — the color of a different mode sharing this same root, borrowed in place of " + ctx.modeFullName + "'s own.",
+    };
   }
 
   // Prototype harmonic analysis: guesses which of the key's 7 diatonic
@@ -1282,15 +1462,20 @@ button.mode-chip.active:hover { color: var(--parchment); }
         parts.push('<text x="' + (fx + cw / 2) + '" y="138" font-family="Helvetica, Arial, sans-serif" font-size="8.5" letter-spacing="0.12em" fill="#8A9E7E" text-anchor="middle">' + (gridLo + f) + '</text>');
       }
     }
+    // Every (string, fret) gets a dot, not just in-key ones — an
+    // out-of-scale dot is just drawn invisible (class "out-of-scale", hidden
+    // by CSS) rather than omitted, so a chord-quality override that needs a
+    // borrowed/chromatic tone (e.g. a parallel-major 3rd) still has a real
+    // dot to reveal and color; see highlightFretboardVoicing().
     for (let s = 0; s < 6; s++) {
       for (let f = gridLo; f <= hi; f++) {
         const midi = OPEN_STRING_MIDI[s] + f;
         const pc = ((midi % 12) + 12) % 12;
-        if (pcs !== null && !pcs.has(pc)) continue;
+        const inScale = pcs === null || pcs.has(pc);
         const cx = x0 + (f - gridLo) * cw + cw / 2;
         const cy = y0 + (5 - s) * rh;
-        const name = pcToName(pc, key);
-        parts.push('<g data-midi="' + midi + '" data-string="' + s + '" style="cursor:pointer">');
+        const name = pcToNameAny(pc, key);
+        parts.push('<g data-midi="' + midi + '" data-string="' + s + '" class="' + (inScale ? "" : "out-of-scale") + '" style="cursor:pointer">');
         parts.push('<circle cx="' + cx + '" cy="' + cy + '" r="9" fill="#F5F0E8" stroke="#5C6B52" stroke-width="1.2"></circle>');
         parts.push('<text x="' + cx + '" y="' + (cy + 2.8) + '" font-family="Helvetica, Arial, sans-serif" font-size="8" font-weight="700" fill="#5C6B52" text-anchor="middle">' + name + '</text>');
         parts.push('</g>');
@@ -1301,19 +1486,147 @@ button.mode-chip.active:hover { color: var(--parchment); }
       if (openAsCircles) {
         const openMidi = OPEN_STRING_MIDI[i];
         const pc = ((openMidi % 12) + 12) % 12;
-        if (pcs === null || pcs.has(pc)) {
-          const name = pcToName(pc, key);
-          parts.push('<g data-midi="' + openMidi + '" data-string="' + i + '" style="cursor:pointer">');
-          parts.push('<circle cx="20" cy="' + y + '" r="9" fill="#F5F0E8" stroke="#5C6B52" stroke-width="1.2"></circle>');
-          parts.push('<text x="20" y="' + (y + 2.8) + '" font-family="Helvetica, Arial, sans-serif" font-size="8" font-weight="700" fill="#5C6B52" text-anchor="middle">' + name + '</text>');
-          parts.push('</g>');
-          return;
-        }
+        const inScale = pcs === null || pcs.has(pc);
+        const name = pcToNameAny(pc, key);
+        parts.push('<g data-midi="' + openMidi + '" data-string="' + i + '" class="' + (inScale ? "" : "out-of-scale") + '" style="cursor:pointer">');
+        parts.push('<circle cx="20" cy="' + y + '" r="9" fill="#F5F0E8" stroke="#5C6B52" stroke-width="1.2"></circle>');
+        parts.push('<text x="20" y="' + (y + 2.8) + '" font-family="Helvetica, Arial, sans-serif" font-size="8" font-weight="700" fill="#5C6B52" text-anchor="middle">' + name + '</text>');
+        parts.push('</g>');
+        return;
       }
       parts.push('<text x="20" y="' + (y + 3.2) + '" font-family="Helvetica, Arial, sans-serif" font-size="8.5" letter-spacing="0.12em" fill="#5C6B52" text-anchor="middle">' + n + '</text>');
     });
 
     return '<svg viewBox="0 0 ' + W + ' ' + H + '" width="100%" style="display:block">' + parts.join("") + "</svg>";
+  }
+
+  // ---------- chord-shape fretboard highlight (real, fingerable voicings) ----------
+  // Finds an actual guitar chord shape for the given root+quality, confined
+  // to the frets already visible in the current diagram (fretLo..fretHi):
+  // a per-string {fret, role} assignment (or null for a muted/unused
+  // string) that a human could really finger — rather than the old
+  // "recolor whatever scale dots happen to be on screen" approach, which
+  // picked the first same-pitch-class dot per string regardless of whether
+  // the resulting shape was actually playable.
+  //
+  // It searches, for every way of muting some strings, every assignment of
+  // a chord tone to each remaining string within the given fret window,
+  // and scores the valid ones — valid meaning: every played string sounds
+  // a real chord tone, root/3rd/7th are all present (5th may be dropped,
+  // the tone guitarists drop first in practice), and the shape is
+  // fingerable with at most 4 digits. That last check is real physical
+  // reasoning, not a heuristic: two strings sharing a fret are ordinarily
+  // two independent fingers (fine regardless of what rings between them,
+  // e.g. the classic open x-0-2-0-2-0 A7 shape) — a barre only enters the
+  // picture once that would take more than 4 independent fingers, and a
+  // barre can never skip over an open string in the middle of its span
+  // (the barre finger would silence it). Scoring then prefers fewest
+  // distinct fretted frets and the most open strings — which is exactly
+  // what makes textbook open/barre shapes come out matching the standard,
+  // commonly-taught shape (verified: E/A/D/G/C majors, F/Fm/F7 barres, A7,
+  // Cm barre, etc. all come out right).
+  //
+  // Tried in tiers, each only attempted if the previous one finds nothing:
+  //  1. root in the bass, muting only a prefix of the low strings — how
+  //     real open/barre chords are actually built, and what should win
+  //     whenever it's available.
+  //  2. any tone in the bass (an inversion), same low-string-only muting.
+  //  3. root in the bass, but ANY strings may be muted — needed for a
+  //     sparse chord (e.g. a diminished triad) where the one string with
+  //     no reachable tone in this window happens to sit in the middle, not
+  //     the bottom, so a low-only mute can never route around it.
+  //  4. any tone in the bass, any strings muted — last resort.
+  // Returns null only if even that finds nothing playable in the window at
+  // all — callers should just leave the diagram unhighlighted then, not
+  // treat it as an error.
+  function findChordVoicing(rootPc, qualityKey, fretLo, fretHi) {
+    return searchVoicing(rootPc, qualityKey, fretLo, fretHi, true, false)
+      || searchVoicing(rootPc, qualityKey, fretLo, fretHi, false, false)
+      || searchVoicing(rootPc, qualityKey, fretLo, fretHi, true, true)
+      || searchVoicing(rootPc, qualityKey, fretLo, fretHi, false, true);
+  }
+
+  function searchVoicing(rootPc, qualityKey, fretLo, fretHi, requireRootBass, allowSubsetMute) {
+    const tones = qualityChordTones(rootPc, qualityKey);
+    const pcToRole = new Map(tones.map((t) => [t.pc, t.role]));
+    const requiredRoles = ["root"].concat(QUALITIES[qualityKey].tones.filter((t) => t.role !== "fifth").map((t) => t.role));
+    const candidateFrets = [];
+    for (let f = fretLo; f <= fretHi; f++) candidateFrets.push(f);
+
+    const allStrings = [0, 1, 2, 3, 4, 5];
+    let muteSets;
+    if (allowSubsetMute) {
+      muteSets = [[]];
+      for (let a = 0; a < 6; a++) {
+        muteSets.push([a]);
+        for (let b = a + 1; b < 6; b++) {
+          muteSets.push([a, b]);
+          for (let c = b + 1; c < 6; c++) muteSets.push([a, b, c]);
+        }
+      }
+    } else {
+      muteSets = [0, 1, 2, 3, 4].map((n) => allStrings.slice(0, n));
+    }
+
+    let best = null, bestScore = -Infinity;
+    for (const muted of muteSets) {
+      const played = allStrings.filter((s) => !muted.includes(s));
+      if (played.length < 3) continue;
+      const muteCount = muted.length;
+
+      const perString = played.map((s) => {
+        const opts = [];
+        candidateFrets.forEach((f) => {
+          const pc = ((OPEN_STRING_MIDI[s] + f) % 12 + 12) % 12;
+          const role = pcToRole.get(pc);
+          if (role) opts.push({ fret: f, role });
+        });
+        return opts;
+      });
+      if (perString.some((opts) => opts.length === 0)) continue;
+
+      const combos = [];
+      (function rec(idx, acc) {
+        if (idx === perString.length) { combos.push(acc.slice()); return; }
+        for (const opt of perString[idx]) { acc.push(opt); rec(idx + 1, acc); acc.pop(); }
+      })(0, []);
+
+      combos.forEach((combo) => {
+        const rolesPresent = new Set(combo.map((c) => c.role));
+        if (!requiredRoles.every((r) => rolesPresent.has(r))) return;
+        if (requireRootBass && combo[0].role !== "root") return; // no tone but the root belongs in the bass
+
+        const nonzero = combo.filter((c) => c.fret > 0);
+        let fingerCount = nonzero.length;
+        if (fingerCount > 4) {
+          const minFret = Math.min(...nonzero.map((c) => c.fret));
+          const minAbsStrings = [];
+          combo.forEach((c, i) => { if (c.fret === minFret) minAbsStrings.push(played[i]); });
+          if (minAbsStrings.length < 2) return; // too many fingers, no barre available to reduce them
+          const lo = Math.min(...minAbsStrings), hi = Math.max(...minAbsStrings);
+          for (let s = lo; s <= hi; s++) {
+            const idx = played.indexOf(s);
+            if (idx !== -1 && combo[idx].fret === 0) return; // open string trapped under the barre
+          }
+          fingerCount = 1 + combo.filter((c) => c.fret > 0 && c.fret !== minFret).length;
+        }
+        if (fingerCount > 4) return;
+
+        const distinctFrets = new Set(combo.filter((c) => c.fret !== 0).map((c) => c.fret)).size;
+        const openCount = combo.filter((c) => c.fret === 0).length;
+        const maxFret = Math.max(0, ...combo.map((c) => c.fret));
+        const score =
+          -muteCount * 2 - distinctFrets * 10 - fingerCount * 6 - maxFret * 2 +
+          openCount * 9 + (rolesPresent.has("fifth") ? 4 : 0) + played.length * 1.5 +
+          (combo[0].role === "root" ? 20 : 0); // still prefer root-position whenever both bass options are on the table
+
+        if (score > bestScore) { bestScore = score; best = { played, combo }; }
+      });
+    }
+    if (!best) return null;
+    const voicing = new Array(6).fill(null);
+    best.played.forEach((s, i) => { voicing[s] = { fret: best.combo[i].fret, role: best.combo[i].role }; });
+    return voicing;
   }
 
   // Piano equivalent of renderFretboard, for clefs with no fretboard position
@@ -1391,6 +1704,7 @@ button.mode-chip.active:hover { color: var(--parchment); }
     const lo = pos.start, hi = pos.start + pos.span;
     const defaultIdx = restingPointModeIdx(settings.keyObj, lastMeasures || []);
     const mi = modeInfoForIdx(settings.keyObj, manualModeIdx != null ? manualModeIdx : defaultIdx);
+    currentModeInfo = mi;
 
     // The diagram shows one fret beyond the position's own box — a plain
     // position-box width can cut the pattern off before it reaches the
@@ -1398,11 +1712,17 @@ button.mode-chip.active:hover { color: var(--parchment); }
     const diagramPos = { start: pos.start, span: pos.span + 1 };
     const diagramHi = hi + 1;
 
+    const fretboardCaption = lo === 0 ? "Open strings + frets 1–" + diagramHi : "Frets " + lo + "–" + diagramHi;
     document.getElementById("keyboard-host").innerHTML = renderKeyboard(settings.keyObj, mi.rootPc);
     document.getElementById("fretboard-host").innerHTML = renderFretboard(diagramPos, settings.keyObj, mi.rootPc);
-    document.getElementById("fretboard-caption").textContent =
-      lo === 0 ? "Open strings + frets 1–" + diagramHi : "Frets " + lo + "–" + diagramHi;
+    document.getElementById("fretboard-caption").textContent = fretboardCaption;
     document.getElementById("mode-name").textContent = mi.rootName + " " + mi.name;
+    // The fret range actually drawn above — findChordVoicing() is confined
+    // to it, so a chord/quality selection only ever highlights notes the
+    // player can already see, never a shape from off in a different
+    // position (open strings' fret 0 counts as in-range whenever the
+    // diagram starts at the nut).
+    currentFretWindow = { lo: diagramPos.start, hi: diagramHi };
 
     const chipsHost = document.getElementById("mode-chips");
     chipsHost.innerHTML = "";
@@ -1426,11 +1746,24 @@ button.mode-chip.active:hover { color: var(--parchment); }
       btn.className = "mode-chip chord-chip";
       btn.textContent = chord.name;
       btn.dataset.tones = JSON.stringify(chord.tones);
+      btn.dataset.root = chord.root;
+      btn.dataset.quality = chord.quality;
+      btn.dataset.parentDegree = chord.parentDegree;
+      btn.dataset.modeDegree = chord.modeDegree;
       chordHost.appendChild(btn);
     });
+
+    // Re-rendering the mode panel always rebuilds the chord chips from
+    // scratch with none active (see above), so any chord-quality override
+    // in progress no longer refers to a selected chip — reset it too.
+    activeChordCtx = null;
+    document.getElementById("quality-panel").hidden = true;
   }
 
-  const TONE_COLOR_VAR = { root: "var(--tone-root)", third: "var(--tone-third)", fifth: "var(--tone-fifth)", seventh: "var(--tone-seventh)" };
+  const TONE_COLOR_VAR = {
+    root: "var(--tone-root)", second: "var(--tone-second)", third: "var(--tone-third)",
+    fourth: "var(--tone-fourth)", fifth: "var(--tone-fifth)", seventh: "var(--tone-seventh)",
+  };
 
   function applyToneHighlight(g, role) {
     if (role) {
@@ -1442,58 +1775,68 @@ button.mode-chip.active:hover { color: var(--parchment); }
     }
   }
 
-  // Restyles chord-tone dots/keys on both diagrams with their root/3rd/5th/7th
-  // color (via the .chord-highlight CSS rules + --tone-color), or clears the
-  // highlight when toneMap is null. toneMap maps pitch class -> role.
-  // The piano lights up every matching key (each octave instance), but the
-  // fretboard keeps only the highest-priority tone per string — a real chord
-  // shape frets one note per string, not every occurrence of every tone.
-  function highlightChordTones(toneMap) {
+  // Restyles chord-tone keys on the keyboard diagram with their role color
+  // (via the .chord-highlight CSS rules + --tone-color), or clears the
+  // highlight when toneMap is null. toneMap maps pitch class -> role. Every
+  // matching key lights up (each octave instance) — unlike the guitar, a
+  // pianist can just play any/all of them, so there's no "one note per
+  // string" fingering constraint to model here.
+  function highlightKeyboardTones(toneMap) {
     const kbHost = document.getElementById("keyboard-host");
-    if (kbHost) {
-      kbHost.querySelectorAll("[data-midi]").forEach((g) => {
-        const pc = ((parseInt(g.getAttribute("data-midi"), 10) % 12) + 12) % 12;
-        applyToneHighlight(g, toneMap ? toneMap.get(pc) : null);
-      });
-    }
+    if (!kbHost) return;
+    kbHost.querySelectorAll("[data-midi]").forEach((g) => {
+      const pc = ((parseInt(g.getAttribute("data-midi"), 10) % 12) + 12) % 12;
+      applyToneHighlight(g, toneMap ? toneMap.get(pc) : null);
+    });
+  }
 
+  // Colors in a real, fingerable voicing (from findChordVoicing) directly
+  // on the existing scale-position fretboard diagram — every scale dot
+  // stays exactly where it already was (note name included), only the
+  // handful of dots that make up this specific chord shape get a role
+  // color. voicing[s] is {fret, role} or null; voicing itself may be null
+  // (clears any highlight, e.g. when no chord is selected).
+  function highlightFretboardVoicing(voicing) {
     const fbHost = document.getElementById("fretboard-host");
-    if (fbHost) {
-      const dots = Array.from(fbHost.querySelectorAll("[data-midi][data-string]"));
-      dots.forEach((g) => applyToneHighlight(g, null));
-      if (toneMap) {
-        // A real chord grip frets each string once AND uses each chord tone
-        // once — not every occurrence of every tone. Assigning by priority
-        // per string (root beats 3rd beats 5th beats 7th on a shared string)
-        // alone let the root win repeatedly across several strings while
-        // crowding the 7th out entirely; instead, walk role by role
-        // (root, then 3rd, then 5th, then 7th) and give each the first
-        // still-open string that carries it, so every available tone claims
-        // its own string once, muting the rest — closer to a fingerable
-        // 4-note voicing than a scatter of every matching dot.
-        const byString = new Map();
-        dots.forEach((g) => {
-          const pc = ((parseInt(g.getAttribute("data-midi"), 10) % 12) + 12) % 12;
-          const role = toneMap.get(pc);
-          if (!role) return;
-          const str = g.getAttribute("data-string");
-          if (!byString.has(str)) byString.set(str, []);
-          byString.get(str).push({ el: g, role });
-        });
-        const usedStrings = new Set();
-        ["root", "third", "fifth", "seventh"].forEach((role) => {
-          for (const [str, candidates] of byString) {
-            if (usedStrings.has(str)) continue;
-            const match = candidates.find((c) => c.role === role);
-            if (match) {
-              applyToneHighlight(match.el, role);
-              usedStrings.add(str);
-              break;
-            }
-          }
-        });
-      }
-    }
+    if (!fbHost) return;
+    fbHost.querySelectorAll("[data-midi][data-string]").forEach((g) => applyToneHighlight(g, null));
+    if (!voicing) return;
+    voicing.forEach((v, s) => {
+      if (!v) return;
+      const midi = OPEN_STRING_MIDI[s] + v.fret;
+      const dot = fbHost.querySelector('[data-string="' + s + '"][data-midi="' + midi + '"]');
+      if (dot) applyToneHighlight(dot, v.role);
+    });
+  }
+
+  // Builds/refreshes the chord-quality override panel for the given
+  // context, selecting `qualityKey` among the 6 quality buttons and
+  // highlighting the diagrams + theory text to match.
+  function renderQualityPanel(ctx, qualityKey) {
+    ctx.selectedQuality = qualityKey;
+    document.getElementById("quality-panel").hidden = false;
+
+    const chipsHost = document.getElementById("quality-chips");
+    chipsHost.innerHTML = "";
+    QUALITY_ORDER.forEach((q) => {
+      const btn = document.createElement("button");
+      btn.type = "button";
+      let cls = "mode-chip quality-chip";
+      if (q === qualityKey) cls += " active";
+      if (q === ctx.nativeQuality) cls += " native"; // always marked, independent of what's currently active
+      btn.className = cls;
+      btn.textContent = pcToName(ctx.rootPc, ctx.keyObj) + q;
+      btn.dataset.quality = q;
+      chipsHost.appendChild(btn);
+    });
+
+    highlightKeyboardTones(qualityToneMap(ctx.rootPc, qualityKey));
+    const fretWindow = currentFretWindow || { lo: 0, hi: 4 };
+    highlightFretboardVoicing(findChordVoicing(ctx.rootPc, qualityKey, fretWindow.lo, fretWindow.hi));
+
+    const info = describeQuality(ctx, qualityKey);
+    document.getElementById("quality-category").textContent = info.category;
+    document.getElementById("quality-theory").textContent = info.text;
   }
 
   document.getElementById("mode-chords").addEventListener("click", (e) => {
@@ -1502,12 +1845,32 @@ button.mode-chip.active:hover { color: var(--parchment); }
     const wasActive = btn.classList.contains("active");
     document.querySelectorAll("#mode-chords .chord-chip.active").forEach((b) => b.classList.remove("active"));
     if (wasActive) {
-      highlightChordTones(null);
+      activeChordCtx = null;
+      document.getElementById("quality-panel").hidden = true;
+      highlightKeyboardTones(null);
+      highlightFretboardVoicing(null);
       return;
     }
     btn.classList.add("active");
-    const tones = JSON.parse(btn.dataset.tones);
-    highlightChordTones(new Map(tones.map((t) => [t.pc, t.role])));
+    const nativeQuality = btn.dataset.quality;
+    activeChordCtx = {
+      rootPc: parseInt(btn.dataset.root, 10),
+      parentDegree: parseInt(btn.dataset.parentDegree, 10),
+      modeDegree: parseInt(btn.dataset.modeDegree, 10),
+      modeIdx: currentModeInfo.idx,
+      keyObj: lastSettings.keyObj,
+      nativeQuality,
+      modeFullName: currentModeInfo.rootName + " " + currentModeInfo.name,
+    };
+    // Selecting a new modal chord always resets the quality override back
+    // to that chord's own native, diatonic quality.
+    renderQualityPanel(activeChordCtx, nativeQuality);
+  });
+
+  document.getElementById("quality-chips").addEventListener("click", (e) => {
+    const btn = e.target.closest(".quality-chip");
+    if (!btn || !activeChordCtx) return;
+    renderQualityPanel(activeChordCtx, btn.dataset.quality);
   });
 
   // ---------- audio playback ----------
@@ -1936,6 +2299,19 @@ button.mode-chip.active:hover { color: var(--parchment); }
   // the next Generate (see generateNewLine) — it never touches lastMeasures,
   // so picking a mode by hand is purely a re-label/re-diagram, not a reroll.
   let manualModeIdx = null;
+
+  // Context for the chord-quality override panel: set when a modal chord
+  // chip is activated, cleared when it's deactivated or the mode panel
+  // re-renders. Holds everything describeQuality()/qualityToneMap() need
+  // for whichever chord root is currently selected.
+  let activeChordCtx = null;
+  // The {rootPc, idx, name, rootName} of whichever mode is currently shown
+  // in the mode panel — refreshed by every renderModePanel() call so the
+  // mode-chords click handler doesn't need to recompute it.
+  let currentModeInfo = null;
+  // The {lo, hi} fret range currently drawn on the fretboard diagram —
+  // findChordVoicing() searches only within it (see renderModePanel).
+  let currentFretWindow = null;
 
   // Draws (or clears) a small letter-name label above each note's own glyph,
   // using its already-rendered bounding box — called after every renderScore
