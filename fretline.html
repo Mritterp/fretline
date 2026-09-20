@@ -137,6 +137,7 @@ main.rig {
 .select-wrap.tight svg { right: 9px; }
 
 .field .hint { margin: 2px 0 0; font-size: 11px; line-height: 1.5; color: var(--moss); }
+.shortcuts-hint { margin: 8px 0 0; font-size: 10px; letter-spacing: 0.02em; line-height: 1.5; color: var(--sage); }
 
 .segmented {
   display: grid;
@@ -440,6 +441,7 @@ button.mode-chip.active:hover { color: var(--parchment); }
           <button type="button" class="btn btn-outline" id="play-btn">Play back</button>
           <button type="button" class="btn btn-outline" id="stop-btn" disabled>Stop</button>
         </div>
+        <p class="shortcuts-hint">Space play/pause · Esc stop · G new line · M metronome · N note names</p>
       </div>
 
       <div id="panel-body">
@@ -713,12 +715,19 @@ button.mode-chip.active:hover { color: var(--parchment); }
   }
 
   // Same, but always returns a name even for a pitch outside the key's own
-  // 7 letters — falling back to the chromatic (sharp) spelling for it. Used
-  // wherever a chord tone might be a genuine borrowed/chromatic note (e.g.
-  // a parallel-major 3rd in a minor-mode key), which pcToName alone can't
-  // name because it isn't one of the key's diatonic pitches.
+  // 7 letters — falling back to the chromatic spelling for it (natural
+  // letter as-is, or that letter's sharp for one of the 5 non-natural
+  // pitch classes). Used wherever a chord tone might be a genuine
+  // borrowed/chromatic note (e.g. a parallel-major 3rd in a minor-mode
+  // key), which pcToName alone can't name because it isn't one of the
+  // key's diatonic pitches. E.g. pc 11 is a plain "B" here even in a key
+  // whose own B is flatted (so B natural isn't its diatonic letter) — it's
+  // still a natural pitch class, not a sharp, and must not be spelled B♯.
   function pcToNameAny(pc, key) {
-    return pcToName(pc, key) || pcToLetterMap(null)[pc].letter + "♯";
+    const own = pcToName(pc, key);
+    if (own) return own;
+    const entry = pcToLetterMap(null)[pc];
+    return entry.letter + (entry.acc === 1 ? "♯" : "");
   }
 
   function keyById(id) {
@@ -917,7 +926,9 @@ button.mode-chip.active:hover { color: var(--parchment); }
   // the minor-3rd family (-/°/-7/ø7/°7/-Δ7) — used below to tell
   // parallel-major/minor borrowing apart from same-family modal borrowing.
   // sus2/sus4 have no 3rd at all (bright: null — handled as its own case).
-  const QUALITY_ORDER = ["", "-", "°", "sus2", "sus4", "Δ7", "7", "-7", "ø7", "°7", "-Δ7"];
+  // Order: major triad, major7, dominant7, minor triad, minor7, sus2, sus4,
+  // diminished triad, diminished7, half-diminished7, minor-major7.
+  const QUALITY_ORDER = ["", "Δ7", "7", "-", "-7", "sus2", "sus4", "°", "°7", "ø7", "-Δ7"];
   const QUALITIES = {
     "":    { desc: "major",             tones: [{ i: 4, role: "third" }, { i: 7, role: "fifth" }], bright: true },
     "-":   { desc: "minor",             tones: [{ i: 3, role: "third" }, { i: 7, role: "fifth" }], bright: false },
@@ -963,6 +974,66 @@ button.mode-chip.active:hover { color: var(--parchment); }
     const bright = QUALITIES[qualityKey].bright;
     const base = bright === false ? ROMAN_NUMERALS[parentDegree].toLowerCase() : ROMAN_NUMERALS[parentDegree];
     return base + qualityKey;
+  }
+
+  // The {root, quality} that sits at mode-relative scale-degree `modeDegree`
+  // (0=I..6=vii) of `candidateModeIdx`, when THAT mode's own tonic is fixed
+  // at `overallRootPc` — i.e. "if the tonal center stayed exactly where it
+  // is, but the surrounding mode were candidateModeIdx instead, what chord
+  // would sit here?" quality is always one of the four qualities a plain
+  // major-scale mode can natively produce (Δ7/7/-7/ø7); third/fifth are
+  // included so a caller can match a bare triad (which ignores the 7th).
+  function chordAtModePosition(overallRootPc, candidateModeIdx, modeDegree) {
+    const parentTonic = ((overallRootPc - MAJOR_STEPS[candidateModeIdx]) % 12 + 12) % 12;
+    const scale = MAJOR_STEPS.map((i) => (parentTonic + i) % 12);
+    const degree = (candidateModeIdx + modeDegree) % 7;
+    const root = scale[degree];
+    const third = scale[(degree + 2) % 7];
+    const fifth = scale[(degree + 4) % 7];
+    const seventh = scale[(degree + 6) % 7];
+    const iv3 = ((third - root) % 12 + 12) % 12;
+    const iv5 = ((fifth - root) % 12 + 12) % 12;
+    const iv7 = ((seventh - root) % 12 + 12) % 12;
+    let quality;
+    if (iv3 === 4 && iv5 === 7 && iv7 === 11) quality = "Δ7";
+    else if (iv3 === 4 && iv5 === 7 && iv7 === 10) quality = "7";
+    else if (iv3 === 3 && iv5 === 7 && iv7 === 10) quality = "-7";
+    else quality = "ø7";
+    return { root, quality, third: iv3, fifth: iv5 };
+  }
+
+  // Which of the 7 parallel modes on overallRootPc — keeping that same
+  // tonal center fixed throughout, per how modal interchange is actually
+  // defined (see describeQuality) — natively produce chordRoot+qualityKey
+  // at this scale-degree label. A 7th-chord quality must match exactly; a
+  // bare triad matches on 3rd+5th alone (any mode's 7th is irrelevant to a
+  // triad). Can return 0 matches (this exact chord isn't one of the seven
+  // ordinary modes' own — see the harmonic/melodic-minor fallback below),
+  // 1 (an unambiguous source), or several (a genuinely ambiguous case,
+  // which real borrowed-chord analysis resolves from the surrounding
+  // progression — something a single isolated chord can't supply).
+  function findSourceModes(overallRootPc, modeDegree, chordRoot, qualityKey) {
+    const q = QUALITIES[qualityKey];
+    const hasSeventh = q.tones.some((t) => t.role === "seventh");
+    const wantThird = intervalOfRole(qualityKey, "third");
+    const wantFifth = intervalOfRole(qualityKey, "fifth");
+    const matches = [];
+    for (let cm = 0; cm < 7; cm++) {
+      const cand = chordAtModePosition(overallRootPc, cm, modeDegree);
+      if (cand.root !== chordRoot) continue;
+      if (hasSeventh ? cand.quality === qualityKey : (cand.third === wantThird && cand.fifth === wantFifth)) {
+        matches.push(MODES[cm]);
+      }
+    }
+    return matches;
+  }
+
+  // English list: ["Ionian"] -> "Ionian"; ["Ionian","Lydian"] -> "Ionian or
+  // Lydian"; 3+ -> "Ionian, Lydian, or Mixolydian".
+  function englishList(items) {
+    if (items.length === 1) return items[0];
+    if (items.length === 2) return items[0] + " or " + items[1];
+    return items.slice(0, -1).join(", ") + ", or " + items[items.length - 1];
   }
 
   // Best-effort explanation of a chosen chord quality relative to its
@@ -1032,19 +1103,55 @@ button.mode-chip.active:hover { color: var(--parchment); }
       };
     }
 
+    // Real modal interchange keeps ONE fixed tonal center (the mode's own
+    // tonic, ctx.overallRootPc) throughout and asks which of that root's 7
+    // parallel modes natively supplies this exact chord at this scale
+    // degree — not whether the chord's own root, taken in isolation, has a
+    // parallel-major/minor version of itself (a subtly different and less
+    // standard question). E.g. in G Dorian, a dominant 7 at the bVII
+    // position (F7) isn't "F's parallel major" — it's the well-known
+    // "backdoor" bVII7 borrowed from G's own parallel Aeolian.
+    const overallRootName = pcToNameAny(ctx.overallRootPc, ctx.keyObj);
+    const matches = findSourceModes(ctx.overallRootPc, ctx.modeDegree, ctx.rootPc, qualityKey);
     const nativeBright = QUALITIES[ctx.nativeQuality].bright;
     const selBright = QUALITIES[qualityKey].bright;
-    if (nativeBright !== selBright) {
-      const category = selBright ? "Parallel major" : "Parallel minor";
+
+    if (matches.length) {
+      const namedSources = englishList(matches.map((m) => overallRootName + " " + m));
+      // A single, unambiguous source and a crossed major/minor divide is
+      // the textbook case real theory almost always reaches for first
+      // (see sources) — name it with the familiar "parallel major/minor"
+      // label AND the specific mode, rather than either alone.
+      if (nativeBright !== selBright) {
+        const category = selBright ? "Parallel major" : "Parallel minor";
+        return {
+          category,
+          text: selLabel + " (" + selRoman + ") trades the native " + rootName + ctx.nativeQuality + "'s " + (nativeBright ? "major" : "minor") + " triad for a " + (selBright ? "major" : "minor") + " one on the same root — " + category.toLowerCase() + " borrowing (modal interchange), diatonic to " + namedSources + ".",
+        };
+      }
       return {
-        category,
-        text: selLabel + " (" + selRoman + ") trades the native " + rootName + ctx.nativeQuality + "'s " + (nativeBright ? "major" : "minor") + " triad for a " + (selBright ? "major" : "minor") + " one on the same root — " + category.toLowerCase() + " borrowing (modal interchange) from " + rootName + "'s parallel " + (selBright ? "major" : "minor") + ".",
+        category: matches.length > 1 ? "Modal interchange" : "Modal interchange: " + matches[0],
+        text: selLabel + " (" + selRoman + ") keeps the same triad quality as the native " + rootName + ctx.nativeQuality + " but reshapes its 5th/7th — diatonic to " + namedSources + ", borrowed in place of " + ctx.modeFullName + "'s own.",
       };
     }
 
+    // Nothing among the 7 ordinary major-scale modes produces this exact
+    // chord at this scale degree. The one well-documented case that still
+    // has a clean name: a minor triad + major 7th is the tonic-position
+    // chord of harmonic minor AND (ascending) melodic minor alike — a
+    // standard borrow, just from outside the 7-mode family this app is
+    // otherwise built on.
+    const thirdIv = intervalOfRole(qualityKey, "third");
+    const seventhIv = intervalOfRole(qualityKey, "seventh");
+    if (thirdIv === 3 && seventhIv === 11) {
+      return {
+        category: "Harmonic/melodic minor",
+        text: selLabel + " (" + selRoman + ") is the tonic-position chord of " + overallRootName + " harmonic minor (and ascending melodic minor) — a standard borrow, but from outside the seven major-scale modes this app otherwise tracks.",
+      };
+    }
     return {
-      category: "Modal borrowing",
-      text: selLabel + " (" + selRoman + ") keeps the same triad quality as the native " + rootName + ctx.nativeQuality + " but reshapes its 5th/7th — the color of a different mode sharing this same root, borrowed in place of " + ctx.modeFullName + "'s own.",
+      category: nativeBright !== selBright ? (selBright ? "Parallel major" : "Parallel minor") : "Chromatic alteration",
+      text: selLabel + " (" + selRoman + ") doesn't match any of " + overallRootName + "'s seven ordinary parallel modes at this scale degree — a further chromatic alteration (commonly reached for via the harmonic/melodic minor system or a secondary/borrowed dominant) rather than a straightforward one-mode borrow.",
     };
   }
 
@@ -1863,6 +1970,7 @@ button.mode-chip.active:hover { color: var(--parchment); }
       parentDegree: parseInt(btn.dataset.parentDegree, 10),
       modeDegree: parseInt(btn.dataset.modeDegree, 10),
       modeIdx: currentModeInfo.idx,
+      overallRootPc: currentModeInfo.rootPc, // the mode's own tonic — the fixed tonal center every parallel-mode comparison is relative to
       keyObj: lastSettings.keyObj,
       nativeQuality,
       modeFullName: currentModeInfo.rootName + " " + currentModeInfo.name,
@@ -2439,11 +2547,17 @@ button.mode-chip.active:hover { color: var(--parchment); }
     keySelect.value = pick.id;
   }
 
-  document.getElementById("generate-btn").addEventListener("click", () => {
+  // Named so the keyboard shortcuts below can call the exact same logic
+  // directly, rather than simulating a click on the button element — a
+  // synthetic .click() also focuses the button, and a real physical
+  // keypress on a focused button can independently trigger the browser's
+  // own native "activate on keyup" behavior on top of ours, double-firing
+  // the toggle. Calling the function directly sidesteps that entirely.
+  function triggerGenerate() {
     randomizeKey();
     generateNewLine();
-  });
-  document.getElementById("play-btn").addEventListener("click", () => {
+  }
+  function togglePlayback() {
     if (playbackState === "playing") {
       pausePlayback();
     } else if (playbackState === "paused") {
@@ -2452,14 +2566,18 @@ button.mode-chip.active:hover { color: var(--parchment); }
       const fromBeat = selectedMeasureIndex != null && measureStartBeats[selectedMeasureIndex] != null ? measureStartBeats[selectedMeasureIndex] : 0;
       startPlaybackFrom(fromBeat, parseInt(tempoRange.value, 10), TIME_BEATS[timeSelect.value]);
     }
-  });
+  }
+  function toggleMetronome() {
+    if (metronomeTimerId != null) stopMetronome();
+    else startMetronome();
+  }
+
+  document.getElementById("generate-btn").addEventListener("click", triggerGenerate);
+  document.getElementById("play-btn").addEventListener("click", togglePlayback);
   document.getElementById("stop-btn").addEventListener("click", stopPlayback);
   setPlayPauseUI();
 
-  document.getElementById("metronome-btn").addEventListener("click", () => {
-    if (metronomeTimerId != null) stopMetronome();
-    else startMetronome();
-  });
+  document.getElementById("metronome-btn").addEventListener("click", toggleMetronome);
 
   showNoteNames.addEventListener("change", () => {
     if (lastSettings) {
@@ -2468,20 +2586,48 @@ button.mode-chip.active:hover { color: var(--parchment); }
     }
   });
 
-  // Spacebar always stops whatever's currently making sound (line playback
-  // or the standalone metronome) and always blocks the page-scroll default —
-  // except while a text-entry-like control has focus (typing a space,
-  // opening a select, toggling a checkbox), where its own native behavior
-  // should win instead. Deliberately NOT excluding buttons: a disabled one
-  // (e.g. "Stop" when nothing's playing) consumes neither our handler nor
-  // its own click-via-space, so the event fell through to the browser's
-  // default scroll — this is exactly the bug being fixed here.
+  // App-wide keyboard shortcuts (see the hint under the transport buttons):
+  // Space play/pause, Esc stop, G generate, M metronome, N note names. Plain,
+  // unmodified keys are always safe to claim in a browser tab — nothing here
+  // collides with a built-in browser/OS shortcut — but two guards keep them
+  // from misbehaving:
+  //  - Never fire with Ctrl/Cmd/Alt held, so an actual browser chord (e.g.
+  //    Ctrl+G "find next") still reaches the browser untouched.
+  //  - Never fire while a text-entry-like control has focus (typing a
+  //    space, opening a select), so its own native behavior wins instead.
+  //    Deliberately NOT excluding buttons: a disabled one (e.g. "Stop" when
+  //    nothing's playing) consumes neither our handler nor its own
+  //    click-via-space, so the event would otherwise fall through to the
+  //    browser's default (e.g. page-scroll on Space) — this is exactly the
+  //    bug that exclusion would reintroduce.
   document.addEventListener("keydown", (e) => {
-    if (e.code !== "Space" && e.key !== " ") return;
+    if (e.ctrlKey || e.metaKey || e.altKey) return;
     const tag = (e.target.tagName || "").toLowerCase();
     if (["input", "select", "textarea"].includes(tag)) return;
-    e.preventDefault();
-    stopPlayback();
+
+    if (e.code === "Space" || e.key === " ") {
+      e.preventDefault();
+      if (!e.repeat) togglePlayback();
+      return;
+    }
+    if (e.key === "Escape") {
+      e.preventDefault();
+      stopPlayback();
+      if (metronomeTimerId != null) stopMetronome();
+      return;
+    }
+    if (e.repeat) return; // everything below toggles something — never auto-repeat that
+    if (e.key === "g" || e.key === "G") {
+      e.preventDefault();
+      triggerGenerate();
+    } else if (e.key === "m" || e.key === "M") {
+      e.preventDefault();
+      toggleMetronome();
+    } else if (e.key === "n" || e.key === "N") {
+      e.preventDefault();
+      showNoteNames.checked = !showNoteNames.checked;
+      showNoteNames.dispatchEvent(new Event("change"));
+    }
   });
 
   // Clicking a note dot on either diagram plays that pitch — delegated once
