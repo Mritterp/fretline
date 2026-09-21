@@ -572,6 +572,15 @@ button.mode-chip.active:hover { color: var(--parchment); }
             <svg width="11" height="7" viewBox="0 0 11 7" fill="none"><path d="M1 1l4.5 4.5L10 1" stroke="#3D3A30" stroke-width="1.2"/></svg>
           </div>
         </div>
+
+        <div class="field">
+          <div class="tempo-head">
+            <label style="padding-bottom:0;">Volume</label>
+            <span class="tempo-value"><span id="volume-value">80</span><span class="unit">%</span></span>
+          </div>
+          <input type="range" id="volume-range" min="0" max="100" value="80" step="1">
+          <p class="hint">Note playback and metronome clicks together.</p>
+        </div>
       </div>
 
       <div class="session-counter">
@@ -1709,17 +1718,59 @@ button.mode-chip.active:hover { color: var(--parchment); }
         if (requireRootBass && combo[0].role !== "root") return; // no tone but the root belongs in the bass
 
         const nonzero = combo.filter((c) => c.fret > 0);
+
+        // Two strings sharing a fret that are close together (at most one
+        // string between them) are just two ordinary independent fingers —
+        // fine regardless of what that one string is doing, same as the
+        // classic open x-0-2-0-2-0 A7 shape. Once they're farther apart
+        // than that, independent fingers can't realistically reach both at
+        // once — it has to be a barre, which means every PLAYED string in
+        // the full span between them must be either open (silenced by the
+        // barre — fine, that's the point) or fretted at that SAME value
+        // (covered by the barre too); a different nonzero fret in between
+        // needs its own finger pressing THROUGH the barre, which is normal
+        // (that's how barre chords add color tones) — the one thing that's
+        // never reachable is a string that has to ring OPEN while sitting
+        // inside a wide same-fret span, because the barre lying across it
+        // would mute it. This is what used to let through an unplayable
+        // shape like F Δ7's 1-0-2-2-1-0: strings 6 and 2 both wanted fret
+        // 1, four strings apart, with string 5 ringing open in between —
+        // no barre can cover 6 and 2 without also silencing 5.
+        const fretGroups = new Map();
+        combo.forEach((c, i) => {
+          if (c.fret > 0) {
+            if (!fretGroups.has(c.fret)) fretGroups.set(c.fret, []);
+            fretGroups.get(c.fret).push(played[i]);
+          }
+        });
+        for (const [fret, strs] of fretGroups) {
+          if (strs.length < 2) continue;
+          const lo = Math.min(...strs), hi = Math.max(...strs);
+          if (hi - lo <= 2) continue; // close together — independent fingers, always fine
+          for (let s = lo; s <= hi; s++) {
+            const idx = played.indexOf(s);
+            if (idx === -1) continue; // muted string under the barre — fine
+            if (combo[idx].fret === 0) return; // open string trapped under the barre — not reachable
+          }
+          // A barre reaching all the way to string index 4 (the B string,
+          // one short of high e) can't realistically stop there — the
+          // index finger's tip is already at the top string, so
+          // deliberately arching it to keep string 5 ringing open is a
+          // much harder ask than just letting the barre cover it too
+          // (doubling the root, same as a normal full barre chord). Real
+          // players go with the duplicated root, not the held-back open
+          // string.
+          if (hi === 4) {
+            const topIdx = played.indexOf(5);
+            if (topIdx !== -1 && combo[topIdx].fret === 0) return;
+          }
+        }
+
         let fingerCount = nonzero.length;
         if (fingerCount > 4) {
           const minFret = Math.min(...nonzero.map((c) => c.fret));
-          const minAbsStrings = [];
-          combo.forEach((c, i) => { if (c.fret === minFret) minAbsStrings.push(played[i]); });
+          const minAbsStrings = fretGroups.get(minFret) || [];
           if (minAbsStrings.length < 2) return; // too many fingers, no barre available to reduce them
-          const lo = Math.min(...minAbsStrings), hi = Math.max(...minAbsStrings);
-          for (let s = lo; s <= hi; s++) {
-            const idx = played.indexOf(s);
-            if (idx !== -1 && combo[idx].fret === 0) return; // open string trapped under the barre
-          }
           fingerCount = 1 + combo.filter((c) => c.fret > 0 && c.fret !== minFret).length;
         }
         if (fingerCount > 4) return;
@@ -1727,10 +1778,18 @@ button.mode-chip.active:hover { color: var(--parchment); }
         const distinctFrets = new Set(combo.filter((c) => c.fret !== 0).map((c) => c.fret)).size;
         const openCount = combo.filter((c) => c.fret === 0).length;
         const maxFret = Math.max(0, ...combo.map((c) => c.fret));
+        // A true full barre (one fret held across all 6 strings, low E to
+        // high e) is the single most standard, most-taught movable shape —
+        // real players default to it (root duplicated on top) rather than
+        // an open-string alternative that drops to fewer strings, even
+        // when the fewer-string version is nominally "easier" by finger
+        // count alone.
+        const fullBarre = [...fretGroups.values()].some((strs) => Math.min(...strs) === 0 && Math.max(...strs) === 5);
         const score =
           -muteCount * 2 - distinctFrets * 10 - fingerCount * 6 - maxFret * 2 +
           openCount * 9 + (rolesPresent.has("fifth") ? 4 : 0) + played.length * 1.5 +
-          (combo[0].role === "root" ? 20 : 0); // still prefer root-position whenever both bass options are on the table
+          (combo[0].role === "root" ? 20 : 0) + // still prefer root-position whenever both bass options are on the table
+          (fullBarre ? 10 : 0);
 
         if (score > bestScore) { bestScore = score; best = { played, combo }; }
       });
@@ -1992,6 +2051,7 @@ button.mode-chip.active:hover { color: var(--parchment); }
   // already-scheduled note and metronome click simply waits — resuming
   // continues them exactly where they left off, with no rescheduling needed.
   let audioCtx = null;
+  let masterGainNode = null; // every oscillator routes through this instead of straight to ctx.destination, so the volume slider affects already-sounding notes too, not just future ones
   let playbackState = "stopped";
   let allOscNodes = []; // every oscillator (notes AND metronome) for the current run, so Stop can hard-stop all of them
   let scheduleList = []; // {element, absStart, absEnd} for the notes being highlighted this run
@@ -2014,7 +2074,12 @@ button.mode-chip.active:hover { color: var(--parchment); }
   }
 
   function ensureAudioCtx() {
-    if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    if (!audioCtx) {
+      audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      masterGainNode = audioCtx.createGain();
+      masterGainNode.gain.value = parseFloat(document.getElementById("volume-range").value) / 100;
+      masterGainNode.connect(audioCtx.destination);
+    }
     return audioCtx;
   }
   function midiToFreq(m) {
@@ -2034,7 +2099,7 @@ button.mode-chip.active:hover { color: var(--parchment); }
     gain.gain.setValueAtTime(0.0001, t);
     gain.gain.linearRampToValueAtTime(0.22, t + 0.012);
     gain.gain.exponentialRampToValueAtTime(0.0001, t + dur);
-    osc.connect(gain).connect(ctx.destination);
+    osc.connect(gain).connect(masterGainNode);
     osc.start(t);
     osc.stop(t + dur + 0.02);
     allOscNodes.push(osc);
@@ -2119,12 +2184,33 @@ button.mode-chip.active:hover { color: var(--parchment); }
   let metronomeNextTime = 0;
   let metronomeBeat = 0;
 
+  // Standard lookahead-scheduling pattern: this runs every 30ms but always
+  // queues real Web-Audio-clock events well beyond that, so a queued click
+  // still fires exactly on time even if the *next* tick of this timer is
+  // delayed. That delay is normally negligible, but browsers throttle
+  // setInterval/setTimeout in a backgrounded or momentarily-deprioritized
+  // tab — sometimes by a second or more — which is almost certainly the
+  // "randomly drops out for a couple seconds" symptom: once already-queued
+  // clicks run out, nothing new gets queued until the throttled timer
+  // finally fires again. A short lookahead (previously 150ms) leaves very
+  // little runway before that happens; a full second gives the scheduler
+  // much more room to survive a throttled/delayed tick without an audible
+  // gap, at the cost of up to ~1s of latency before a tempo/time-signature
+  // change takes effect — an acceptable trade for a click track.
   function metronomeScheduleAhead() {
     const ctx = ensureAudioCtx();
     const bpm = parseInt(tempoRange.value, 10);
     const beatsPerMeasure = TIME_BEATS[timeSelect.value];
     const secPerBeat = 60 / bpm;
-    const lookahead = 0.15;
+    const lookahead = 1.0;
+    // If we fell behind by more than a full lookahead window — the tab was
+    // backgrounded/throttled for a while — don't replay every missed click
+    // in a rapid burst once this finally runs again; just resume cleanly
+    // on the next beat.
+    if (metronomeNextTime < ctx.currentTime - lookahead) {
+      metronomeBeat = 0;
+      metronomeNextTime = ctx.currentTime + 0.05;
+    }
     while (metronomeNextTime < ctx.currentTime + lookahead) {
       const t = metronomeNextTime;
       const isDownbeat = metronomeBeat % beatsPerMeasure === 0;
@@ -2134,7 +2220,7 @@ button.mode-chip.active:hover { color: var(--parchment); }
       gain.gain.setValueAtTime(0.0001, t);
       gain.gain.linearRampToValueAtTime(0.13, t + 0.002);
       gain.gain.exponentialRampToValueAtTime(0.0001, t + 0.05);
-      osc.connect(gain).connect(ctx.destination);
+      osc.connect(gain).connect(masterGainNode);
       osc.start(t);
       osc.stop(t + 0.06);
       allOscNodes.push(osc);
@@ -2204,7 +2290,7 @@ button.mode-chip.active:hover { color: var(--parchment); }
         gain.gain.setValueAtTime(0.0001, t);
         gain.gain.linearRampToValueAtTime(0.13, t + 0.002);
         gain.gain.exponentialRampToValueAtTime(0.0001, t + 0.05);
-        osc.connect(gain).connect(ctx.destination);
+        osc.connect(gain).connect(masterGainNode);
         osc.start(t);
         osc.stop(t + 0.06);
         allOscNodes.push(osc);
@@ -2223,7 +2309,7 @@ button.mode-chip.active:hover { color: var(--parchment); }
       gain.gain.setValueAtTime(0.0001, t0);
       gain.gain.linearRampToValueAtTime(0.22, t0 + 0.012);
       gain.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
-      osc.connect(gain).connect(ctx.destination);
+      osc.connect(gain).connect(masterGainNode);
       osc.start(t0);
       osc.stop(t0 + dur + 0.02);
       allOscNodes.push(osc);
@@ -2275,6 +2361,8 @@ button.mode-chip.active:hover { color: var(--parchment); }
   const tempoRange = document.getElementById("tempo-range");
   const tempoValue = document.getElementById("tempo-value");
   const toneSelect = document.getElementById("tone-select");
+  const volumeRange = document.getElementById("volume-range");
+  const volumeValue = document.getElementById("volume-value");
   const metronomeDuringPlayback = document.getElementById("metronome-during-playback");
   const showNoteNames = document.getElementById("show-note-names");
   const stageMetaEl = document.getElementById("stage-meta");
@@ -2362,6 +2450,15 @@ button.mode-chip.active:hover { color: var(--parchment); }
   tempoRange.addEventListener("input", () => {
     tempoValue.textContent = tempoRange.value;
     stageMetaEl.textContent = tempoRange.value + " bpm · " + measuresSelect.value + " bars";
+  });
+
+  // Scales note playback and metronome clicks together in real time (both
+  // already-sounding and future notes) — see masterGainNode in
+  // ensureAudioCtx(), which every oscillator chain routes through instead
+  // of connecting straight to ctx.destination.
+  volumeRange.addEventListener("input", () => {
+    volumeValue.textContent = volumeRange.value;
+    if (masterGainNode) masterGainNode.gain.value = parseFloat(volumeRange.value) / 100;
   });
 
   let sessionCount = 0;
@@ -2628,6 +2725,14 @@ button.mode-chip.active:hover { color: var(--parchment); }
       showNoteNames.checked = !showNoteNames.checked;
       showNoteNames.dispatchEvent(new Event("change"));
     }
+  });
+
+  // The moment a backgrounded/throttled tab regains focus, immediately top
+  // up the metronome's schedule instead of waiting up to 30ms for the next
+  // natural setInterval tick — shaves a little more off any audible gap on
+  // top of the larger lookahead in metronomeScheduleAhead().
+  document.addEventListener("visibilitychange", () => {
+    if (document.visibilityState === "visible" && metronomeTimerId != null) metronomeScheduleAhead();
   });
 
   // Clicking a note dot on either diagram plays that pitch — delegated once
