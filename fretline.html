@@ -302,8 +302,31 @@ button.btn {
   padding-top: 12px;
   border-top: 1px solid var(--wheat);
 }
-.mode-panel .diagrams-col { flex: 0 1 300px; min-width: 260px; display: flex; flex-direction: column; gap: 20px; }
+.mode-panel .diagrams-col { flex: 1 1 620px; min-width: 260px; display: flex; flex-direction: column; gap: 20px; }
 .mode-panel .diagram-caption { display: block; font-size: 9px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--sage); margin-bottom: 8px; }
+/* Both diagrams' own per-key/per-fret spacing is fixed (see renderKeyboard
+   / renderFretboard) rather than shrinking to squeeze more keys/frets into
+   a fixed canvas — the canvas grows to fit instead, and each scrolls
+   horizontally as a fallback wherever it doesn't fit the available width.
+   The mode labels and the fretboard SVG share one scrolling wrapper so
+   they always scroll in lockstep (each fret column's label stays over its
+   own column). */
+.fretboard-scroll { max-width: 100%; overflow-x: auto; }
+#keyboard-host { max-width: 100%; overflow-x: auto; }
+.fretboard-mode-row { position: relative; height: 78px; }
+.mode-box-label {
+  position: absolute; bottom: 0; transform: translateX(-50%) rotate(180deg);
+  writing-mode: vertical-rl; text-orientation: mixed;
+  border: none; background: none; padding: 0; cursor: pointer;
+  font-family: var(--font-body); font-size: 9px; letter-spacing: 0.14em; text-transform: uppercase;
+  color: var(--wheat); transition: color 120ms ease-out;
+}
+.mode-box-label:hover, .mode-box-label.current, .mode-box-label.pinned { color: var(--moss); }
+.mode-box-label.current span, .mode-box-label.pinned span { font-weight: 700; }
+/* Hovering a mode-box label dims every dot outside its fret range, so the
+   pattern actually belonging to that mode stands out against the rest of
+   the diagram. */
+#fretboard-host [data-fret].mode-box-dim circle { opacity: 0.28; }
 .mode-panel .info-col { flex: 1 1 260px; min-width: 230px; display: flex; flex-direction: column; gap: 12px; }
 .mode-panel .info-head { display: flex; align-items: baseline; gap: 16px; }
 .mode-panel .info-head span { font-size: 9px; letter-spacing: 0.2em; text-transform: uppercase; color: var(--sage); }
@@ -328,14 +351,6 @@ button.mode-chip.active:hover { color: var(--parchment); }
   margin-bottom: 8px;
 }
 .mode-panel .chord-chips { margin-top: 4px; }
-.mode-panel .chord-symbol-key { display: flex; flex-direction: column; gap: 6px; margin-top: 10px; }
-.mode-panel .chord-symbol-key span {
-  /* No uppercase transform here (unlike the app's other small-caps labels) —
-     these lines depend on M vs m staying visually distinct (major vs minor). */
-  font-size: 10px; color: var(--sage); line-height: 1.6;
-}
-.mode-panel .chord-symbol-key i { font-style: normal; color: var(--wheat); margin: 0 1px; }
-.mode-panel .chord-symbol-key .dim-symbol { font-size: 1.6em; vertical-align: -0.15em; line-height: 0; }
 .mode-panel .chord-legend { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 8px; }
 .mode-panel .chord-legend-item {
   display: inline-flex; align-items: center; gap: 5px;
@@ -374,7 +389,7 @@ button.mode-chip.active:hover { color: var(--parchment); }
    tones on both diagrams in place — every other note stays exactly where
    it was, just not colored — overriding the dots'/keys' own presentation
    attributes with a role color carried per-element via the --tone-color
-   custom property set in highlightKeyboardTones()/highlightFretboardVoicing(). */
+   custom property set in highlightKeyboardVoicing()/highlightFretboardVoicing(). */
 #fretboard-host .chord-highlight circle,
 #keyboard-host .chord-highlight circle,
 #keyboard-host .chord-highlight rect {
@@ -610,12 +625,15 @@ button.mode-chip.active:hover { color: var(--parchment); }
       <div class="mode-panel" id="mode-panel">
         <div class="diagrams-col">
           <div>
-            <span class="diagram-caption">One octave, root at the bottom</span>
+            <span class="diagram-caption">Two and a half octaves, root at the bottom</span>
             <div id="keyboard-host"></div>
           </div>
           <div>
             <span class="diagram-caption" id="fretboard-caption"></span>
-            <div id="fretboard-host"></div>
+            <div class="fretboard-scroll">
+              <div id="fretboard-mode-row" class="fretboard-mode-row" aria-label="Modes rooted on this string, by fret"></div>
+              <div id="fretboard-host"></div>
+            </div>
           </div>
           <div class="quality-panel" id="quality-panel" hidden>
             <span class="diagram-caption">Chord quality</span>
@@ -646,14 +664,6 @@ button.mode-chip.active:hover { color: var(--parchment); }
               <span class="chord-legend-item"><i class="chord-legend-swatch" style="--tone-color: var(--tone-third)"></i>3rd</span>
               <span class="chord-legend-item"><i class="chord-legend-swatch" style="--tone-color: var(--tone-fifth)"></i>5th</span>
               <span class="chord-legend-item"><i class="chord-legend-swatch" style="--tone-color: var(--tone-seventh)"></i>7th</span>
-            </div>
-            <div class="chord-symbol-key">
-              <span>CΔ7 <i>|</i> C major 7 [ M3, P5, M7 ]</span>
-              <span>C7 <i>|</i> C dominant 7 [ M3, P5, m7 ]</span>
-              <span>C-7 <i>|</i> C minor 7 [ m3, P5, m7 ]</span>
-              <span>Cø7 <i>|</i> C half-diminished 7 [ m3, d5, m7 ]</span>
-              <span>C<span class="dim-symbol">°</span>7 <i>|</i> C diminished 7 [ m3, d5, d7 ]</span>
-              <span>C-Δ7 <i>|</i> C minor-major 7 [ m3, P5, M7 ]</span>
             </div>
           </div>
         </div>
@@ -952,18 +962,21 @@ button.mode-chip.active:hover { color: var(--parchment); }
     "-Δ7": { desc: "minor-major 7",     tones: [{ i: 3, role: "third" }, { i: 7, role: "fifth" }, { i: 11, role: "seventh" }], bright: false },
   };
 
+  // Real-book-style interval-formula label for a quality's own tones (root
+  // omitted, matching how "[ M3, P5, M7 ]" etc. is conventionally written) —
+  // folded into the theory paragraph in describeQuality() instead of a
+  // separate static glossary.
+  const INTERVAL_NAME = { 2: "M2", 3: "m3", 4: "M3", 5: "P4", 6: "d5", 7: "P5", 9: "d7", 10: "m7", 11: "M7" };
+  function intervalFormula(qualityKey) {
+    return "[ " + QUALITIES[qualityKey].tones.map((t) => INTERVAL_NAME[t.i]).join(", ") + " ]";
+  }
+
   // Full {pc, role} tone list for a quality built on rootPc, root included.
   function qualityChordTones(rootPc, qualityKey) {
     const mod = (n) => ((n % 12) + 12) % 12;
     return [{ pc: mod(rootPc), role: "root" }].concat(
       QUALITIES[qualityKey].tones.map((t) => ({ pc: mod(rootPc + t.i), role: t.role }))
     );
-  }
-
-  // pc -> role map for a chord of the given quality built on rootPc, in the
-  // same shape highlightKeyboardTones() already expects.
-  function qualityToneMap(rootPc, qualityKey) {
-    return new Map(qualityChordTones(rootPc, qualityKey).map((t) => [t.pc, t.role]));
   }
 
   function intervalOfRole(qualityKey, role) {
@@ -1565,8 +1578,12 @@ button.mode-chip.active:hover { color: var(--parchment); }
     const openAsCircles = lo === 0;
     const gridLo = openAsCircles ? 1 : lo;
     const frets = hi - gridLo + 1;
-    const W = 300, H = 150, x0 = 34, y0 = 16;
-    const cw = (W - x0 - 14) / frets;
+    // cw is fixed (the same per-fret width the diagram always used when it
+    // only ever showed ~4 frets) rather than shrinking to squeeze more
+    // frets into a fixed canvas — the canvas (W) grows to fit instead, and
+    // the layout gives it the room (see .diagrams-col / #fretboard-host).
+    const H = 150, x0 = 34, y0 = 16, cw = 63;
+    const W = x0 + frets * cw + 14;
     const rh = (H - y0 - 30) / 5;
     const pcs = diatonicPcSet(key);
     const parts = [];
@@ -1596,7 +1613,7 @@ button.mode-chip.active:hover { color: var(--parchment); }
         const cx = x0 + (f - gridLo) * cw + cw / 2;
         const cy = y0 + (5 - s) * rh;
         const name = pcToNameAny(pc, key);
-        parts.push('<g data-midi="' + midi + '" data-string="' + s + '" class="' + (inScale ? "" : "out-of-scale") + '" style="cursor:pointer">');
+        parts.push('<g data-midi="' + midi + '" data-string="' + s + '" data-fret="' + f + '" class="' + (inScale ? "" : "out-of-scale") + '" style="cursor:pointer">');
         parts.push('<circle cx="' + cx + '" cy="' + cy + '" r="9" fill="#F5F0E8" stroke="#5C6B52" stroke-width="1.2"></circle>');
         parts.push('<text x="' + cx + '" y="' + (cy + 2.8) + '" font-family="Helvetica, Arial, sans-serif" font-size="8" font-weight="700" fill="#5C6B52" text-anchor="middle">' + name + '</text>');
         parts.push('</g>');
@@ -1609,7 +1626,7 @@ button.mode-chip.active:hover { color: var(--parchment); }
         const pc = ((openMidi % 12) + 12) % 12;
         const inScale = pcs === null || pcs.has(pc);
         const name = pcToNameAny(pc, key);
-        parts.push('<g data-midi="' + openMidi + '" data-string="' + i + '" class="' + (inScale ? "" : "out-of-scale") + '" style="cursor:pointer">');
+        parts.push('<g data-midi="' + openMidi + '" data-string="' + i + '" data-fret="0" class="' + (inScale ? "" : "out-of-scale") + '" style="cursor:pointer">');
         parts.push('<circle cx="20" cy="' + y + '" r="9" fill="#F5F0E8" stroke="#5C6B52" stroke-width="1.2"></circle>');
         parts.push('<text x="20" y="' + (y + 2.8) + '" font-family="Helvetica, Arial, sans-serif" font-size="8" font-weight="700" fill="#5C6B52" text-anchor="middle">' + name + '</text>');
         parts.push('</g>');
@@ -1618,7 +1635,65 @@ button.mode-chip.active:hover { color: var(--parchment); }
       parts.push('<text x="20" y="' + (y + 3.2) + '" font-family="Helvetica, Arial, sans-serif" font-size="8.5" letter-spacing="0.12em" fill="#5C6B52" text-anchor="middle">' + n + '</text>');
     });
 
-    return '<svg viewBox="0 0 ' + W + ' ' + H + '" width="100%" style="display:block">' + parts.join("") + "</svg>";
+    lastFretboardLayout = { x0, y0, cw, rh, gridLo, hi, openAsCircles, W, H };
+
+    // Explicit pixel width/height (not the usual width:100%) — this
+    // diagram's frets are a fixed physical size now, so it should render
+    // at its natural width rather than being scaled to fit whatever
+    // container it's dropped into; #fretboard-host scrolls horizontally
+    // if that natural width exceeds the available space.
+    return '<svg viewBox="0 0 ' + W + ' ' + H + '" width="' + W + '" height="' + H + '" style="display:block">' + parts.join("") + "</svg>";
+  }
+
+  // ---------- mode-box labels above the fretboard ----------
+  // Every one of the key's 7 modes has its own root somewhere on the low E
+  // string; where that root's fret falls within the currently-visible
+  // window, it gets a small vertical label. The box each label spans is
+  // "from this mode's root up to 2 frets past the NEXT mode's root" —
+  // e.g. in C major, E Phrygian (fret 0, since the low E string's open
+  // note is itself in key) runs 0–3 because F Lydian's root sits at fret 1
+  // (a half-step up, the E→F step in the major scale) and the box extends
+  // 2 frets past that; F Lydian in turn runs 1–5, since G Mixolydian's
+  // root is a whole step past F, at fret 3. This gives each mode a
+  // one-position-ish box with a little overlap into the next, clipped to
+  // whatever's actually on screen.
+  function computeModeBoxes(keyObj, windowLo, windowHi) {
+    const boxes = [];
+    for (let idx = 0; idx < 7; idx++) {
+      const mi = modeInfoForIdx(keyObj, idx);
+      let rootFret = null;
+      for (let f = windowLo; f <= windowHi; f++) {
+        if (((OPEN_STRING_MIDI[0] + f) % 12 + 12) % 12 === mi.rootPc) { rootFret = f; break; }
+      }
+      if (rootFret === null) continue; // this mode's root isn't on screen at all
+      const stepToNext = idx === 6 ? 12 - MAJOR_STEPS[6] : MAJOR_STEPS[idx + 1] - MAJOR_STEPS[idx];
+      const nextRootFret = rootFret + stepToNext;
+      const boxHi = Math.min(nextRootFret + 2, windowHi);
+      boxes.push({ idx, name: MODES[idx], rootName: mi.rootName, rootFret, boxLo: rootFret, boxHi });
+    }
+    return boxes;
+  }
+
+  // Builds the clickable/hoverable vertical mode-name row that sits above
+  // the fretboard, x-aligned to lastFretboardLayout (set by the
+  // renderFretboard() call this always follows). The box matching the
+  // currently-selected reading position (whichever one contains its start
+  // fret) is marked "current" and stays emphasized without needing a
+  // hover, since that's the position actually being practiced right now.
+  function renderModeBoxRow(keyObj, positionStartFret) {
+    const host = document.getElementById("fretboard-mode-row");
+    pinnedModeBox = null; // a full rebuild means a new key/position/mode — any previous pin no longer applies
+    if (!lastFretboardLayout) { host.innerHTML = ""; return; }
+    const L = lastFretboardLayout;
+    const windowLo = L.openAsCircles ? 0 : L.gridLo;
+    const boxes = computeModeBoxes(keyObj, windowLo, L.hi);
+    host.style.width = L.W + "px";
+    host.innerHTML = boxes.map((b) => {
+      const cx = b.rootFret === 0 && L.openAsCircles ? 20 : L.x0 + (b.rootFret - L.gridLo) * L.cw + L.cw / 2;
+      const isCurrent = positionStartFret >= b.boxLo && positionStartFret <= b.boxHi;
+      return '<button type="button" class="mode-box-label' + (isCurrent ? " current" : "") + '" style="left:' + cx + 'px" data-box-lo="' + b.boxLo + '" data-box-hi="' + b.boxHi + '">'
+        + '<span>' + b.name + '</span></button>';
+    }).join("");
   }
 
   // ---------- chord-shape fretboard highlight (real, fingerable voicings) ----------
@@ -1719,6 +1794,19 @@ button.mode-chip.active:hover { color: var(--parchment); }
 
         const nonzero = combo.filter((c) => c.fret > 0);
 
+        // A human hand covers about 4 frets without shifting position —
+        // this only matters once the diagram (and so the search window)
+        // got wide enough to show more than that at once. Without this, the
+        // search would happily reach from an open string all the way to
+        // fret 7+ in a single "chord" because nothing else in here checks
+        // the physical distance between fretted notes, just how many
+        // fingers and whether a barre can cover same-fret groups.
+        if (nonzero.length) {
+          const spanLo = Math.min(...nonzero.map((c) => c.fret));
+          const spanHi = Math.max(...nonzero.map((c) => c.fret));
+          if (spanHi - spanLo > 4) return;
+        }
+
         // Two strings sharing a fret that are close together (at most one
         // string between them) are just two ordinary independent fingers —
         // fine regardless of what that one string is doing, same as the
@@ -1743,10 +1831,36 @@ button.mode-chip.active:hover { color: var(--parchment); }
             fretGroups.get(c.fret).push(played[i]);
           }
         });
-        for (const [fret, strs] of fretGroups) {
-          if (strs.length < 2) continue;
+
+        // A same-fret group spanning wide-apart strings only HAS to be one
+        // continuous barre when there aren't enough independent fingers to
+        // go around otherwise (nonzero.length > 4) — that's the only case
+        // real technique forces it. Below that, every fretted note just
+        // gets its own finger, wide gaps and all: the standard open G chord
+        // (320003) frets the low E and high e strings at the same fret 3
+        // with two entirely separate fingers while the A/D/G/B strings do
+        // their own thing in between — nothing is "trapped" because no
+        // barre is actually being laid across them. Treating any coincidental
+        // same-fret pair as an implied barre rejected that real, standard
+        // shape in favor of an obscure one squeezed onto 3 strings.
+        let fingerCount = nonzero.length;
+        let barreFret = null;
+        if (fingerCount > 4) {
+          const minFret = Math.min(...nonzero.map((c) => c.fret));
+          const minAbsStrings = fretGroups.get(minFret) || [];
+          if (minAbsStrings.length < 2) return; // too many fingers, no barre available to reduce them
+          barreFret = minFret;
+          fingerCount = 1 + combo.filter((c) => c.fret > 0 && c.fret !== minFret).length;
+        }
+        if (fingerCount > 4) return;
+
+        // Only the fret actually being consolidated into a barre (set
+        // above, and only when finger count demanded it) needs the
+        // "nothing open can hide underneath it" check — everything else on
+        // the board this turn is independent fingers by construction.
+        if (barreFret != null) {
+          const strs = fretGroups.get(barreFret);
           const lo = Math.min(...strs), hi = Math.max(...strs);
-          if (hi - lo <= 2) continue; // close together — independent fingers, always fine
           for (let s = lo; s <= hi; s++) {
             const idx = played.indexOf(s);
             if (idx === -1) continue; // muted string under the barre — fine
@@ -1764,16 +1878,23 @@ button.mode-chip.active:hover { color: var(--parchment); }
             const topIdx = played.indexOf(5);
             if (topIdx !== -1 && combo[topIdx].fret === 0) return;
           }
+          // A barre that only covers the MIDDLE strings, with extra
+          // independently-fretted notes reaching out on both flanks at
+          // once (one hand stretching down past the barre's low edge AND
+          // up past its high edge, at different frets, at the same time)
+          // isn't reachable — the fingers not busy holding the barre only
+          // have one direction of reach available, toward whichever side
+          // still needs a note. A real barre almost always anchors one
+          // edge of the strings it covers for exactly this reason.
+          let belowBarre = false, aboveBarre = false;
+          combo.forEach((c, i) => {
+            if (c.fret > 0 && c.fret !== barreFret) {
+              if (played[i] < lo) belowBarre = true;
+              if (played[i] > hi) aboveBarre = true;
+            }
+          });
+          if (belowBarre && aboveBarre) return;
         }
-
-        let fingerCount = nonzero.length;
-        if (fingerCount > 4) {
-          const minFret = Math.min(...nonzero.map((c) => c.fret));
-          const minAbsStrings = fretGroups.get(minFret) || [];
-          if (minAbsStrings.length < 2) return; // too many fingers, no barre available to reduce them
-          fingerCount = 1 + combo.filter((c) => c.fret > 0 && c.fret !== minFret).length;
-        }
-        if (fingerCount > 4) return;
 
         const distinctFrets = new Set(combo.filter((c) => c.fret !== 0).map((c) => c.fret)).size;
         const openCount = combo.filter((c) => c.fret === 0).length;
@@ -1784,10 +1905,36 @@ button.mode-chip.active:hover { color: var(--parchment); }
         // an open-string alternative that drops to fewer strings, even
         // when the fewer-string version is nominally "easier" by finger
         // count alone.
-        const fullBarre = [...fretGroups.values()].some((strs) => Math.min(...strs) === 0 && Math.max(...strs) === 5);
+        // Checking just min===0 && max===5 (the two outer strings) used to
+        // count as a "full barre" even when only those two strings were
+        // actually at that fret and everything between sat at unrelated
+        // frets — genuinely requires all 6 played strings at the one fret.
+        const fullBarre = [...fretGroups.values()].some((strs) => strs.length === 6);
+        // When a string has to fall back to SOME chord tone but the window
+        // offers a choice, real players double the root or 5th, not the
+        // 3rd/7th — tripling a major 7th right next to itself (as opposed
+        // to once, cleanly) reads as a mistake, not a voicing choice. This
+        // doesn't forbid it (a narrow window may leave no other option),
+        // just deprioritizes it against any equally-playable alternative
+        // that doubles root/5th instead.
+        const roleCounts = new Map();
+        combo.forEach((c) => roleCounts.set(c.role, (roleCounts.get(c.role) || 0) + 1));
+        let colorTonePenalty = 0;
+        roleCounts.forEach((n, role) => {
+          if (role !== "root" && role !== "fifth" && n > 1) colorTonePenalty += (n - 1) * 7;
+        });
+        // maxFret outweighs distinctFrets (used to be the other way around)
+        // — reusing a fret number isn't actually easier than staying low on
+        // the neck, but the old weighting rewarded it as if it were: C
+        // major came out x-3-5-0-5-0 (reaching to fret 5 twice) instead of
+        // the standard x-3-2-0-1-0, purely because 2 distinct frets beat 3.
+        // played.length carries much more weight than before, too — a thin,
+        // muted-down partial voicing used to out-score the full, familiar
+        // 6-string shape whenever it was marginally lower/simpler (G7 came
+        // out x-x-x-0-0-1, dropping straight past the standard 320001).
         const score =
-          -muteCount * 2 - distinctFrets * 10 - fingerCount * 6 - maxFret * 2 +
-          openCount * 9 + (rolesPresent.has("fifth") ? 4 : 0) + played.length * 1.5 +
+          -muteCount * 5 - distinctFrets * 4 - fingerCount * 6 - maxFret * 8 - colorTonePenalty +
+          openCount * 9 + (rolesPresent.has("fifth") ? 4 : 0) + played.length * 8 +
           (combo[0].role === "root" ? 20 : 0) + // still prefer root-position whenever both bass options are on the table
           (fullBarre ? 10 : 0);
 
@@ -1801,12 +1948,16 @@ button.mode-chip.active:hover { color: var(--parchment); }
   }
 
   // Piano equivalent of renderFretboard, for clefs with no fretboard position
-  // to draw — one octave, same dot/root convention. The octave starts on the
-  // mode root itself, so root sits at the low (leftmost) end of the keyboard
-  // rather than always starting the window on C.
+  // to draw — two and a half octaves, same dot/root convention. The range
+  // starts on the mode root itself, so root sits at the low (leftmost) end
+  // of the keyboard rather than always starting the window on C.
   const WHITE_LETTER = { 0: "C", 2: "D", 4: "E", 5: "F", 7: "G", 9: "A", 11: "B" };
   function renderKeyboard(key, modeRootPc) {
-    const W = 300, H = 130, x0 = 10, y0 = 20, keyH = 82;
+    // keyW is fixed (the same per-white-key width a single octave always
+    // used) rather than shrinking to squeeze two octaves into a fixed
+    // canvas — the canvas (W) grows to fit instead, same approach as the
+    // fretboard diagram.
+    const H = 148, x0 = 10, y0 = 20, keyH = 82, keyW = 35;
     const pcs = diatonicPcSet(key);
     const parts = [];
 
@@ -1817,7 +1968,7 @@ button.mode-chip.active:hover { color: var(--parchment); }
     const rootOffset = ((modeRootPc - 60) % 12 + 12) % 12;
     const rootMidi = rootOffset <= 6 ? 60 + rootOffset : 60 + rootOffset - 12;
     const steps = [];
-    for (let s = 0; s <= 12; s++) steps.push((startPc + s) % 12);
+    for (let s = 0; s <= 30; s++) steps.push((startPc + s) % 12); // 2.5 octaves
 
     let whiteIdx = -1;
     const positions = steps.map((pc, s) => {
@@ -1829,7 +1980,7 @@ button.mode-chip.active:hover { color: var(--parchment); }
       return { pc, midi, white: false, afterWhiteIdx: whiteIdx };
     });
     const whiteCount = whiteIdx + 1;
-    const keyW = (W - x0 * 2) / whiteCount;
+    const W = x0 * 2 + whiteCount * keyW;
     const blackW = keyW * 0.6, blackH = keyH * 0.6;
 
     // Every key is clickable/playable (like a real piano), not just the ones
@@ -1862,7 +2013,25 @@ button.mode-chip.active:hover { color: var(--parchment); }
       parts.push('<text x="' + cx + '" y="' + (y0 + keyH + 12) + '" font-family="Helvetica, Arial, sans-serif" font-size="8.5" letter-spacing="0.06em" fill="#5C6B52" text-anchor="middle">' + WHITE_LETTER[p.pc] + '</text>');
     });
 
-    return '<svg viewBox="0 0 ' + W + ' ' + H + '" width="100%" style="display:block">' + parts.join("") + "</svg>";
+    // Empty placeholder row a selected chord's hand-position markers get
+    // drawn into (see highlightKeyboardVoicing) — kept as its own <g> so
+    // that code can update just this bit via the DOM rather than
+    // re-stringifying/re-parsing the whole diagram on every chord pick.
+    parts.push('<g id="kb-hand-labels"></g>');
+
+    // x-center of every key, by midi — lets highlightKeyboardVoicing place
+    // the LH/RH markers without redoing this diagram's own layout math.
+    const midiToX = new Map();
+    positions.forEach((p) => {
+      midiToX.set(p.midi, p.white ? x0 + p.whiteIdx * keyW + keyW / 2 : x0 + (p.afterWhiteIdx + 1) * keyW);
+    });
+    lastKeyboardLayout = { x0, y0, keyH, keyW, W, H, midiToX };
+
+    // Explicit pixel width (not the usual width:100%) — same reasoning as
+    // the fretboard: the keys are a fixed physical size now, so this
+    // should render at its natural width rather than being squeezed to
+    // fit whatever container it's dropped into.
+    return '<svg viewBox="0 0 ' + W + ' ' + H + '" width="' + W + '" height="' + H + '" style="display:block">' + parts.join("") + "</svg>";
   }
 
   function renderModePanel(settings) {
@@ -1877,15 +2046,19 @@ button.mode-chip.active:hover { color: var(--parchment); }
     const mi = modeInfoForIdx(settings.keyObj, manualModeIdx != null ? manualModeIdx : defaultIdx);
     currentModeInfo = mi;
 
-    // The diagram shows one fret beyond the position's own box — a plain
-    // position-box width can cut the pattern off before it reaches the
-    // octave (e.g. Mixolydian's flat seventh often lands just past it).
-    const diagramPos = { start: pos.start, span: pos.span + 1 };
-    const diagramHi = hi + 1;
+    // The diagram shows a wider span than the reading position's own box —
+    // 8 frets beyond the start, regardless of the position's own width —
+    // both so a plain position-box width can't cut the pattern off before
+    // it reaches the octave (e.g. Mixolydian's flat seventh often lands
+    // just past it), and so the chord-shape search below has enough room
+    // to find a good barre voicing rather than being boxed into 4 frets.
+    const diagramPos = { start: pos.start, span: 8 };
+    const diagramHi = pos.start + 8;
 
     const fretboardCaption = lo === 0 ? "Open strings + frets 1–" + diagramHi : "Frets " + lo + "–" + diagramHi;
     document.getElementById("keyboard-host").innerHTML = renderKeyboard(settings.keyObj, mi.rootPc);
     document.getElementById("fretboard-host").innerHTML = renderFretboard(diagramPos, settings.keyObj, mi.rootPc);
+    renderModeBoxRow(settings.keyObj, pos.start);
     document.getElementById("fretboard-caption").textContent = fretboardCaption;
     document.getElementById("mode-name").textContent = mi.rootName + " " + mi.name;
     // The fret range actually drawn above — findChordVoicing() is confined
@@ -1948,16 +2121,107 @@ button.mode-chip.active:hover { color: var(--parchment); }
 
   // Restyles chord-tone keys on the keyboard diagram with their role color
   // (via the .chord-highlight CSS rules + --tone-color), or clears the
-  // highlight when toneMap is null. toneMap maps pitch class -> role. Every
-  // matching key lights up (each octave instance) — unlike the guitar, a
-  // pianist can just play any/all of them, so there's no "one note per
-  // string" fingering constraint to model here.
-  function highlightKeyboardTones(toneMap) {
+  // highlight when qualityKey is null. Models a standard two-handed piano
+  // voicing rather than just lighting up every octave instance of every
+  // tone: left hand = root + 5th (the lower octave), right hand = the
+  // remaining tones plus the root doubled an octave up (for the grounded,
+  // "solo piano, no bassist" sound) — except when the 7th is a major 7th
+  // (Δ7 or -Δ7), where the doubled root would sit a half-step above that
+  // 7th and clash, so real players drop it and double the 5th instead —
+  // still safe, and keeps the right hand at 3 notes rather than thinning
+  // out to just the 7th + 3rd. A plain triad/sus (no 7th at all) doubles
+  // both the root AND the 5th in the right hand, since there's nothing
+  // else to fill it out with. The keyboard spans two octaves anchored to
+  // the MODE's root, not necessarily this chord's own root, so this always
+  // anchors "left hand" to the root's own lowest on-screen instance first
+  // — without that, a non-tonic chord's 7th or 3rd could land below its
+  // own root (e.g. FΔ7's 7th, E, sits below F within a D-anchored window)
+  // and read as an inversion instead of root position.
+  function highlightKeyboardVoicing(rootPc, qualityKey) {
     const kbHost = document.getElementById("keyboard-host");
     if (!kbHost) return;
-    kbHost.querySelectorAll("[data-midi]").forEach((g) => {
-      const pc = ((parseInt(g.getAttribute("data-midi"), 10) % 12) + 12) % 12;
-      applyToneHighlight(g, toneMap ? toneMap.get(pc) : null);
+    const keys = Array.from(kbHost.querySelectorAll("[data-midi]"));
+    const wanted = new Map(); // midi -> role
+    let lhMidis = null, rhMidis = null;
+    if (qualityKey != null) {
+      const wantPc = ((rootPc % 12) + 12) % 12;
+      const rootMidis = keys
+        .map((g) => parseInt(g.getAttribute("data-midi"), 10))
+        .filter((m) => ((m % 12) + 12) % 12 === wantPc);
+      if (rootMidis.length) {
+        const floorMidi = Math.min(...rootMidis);
+        const upperBase = floorMidi + 12;
+        const fifthIv = intervalOfRole(qualityKey, "fifth");
+        const seventhIv = intervalOfRole(qualityKey, "seventh");
+        const others = QUALITIES[qualityKey].tones.filter((t) => t.role !== "fifth"); // 3rd/2nd/4th (+ 7th)
+
+        // The right-hand register can run past the top of the fixed 2-octave
+        // keyboard for chords rooted well above the mode's own root (e.g. a
+        // V7 or vii chord) — drop any overflowing tone back down an octave
+        // so it still renders (still above the left hand) rather than
+        // silently vanishing off the end of the diagram.
+        const kbMaxMidi = Math.max(...keys.map((g) => parseInt(g.getAttribute("data-midi"), 10)));
+        const fit = (m) => (m > kbMaxMidi ? m - 12 : m);
+
+        wanted.set(floorMidi, "root");
+        wanted.set(floorMidi + fifthIv, "fifth"); // left hand: root + 5th
+        others.forEach((t) => wanted.set(fit(upperBase + t.i), t.role)); // right hand: everything else, up an octave
+
+        if (seventhIv == null) {
+          wanted.set(upperBase, "root"); // triad/sus: double both root and 5th for a full right hand
+          wanted.set(fit(upperBase + fifthIv), "fifth");
+        } else if (seventhIv !== 11) {
+          wanted.set(upperBase, "root"); // dominant/minor/half-dim/dim 7th: doubled root is fine
+        } else {
+          // Δ7 / -Δ7: the doubled root would sit a half-step above the
+          // major 7th right next to it, so double the 5th instead — still
+          // a safe interval, and keeps the right hand at 3 notes instead
+          // of thinning out to just the 7th + 3rd.
+          wanted.set(fit(upperBase + fifthIv), "fifth");
+        }
+        lhMidis = [floorMidi, floorMidi + fifthIv];
+        rhMidis = [...wanted.keys()].filter((m) => !lhMidis.includes(m));
+      }
+    }
+    keys.forEach((g) => {
+      const midi = parseInt(g.getAttribute("data-midi"), 10);
+      applyToneHighlight(g, wanted.get(midi) || null);
+    });
+    renderHandLabels(lhMidis, rhMidis);
+  }
+
+  // Small "LH"/"RH" markers under the keyboard, centered over whichever keys
+  // each hand actually plays for the current chord — cleared (no chord, or
+  // no root found on screen) by passing null for both. Positioned from
+  // lastKeyboardLayout's midi->x map rather than re-deriving the keyboard's
+  // own geometry here.
+  function renderHandLabels(lhMidis, rhMidis) {
+    const kbHost = document.getElementById("keyboard-host");
+    if (!kbHost) return;
+    const group = kbHost.querySelector("#kb-hand-labels");
+    if (!group) return;
+    group.innerHTML = "";
+    const L = lastKeyboardLayout;
+    if (!L || !lhMidis || !rhMidis || !rhMidis.length) return;
+    const y = L.y0 + L.keyH + 30;
+    [{ midis: lhMidis, label: "LH" }, { midis: rhMidis, label: "RH" }].forEach(({ midis, label }) => {
+      const xs = midis.map((m) => L.midiToX.get(m)).filter((x) => x != null);
+      if (!xs.length) return;
+      const lo = Math.min(...xs), hi = Math.max(...xs), mid = (lo + hi) / 2;
+      const svgNS = "http://www.w3.org/2000/svg";
+      const line = document.createElementNS(svgNS, "line");
+      line.setAttribute("x1", lo); line.setAttribute("x2", hi);
+      line.setAttribute("y1", y - 10); line.setAttribute("y2", y - 10);
+      line.setAttribute("stroke", "#8A9E7E"); line.setAttribute("stroke-width", "1.2");
+      group.appendChild(line);
+      const text = document.createElementNS(svgNS, "text");
+      text.setAttribute("x", mid); text.setAttribute("y", y);
+      text.setAttribute("font-family", "Helvetica, Arial, sans-serif");
+      text.setAttribute("font-size", "9"); text.setAttribute("font-weight", "700");
+      text.setAttribute("letter-spacing", "0.08em");
+      text.setAttribute("fill", "#8A9E7E"); text.setAttribute("text-anchor", "middle");
+      text.textContent = label;
+      group.appendChild(text);
     });
   }
 
@@ -2001,13 +2265,13 @@ button.mode-chip.active:hover { color: var(--parchment); }
       chipsHost.appendChild(btn);
     });
 
-    highlightKeyboardTones(qualityToneMap(ctx.rootPc, qualityKey));
+    highlightKeyboardVoicing(ctx.rootPc, qualityKey);
     const fretWindow = currentFretWindow || { lo: 0, hi: 4 };
     highlightFretboardVoicing(findChordVoicing(ctx.rootPc, qualityKey, fretWindow.lo, fretWindow.hi));
 
     const info = describeQuality(ctx, qualityKey);
     document.getElementById("quality-category").textContent = info.category;
-    document.getElementById("quality-theory").textContent = info.text;
+    document.getElementById("quality-theory").textContent = info.text + " " + intervalFormula(qualityKey);
   }
 
   document.getElementById("mode-chords").addEventListener("click", (e) => {
@@ -2018,7 +2282,7 @@ button.mode-chip.active:hover { color: var(--parchment); }
     if (wasActive) {
       activeChordCtx = null;
       document.getElementById("quality-panel").hidden = true;
-      highlightKeyboardTones(null);
+      highlightKeyboardVoicing(null, null);
       highlightFretboardVoicing(null);
       return;
     }
@@ -2512,8 +2776,8 @@ button.mode-chip.active:hover { color: var(--parchment); }
 
   // Context for the chord-quality override panel: set when a modal chord
   // chip is activated, cleared when it's deactivated or the mode panel
-  // re-renders. Holds everything describeQuality()/qualityToneMap() need
-  // for whichever chord root is currently selected.
+  // re-renders. Holds everything describeQuality()/highlightKeyboardVoicing()
+  // need for whichever chord root is currently selected.
   let activeChordCtx = null;
   // The {rootPc, idx, name, rootName} of whichever mode is currently shown
   // in the mode panel — refreshed by every renderModePanel() call so the
@@ -2522,6 +2786,17 @@ button.mode-chip.active:hover { color: var(--parchment); }
   // The {lo, hi} fret range currently drawn on the fretboard diagram —
   // findChordVoicing() searches only within it (see renderModePanel).
   let currentFretWindow = null;
+  // Pixel layout of the last renderFretboard() call (x0, cw, gridLo, etc.)
+  // — reused by renderModeBoxRow() so its labels line up with the actual
+  // fret columns without redoing that geometry from scratch.
+  let lastFretboardLayout = null;
+  // Same, for renderKeyboard() — reused by highlightKeyboardVoicing() to
+  // place the LH/RH hand-position markers without redoing the key layout.
+  let lastKeyboardLayout = null;
+  // The mode-box a user has clicked to keep emphasized (vs. just hovered)
+  // — {lo, hi} or null. Reset on every renderModeBoxRow() rebuild, since a
+  // stale pin from before a key/position change wouldn't mean anything.
+  let pinnedModeBox = null;
 
   // Draws (or clears) a small letter-name label above each note's own glyph,
   // using its already-rendered bounding box — called after every renderScore
@@ -2742,6 +3017,51 @@ button.mode-chip.active:hover { color: var(--parchment); }
       const dot = e.target.closest("[data-midi]");
       if (dot) playNote(parseInt(dot.getAttribute("data-midi"), 10));
     });
+  });
+
+  // Hovering a mode-box label dims every fretboard dot outside that mode's
+  // fret range, so its own pattern stands out. mouseover/mouseout (not
+  // mouseenter/mouseleave) since the row's labels are rebuilt via
+  // innerHTML on every re-render — a single delegated listener on the
+  // (stable) row container keeps working across all of them.
+  function emphasizeFretRange(lo, hi) {
+    document.querySelectorAll("#fretboard-host [data-fret]").forEach((g) => {
+      const f = parseInt(g.getAttribute("data-fret"), 10);
+      g.classList.toggle("mode-box-dim", f < lo || f > hi);
+    });
+  }
+  function clearFretRangeEmphasis() {
+    document.querySelectorAll("#fretboard-host .mode-box-dim").forEach((g) => g.classList.remove("mode-box-dim"));
+  }
+  const modeBoxRow = document.getElementById("fretboard-mode-row");
+  modeBoxRow.addEventListener("mouseover", (e) => {
+    const btn = e.target.closest(".mode-box-label");
+    if (!btn) return;
+    emphasizeFretRange(parseInt(btn.dataset.boxLo, 10), parseInt(btn.dataset.boxHi, 10));
+  });
+  modeBoxRow.addEventListener("mouseout", (e) => {
+    const btn = e.target.closest(".mode-box-label");
+    if (!btn || (e.relatedTarget && btn.contains(e.relatedTarget))) return;
+    // Falling back to the pinned box (rather than always clearing) is what
+    // makes a click "stick" after the mouse moves away — the same chip-style
+    // toggle used elsewhere in the app (e.g. #mode-chords), just applied to
+    // a hover-preview instead of a click-only affordance.
+    if (pinnedModeBox) emphasizeFretRange(pinnedModeBox.lo, pinnedModeBox.hi);
+    else clearFretRangeEmphasis();
+  });
+  modeBoxRow.addEventListener("click", (e) => {
+    const btn = e.target.closest(".mode-box-label");
+    if (!btn) return;
+    const lo = parseInt(btn.dataset.boxLo, 10), hi = parseInt(btn.dataset.boxHi, 10);
+    document.querySelectorAll("#fretboard-mode-row .mode-box-label.pinned").forEach((b) => b.classList.remove("pinned"));
+    if (pinnedModeBox && pinnedModeBox.lo === lo && pinnedModeBox.hi === hi) {
+      pinnedModeBox = null;
+      clearFretRangeEmphasis();
+    } else {
+      pinnedModeBox = { lo, hi };
+      btn.classList.add("pinned");
+      emphasizeFretRange(lo, hi);
+    }
   });
 
   // Wrapping the notation to the available width means the very first render
