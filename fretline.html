@@ -21,16 +21,17 @@
   --moss: #5c6b52;
   --clay: #b07a5a;
   --bark: #3d3a30;
-  /* Chord-tone highlight colors — root/3rd/5th/7th spread around the
-     chromatic color wheel (red → gold → blue → violet), the same
-     technique scale-degree tab/fretboard tools commonly use to make each
-     tone's role instantly recognizable regardless of key. */
-  --tone-root: #a6433d;
-  --tone-second: #6e8f4c;
-  --tone-third: #a67c1e;
-  --tone-fourth: #b8763f;
-  --tone-fifth: #3e6d8e;
-  --tone-seventh: #7a5c9e;
+  /* Chord-tone highlight colors follow the visible spectrum in ascending
+     scale-degree order — root=red through 7th=violet — so the color
+     itself is a mnemonic for the interval (red is always the root, warm
+     colors are always the lower/closer tones, violet is always the 7th)
+     rather than an arbitrary wheel assignment. */
+  --tone-root: #a6433d;    /* red */
+  --tone-second: #b8763f;  /* orange */
+  --tone-third: #b5982c;   /* yellow */
+  --tone-fourth: #6e8f4c;  /* green */
+  --tone-fifth: #3e6d8e;   /* blue */
+  --tone-seventh: #7a5c9e; /* violet */
   --font-display: Georgia, 'Times New Roman', serif;
   --font-body: Helvetica, Arial, sans-serif;
 }
@@ -296,14 +297,22 @@ button.btn {
 /* ---- fretboard + mode panel ---- */
 .mode-panel {
   display: flex;
-  flex-wrap: wrap;
-  gap: 24px 40px;
-  align-items: flex-start;
+  flex-direction: column;
+  gap: 24px;
   padding-top: 12px;
   border-top: 1px solid var(--wheat);
 }
+.mode-panel-top { display: flex; flex-wrap: wrap; gap: 24px 40px; align-items: flex-start; }
 .mode-panel .diagrams-col { flex: 1 1 620px; min-width: 260px; display: flex; flex-direction: column; gap: 20px; }
+/* Full width, above the piano/mode-in-use row, so it has room to show every
+   fret up to 12 without needing its own horizontal scrollbar — centered
+   since its own content (caption + fretboard) is narrower than that. */
+.mode-panel .fretboard-col { width: 100%; display: flex; flex-direction: column; align-items: center; }
 .mode-panel .diagram-caption { display: block; font-size: 9px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--sage); margin-bottom: 8px; }
+/* The roman numeral's case (upper for major-family, lower for minor-family)
+   is the whole point — text-transform: uppercase from .diagram-caption
+   would flatten "vii" back to "VII" and erase that distinction. */
+#quality-roman { text-transform: none; font-size: 11px; letter-spacing: 0.08em; }
 /* Both diagrams' own per-key/per-fret spacing is fixed (see renderKeyboard
    / renderFretboard) rather than shrinking to squeeze more keys/frets into
    a fixed canvas — the canvas grows to fit instead, and each scrolls
@@ -623,49 +632,51 @@ button.mode-chip.active:hover { color: var(--parchment); }
       </div>
 
       <div class="mode-panel" id="mode-panel">
-        <div class="diagrams-col">
-          <div>
-            <span class="diagram-caption">Two and a half octaves, root at the bottom</span>
-            <div id="keyboard-host"></div>
-          </div>
-          <div>
-            <span class="diagram-caption" id="fretboard-caption"></span>
-            <div class="fretboard-scroll">
-              <div id="fretboard-mode-row" class="fretboard-mode-row" aria-label="Modes rooted on this string, by fret"></div>
-              <div id="fretboard-host"></div>
-            </div>
-          </div>
-          <div class="quality-panel" id="quality-panel" hidden>
-            <span class="diagram-caption">Chord quality</span>
-            <div class="mode-chips quality-chips" id="quality-chips"></div>
-            <div class="chord-legend quality-legend">
-              <span class="chord-legend-item"><i class="chord-legend-swatch" style="--tone-color: var(--tone-root)"></i>Root</span>
-              <span class="chord-legend-item"><i class="chord-legend-swatch" style="--tone-color: var(--tone-second)"></i>2nd</span>
-              <span class="chord-legend-item"><i class="chord-legend-swatch" style="--tone-color: var(--tone-third)"></i>3rd</span>
-              <span class="chord-legend-item"><i class="chord-legend-swatch" style="--tone-color: var(--tone-fourth)"></i>4th</span>
-              <span class="chord-legend-item"><i class="chord-legend-swatch" style="--tone-color: var(--tone-fifth)"></i>5th</span>
-              <span class="chord-legend-item"><i class="chord-legend-swatch" style="--tone-color: var(--tone-seventh)"></i>7th</span>
-            </div>
-            <span class="quality-category" id="quality-category"></span>
-            <p class="quality-theory" id="quality-theory"></p>
+        <div class="fretboard-col">
+          <span class="diagram-caption" id="fretboard-caption"></span>
+          <div class="fretboard-scroll">
+            <div id="fretboard-mode-row" class="fretboard-mode-row" aria-label="Modes rooted on this string, by fret"></div>
+            <div id="fretboard-host"></div>
           </div>
         </div>
-        <div class="info-col">
-          <div class="info-head">
-            <span>Mode in use</span>
-          </div>
-          <h2 id="mode-name"></h2>
-          <div class="mode-chips" id="mode-chips"></div>
-          <div class="chord-panel">
-            <span class="chord-panel-label">Modal chords</span>
-            <div class="mode-chips chord-chips" id="mode-chords"></div>
-            <div class="chord-legend">
-              <span class="chord-legend-item"><i class="chord-legend-swatch" style="--tone-color: var(--tone-root)"></i>Root</span>
-              <span class="chord-legend-item"><i class="chord-legend-swatch" style="--tone-color: var(--tone-third)"></i>3rd</span>
-              <span class="chord-legend-item"><i class="chord-legend-swatch" style="--tone-color: var(--tone-fifth)"></i>5th</span>
-              <span class="chord-legend-item"><i class="chord-legend-swatch" style="--tone-color: var(--tone-seventh)"></i>7th</span>
+        <div class="mode-panel-top">
+          <div class="diagrams-col">
+            <div>
+              <span class="diagram-caption">Two octaves, root at the bottom</span>
+              <div id="keyboard-host"></div>
             </div>
           </div>
+          <div class="info-col">
+            <div class="info-head">
+              <span>Mode in use</span>
+            </div>
+            <h2 id="mode-name"></h2>
+            <div class="mode-chips" id="mode-chips"></div>
+            <div class="chord-panel">
+              <span class="chord-panel-label">Modal chords</span>
+              <div class="mode-chips chord-chips" id="mode-chords"></div>
+              <div class="chord-legend">
+                <span class="chord-legend-item"><i class="chord-legend-swatch" style="--tone-color: var(--tone-root)"></i>Root</span>
+                <span class="chord-legend-item"><i class="chord-legend-swatch" style="--tone-color: var(--tone-third)"></i>3rd</span>
+                <span class="chord-legend-item"><i class="chord-legend-swatch" style="--tone-color: var(--tone-fifth)"></i>5th</span>
+                <span class="chord-legend-item"><i class="chord-legend-swatch" style="--tone-color: var(--tone-seventh)"></i>7th</span>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="quality-panel" id="quality-panel" hidden>
+          <span class="diagram-caption" id="quality-roman">Chord quality</span>
+          <div class="mode-chips quality-chips" id="quality-chips"></div>
+          <div class="chord-legend quality-legend">
+            <span class="chord-legend-item"><i class="chord-legend-swatch" style="--tone-color: var(--tone-root)"></i>Root</span>
+            <span class="chord-legend-item"><i class="chord-legend-swatch" style="--tone-color: var(--tone-second)"></i>2nd</span>
+            <span class="chord-legend-item"><i class="chord-legend-swatch" style="--tone-color: var(--tone-third)"></i>3rd</span>
+            <span class="chord-legend-item"><i class="chord-legend-swatch" style="--tone-color: var(--tone-fourth)"></i>4th</span>
+            <span class="chord-legend-item"><i class="chord-legend-swatch" style="--tone-color: var(--tone-fifth)"></i>5th</span>
+            <span class="chord-legend-item"><i class="chord-legend-swatch" style="--tone-color: var(--tone-seventh)"></i>7th</span>
+          </div>
+          <span class="quality-category" id="quality-category"></span>
+          <p class="quality-theory" id="quality-theory"></p>
         </div>
       </div>
     </section>
@@ -993,9 +1004,15 @@ button.mode-chip.active:hover { color: var(--parchment); }
   // naming every diatonic/borrowed function by scale degree + quality
   // symbol (e.g. ii-7, V7, viiø7).
   function romanForDegree(parentDegree, qualityKey) {
+    return bareRomanForDegree(parentDegree, qualityKey) + qualityKey;
+  }
+
+  // Same numeral, without the quality symbol appended — just "vii" rather
+  // than "vii-7" — for contexts (like the chord-quality panel's own title)
+  // that show the quality some other way already.
+  function bareRomanForDegree(parentDegree, qualityKey) {
     const bright = QUALITIES[qualityKey].bright;
-    const base = bright === false ? ROMAN_NUMERALS[parentDegree].toLowerCase() : ROMAN_NUMERALS[parentDegree];
-    return base + qualityKey;
+    return bright === false ? ROMAN_NUMERALS[parentDegree].toLowerCase() : ROMAN_NUMERALS[parentDegree];
   }
 
   // The {root, quality} that sits at mode-relative scale-degree `modeDegree`
@@ -1948,9 +1965,9 @@ button.mode-chip.active:hover { color: var(--parchment); }
   }
 
   // Piano equivalent of renderFretboard, for clefs with no fretboard position
-  // to draw — two and a half octaves, same dot/root convention. The range
-  // starts on the mode root itself, so root sits at the low (leftmost) end
-  // of the keyboard rather than always starting the window on C.
+  // to draw — two octaves, same dot/root convention. The range starts on
+  // the mode root itself, so root sits at the low (leftmost) end of the
+  // keyboard rather than always starting the window on C.
   const WHITE_LETTER = { 0: "C", 2: "D", 4: "E", 5: "F", 7: "G", 9: "A", 11: "B" };
   function renderKeyboard(key, modeRootPc) {
     // keyW is fixed (the same per-white-key width a single octave always
@@ -1967,8 +1984,13 @@ button.mode-chip.active:hover { color: var(--parchment); }
     // semitones above it — so playback pitch never drifts far from middle C.
     const rootOffset = ((modeRootPc - 60) % 12 + 12) % 12;
     const rootMidi = rootOffset <= 6 ? 60 + rootOffset : 60 + rootOffset - 12;
+    // 2 octaves (24 semitones) lands on a black key about half the time
+    // (e.g. root C ends on F#) — every black key is one semitone below a
+    // white one, so bumping the top by 1 semitone whenever that happens
+    // always lands the diagram's last key on a white key instead.
+    const topSteps = WHITE_LETTER[(startPc + 24) % 12] != null ? 24 : 25;
     const steps = [];
-    for (let s = 0; s <= 30; s++) steps.push((startPc + s) % 12); // 2.5 octaves
+    for (let s = 0; s <= topSteps; s++) steps.push((startPc + s) % 12);
 
     let whiteIdx = -1;
     const positions = steps.map((pc, s) => {
@@ -2052,8 +2074,12 @@ button.mode-chip.active:hover { color: var(--parchment); }
     // it reaches the octave (e.g. Mixolydian's flat seventh often lands
     // just past it), and so the chord-shape search below has enough room
     // to find a good barre voicing rather than being boxed into 4 frets.
-    const diagramPos = { start: pos.start, span: 8 };
-    const diagramHi = pos.start + 8;
+    // Also always reaches at least fret 12 (the octave marker) even where
+    // pos.start + 8 wouldn't get there on its own (open/II/III) — positions
+    // that already extend past fret 12 on their own keep their own wider
+    // span rather than being cut back to it.
+    const diagramHi = Math.max(pos.start + 8, 12);
+    const diagramPos = { start: pos.start, span: diagramHi - pos.start };
 
     const fretboardCaption = lo === 0 ? "Open strings + frets 1–" + diagramHi : "Frets " + lo + "–" + diagramHi;
     document.getElementById("keyboard-host").innerHTML = renderKeyboard(settings.keyObj, mi.rootPc);
@@ -2269,6 +2295,7 @@ button.mode-chip.active:hover { color: var(--parchment); }
     const fretWindow = currentFretWindow || { lo: 0, hi: 4 };
     highlightFretboardVoicing(findChordVoicing(ctx.rootPc, qualityKey, fretWindow.lo, fretWindow.hi));
 
+    document.getElementById("quality-roman").textContent = bareRomanForDegree(ctx.modeDegree, qualityKey) + " Chord Quality";
     const info = describeQuality(ctx, qualityKey);
     document.getElementById("quality-category").textContent = info.category;
     document.getElementById("quality-theory").textContent = info.text + " " + intervalFormula(qualityKey);
