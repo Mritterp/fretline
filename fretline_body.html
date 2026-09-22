@@ -303,7 +303,11 @@ button.btn {
   border-top: 1px solid var(--wheat);
 }
 .mode-panel-top { display: flex; flex-wrap: wrap; gap: 24px 40px; align-items: flex-start; }
-.mode-panel .diagrams-col { flex: 1 1 620px; min-width: 260px; display: flex; flex-direction: column; gap: 20px; }
+/* Centered within its own column (not stretched/left-aligned) — on a wide
+   screen this column ends up noticeably wider than the piano itself now
+   that the fretboard and chord-quality panel both moved out of it, and a
+   left-pinned piano just reads as an odd gap next to the mode buttons. */
+.mode-panel .diagrams-col { flex: 1 1 620px; min-width: 260px; display: flex; flex-direction: column; align-items: center; gap: 20px; }
 /* Full width, above the piano/mode-in-use row, so it has room to show every
    fret up to 12 without needing its own horizontal scrollbar — centered
    since its own content (caption + fretboard) is narrower than that. */
@@ -312,7 +316,7 @@ button.btn {
 /* The roman numeral's case (upper for major-family, lower for minor-family)
    is the whole point — text-transform: uppercase from .diagram-caption
    would flatten "vii" back to "VII" and erase that distinction. */
-#quality-roman { text-transform: none; font-size: 11px; letter-spacing: 0.08em; }
+#quality-roman { text-transform: none; font-size: 15px; letter-spacing: 0.04em; font-weight: 700; color: var(--bark); }
 /* Both diagrams' own per-key/per-fret spacing is fixed (see renderKeyboard
    / renderFretboard) rather than shrinking to squeeze more keys/frets into
    a fixed canvas — the canvas grows to fit instead, and each scrolls
@@ -376,22 +380,35 @@ button.mode-chip.active:hover { color: var(--parchment); }
   padding-top: 16px;
   border-top: 1px solid var(--wheat);
 }
-.quality-chips { justify-content: center; }
+.quality-chips { justify-content: center; gap: 8px; }
 /* text-transform: none — these labels carry glyphs (ø, °, Δ) that CSS
-   uppercasing would silently swap for the wrong character (e.g. ø → Ø). */
-.quality-chips .mode-chip { letter-spacing: 0.06em; text-transform: none; }
+   uppercasing would silently swap for the wrong character (e.g. ø → Ø).
+   Sized up from the base .mode-chip and darkened for legibility — this
+   is the primary control for the whole section, not a minor label. */
+.quality-chips .mode-chip {
+  letter-spacing: 0.03em; text-transform: none; font-size: 13px;
+  padding: 8px 12px; color: var(--bark);
+}
+/* The darkened base color above (for the unselected/light-background chips)
+   has the same specificity as .mode-chip.active's own light-on-dark text
+   and comes after it in the stylesheet, so it was winning and re-darkening
+   the active chip's text onto its own dark background — invisible. Restore
+   the light text explicitly for the active state. */
+.quality-chips .mode-chip.active { color: var(--parchment); }
 /* The chip matching the chord's own native, mode-diatonic quality always
    carries this ring, regardless of which quality is currently active/shown
    — so "what's native" and "what's currently selected" stay visually
    distinct even when they're different chips. */
-.quality-chips .mode-chip.native { box-shadow: inset 0 0 0 1px var(--moss); }
-.quality-legend { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; margin-top: 10px; }
+.quality-chips .mode-chip.native { box-shadow: inset 0 0 0 1.5px var(--moss); }
+.quality-legend { display: flex; flex-wrap: wrap; gap: 14px; justify-content: center; margin-top: 14px; }
+.quality-legend.chord-legend .chord-legend-item { font-size: 12px; letter-spacing: 0.08em; color: var(--bark); }
+.quality-legend .chord-legend-swatch { width: 10px; height: 10px; }
 .quality-category {
-  display: block; margin-top: 10px; font-size: 9px; letter-spacing: 0.2em;
-  text-transform: uppercase; color: var(--clay);
+  display: block; margin-top: 14px; font-size: 11px; letter-spacing: 0.2em;
+  text-transform: uppercase; color: var(--clay); font-weight: 700;
 }
 .quality-theory {
-  margin: 4px 0 0; font-size: 10.5px; line-height: 1.55; color: var(--sage);
+  margin: 6px auto 0; max-width: 640px; font-size: 15px; line-height: 1.6; color: var(--bark);
 }
 
 /* Clicking a modal chord (or changing its quality) highlights its chord
@@ -655,12 +672,6 @@ button.mode-chip.active:hover { color: var(--parchment); }
             <div class="chord-panel">
               <span class="chord-panel-label">Modal chords</span>
               <div class="mode-chips chord-chips" id="mode-chords"></div>
-              <div class="chord-legend">
-                <span class="chord-legend-item"><i class="chord-legend-swatch" style="--tone-color: var(--tone-root)"></i>Root</span>
-                <span class="chord-legend-item"><i class="chord-legend-swatch" style="--tone-color: var(--tone-third)"></i>3rd</span>
-                <span class="chord-legend-item"><i class="chord-legend-swatch" style="--tone-color: var(--tone-fifth)"></i>5th</span>
-                <span class="chord-legend-item"><i class="chord-legend-swatch" style="--tone-color: var(--tone-seventh)"></i>7th</span>
-              </div>
             </div>
           </div>
         </div>
@@ -974,7 +985,7 @@ button.mode-chip.active:hover { color: var(--parchment); }
   // separate static glossary.
   const INTERVAL_NAME = { 2: "M2", 3: "m3", 4: "M3", 5: "P4", 6: "d5", 7: "P5", 9: "d7", 10: "m7", 11: "M7" };
   function intervalFormula(qualityKey) {
-    return "[ " + QUALITIES[qualityKey].tones.map((t) => INTERVAL_NAME[t.i]).join(", ") + " ]";
+    return "[ " + QUALITIES[qualityKey].tones.map((t) => INTERVAL_NAME[t.i]).join(" / ") + " ]";
   }
 
   // Full {pc, role} tone list for a quality built on rootPc, root included.
@@ -991,20 +1002,10 @@ button.mode-chip.active:hover { color: var(--parchment); }
   }
 
   const ROMAN_NUMERALS = ["I", "II", "III", "IV", "V", "VI", "VII"];
-  // Real-book-style roman numeral for a parent-major-scale degree carrying a
-  // given chord quality — lowercase for the minor-3rd family, uppercase for
-  // the major-3rd family (sus qualities, which have no 3rd, keep the
-  // uppercase numeral by convention, matching how "Vsus4" etc. are usually
-  // written), matching the mDecks Mapping Tonal Harmony convention of
-  // naming every diatonic/borrowed function by scale degree + quality
-  // symbol (e.g. ii-7, V7, viiø7).
-  function romanForDegree(parentDegree, qualityKey) {
-    return bareRomanForDegree(parentDegree, qualityKey) + qualityKey;
-  }
-
-  // Same numeral, without the quality symbol appended — just "vii" rather
-  // than "vii-7" — for contexts (like the chord-quality panel's own title)
-  // that show the quality some other way already.
+  // Real-book-style roman numeral for a parent-major-scale degree — lowercase
+  // for the minor-3rd family, uppercase for the major-3rd family (sus
+  // qualities, which have no 3rd, keep the uppercase numeral by convention,
+  // matching how "Vsus4" etc. are usually written).
   function bareRomanForDegree(parentDegree, qualityKey) {
     const bright = QUALITIES[qualityKey].bright;
     return bright === false ? ROMAN_NUMERALS[parentDegree].toLowerCase() : ROMAN_NUMERALS[parentDegree];
@@ -1084,21 +1085,20 @@ button.mode-chip.active:hover { color: var(--parchment); }
   function describeQuality(ctx, qualityKey) {
     const parentChords = diatonicSeventhChords(ctx.keyObj, 0); // parent-degree-indexed (I..vii)
     const rootName = pcToName(ctx.rootPc, ctx.keyObj);
-    const nativeRoman = romanForDegree(ctx.modeDegree, ctx.nativeQuality);
-    const selRoman = romanForDegree(ctx.modeDegree, qualityKey);
+    const selIntervals = intervalFormula(qualityKey);
     const selLabel = rootName + qualityKey;
 
     if (qualityKey === ctx.nativeQuality) {
       return {
         category: "Diatonic",
-        text: selLabel + " (" + nativeRoman + ") is the native seventh chord this degree carries in " + ctx.modeFullName + " — no borrowing involved.",
+        text: selLabel + " " + selIntervals + " is the native seventh chord this degree carries in " + ctx.modeFullName + " — no borrowing involved.",
       };
     }
 
     if (QUALITIES[qualityKey].bright === null) {
       return {
         category: "Suspended",
-        text: selLabel + " (" + selRoman + ") drops the 3rd entirely in favor of the " + QUALITIES[qualityKey].desc.replace("suspended ", "") + " — neither major nor minor, a step of unresolved tension that conventionally wants to resolve back down into the native " + rootName + ctx.nativeQuality + "'s 3rd.",
+        text: selLabel + " " + selIntervals + " drops the 3rd entirely in favor of the " + QUALITIES[qualityKey].desc.replace("suspended ", "") + " — neither major nor minor, a step of unresolved tension that conventionally wants to resolve back down into the native " + rootName + ctx.nativeQuality + "'s 3rd.",
       };
     }
 
@@ -1111,7 +1111,7 @@ button.mode-chip.active:hover { color: var(--parchment); }
       if (sameTriad) {
         return {
           category: "Triad",
-          text: selLabel + " (" + selRoman + ") is just the native " + rootName + ctx.nativeQuality + " with the 7th dropped — same triad, no borrowing involved.",
+          text: selLabel + " " + selIntervals + " is just the native " + rootName + ctx.nativeQuality + " with the 7th dropped — same triad, no borrowing involved.",
         };
       }
     }
@@ -1129,11 +1129,10 @@ button.mode-chip.active:hover { color: var(--parchment); }
     if (qualityKey === "7" && (ctx.parentDegree === 3 || ctx.parentDegree === 0)) {
       const targetParentDegree = ctx.parentDegree === 3 ? 2 : 6;
       const target = parentChords[targetParentDegree];
-      const targetModeDegree = ((targetParentDegree - ctx.modeIdx) % 7 + 7) % 7;
-      const targetRoman = romanForDegree(targetModeDegree, target.quality);
+      const targetIntervals = intervalFormula(target.quality);
       return {
         category: "Tritone substitution",
-        text: rootName + "7 sits a half-step above " + target.name + " (" + targetRoman + ") and shares its tritone (3rd & 7th) — the SubV7 relationship. As a dominant, it can stand in for the V7 that would normally resolve down a 5th into " + target.name + ", resolving down a half-step into it instead.",
+        text: rootName + "7 sits a half-step above " + target.name + " " + targetIntervals + " and shares its tritone (3rd & 7th) — the SubV7 relationship. As a dominant, it can stand in for the V7 that would normally resolve down a 5th into " + target.name + ", resolving down a half-step into it instead.",
       };
     }
 
@@ -1160,12 +1159,12 @@ button.mode-chip.active:hover { color: var(--parchment); }
         const category = selBright ? "Parallel major" : "Parallel minor";
         return {
           category,
-          text: selLabel + " (" + selRoman + ") trades the native " + rootName + ctx.nativeQuality + "'s " + (nativeBright ? "major" : "minor") + " triad for a " + (selBright ? "major" : "minor") + " one on the same root — " + category.toLowerCase() + " borrowing (modal interchange), diatonic to " + namedSources + ".",
+          text: selLabel + " " + selIntervals + " trades the native " + rootName + ctx.nativeQuality + "'s " + (nativeBright ? "major" : "minor") + " triad for a " + (selBright ? "major" : "minor") + " one on the same root — " + category.toLowerCase() + " borrowing (modal interchange), diatonic to " + namedSources + ".",
         };
       }
       return {
         category: matches.length > 1 ? "Modal interchange" : "Modal interchange: " + matches[0],
-        text: selLabel + " (" + selRoman + ") keeps the same triad quality as the native " + rootName + ctx.nativeQuality + " but reshapes its 5th/7th — diatonic to " + namedSources + ", borrowed in place of " + ctx.modeFullName + "'s own.",
+        text: selLabel + " " + selIntervals + " keeps the same triad quality as the native " + rootName + ctx.nativeQuality + " but reshapes its 5th/7th — diatonic to " + namedSources + ", borrowed in place of " + ctx.modeFullName + "'s own.",
       };
     }
 
@@ -1180,12 +1179,12 @@ button.mode-chip.active:hover { color: var(--parchment); }
     if (thirdIv === 3 && seventhIv === 11) {
       return {
         category: "Harmonic/melodic minor",
-        text: selLabel + " (" + selRoman + ") is the tonic-position chord of " + overallRootName + " harmonic minor (and ascending melodic minor) — a standard borrow, but from outside the seven major-scale modes this app otherwise tracks.",
+        text: selLabel + " " + selIntervals + " is the tonic-position chord of " + overallRootName + " harmonic minor (and ascending melodic minor) — a standard borrow, but from outside the seven major-scale modes this app otherwise tracks.",
       };
     }
     return {
       category: nativeBright !== selBright ? (selBright ? "Parallel major" : "Parallel minor") : "Chromatic alteration",
-      text: selLabel + " (" + selRoman + ") doesn't match any of " + overallRootName + "'s seven ordinary parallel modes at this scale degree — a further chromatic alteration (commonly reached for via the harmonic/melodic minor system or a secondary/borrowed dominant) rather than a straightforward one-mode borrow.",
+      text: selLabel + " " + selIntervals + " doesn't match any of " + overallRootName + "'s seven ordinary parallel modes at this scale degree — a further chromatic alteration (commonly reached for via the harmonic/melodic minor system or a secondary/borrowed dominant) rather than a straightforward one-mode borrow.",
     };
   }
 
@@ -2290,10 +2289,11 @@ button.mode-chip.active:hover { color: var(--parchment); }
     const fretWindow = currentFretWindow || { lo: 0, hi: 4 };
     highlightFretboardVoicing(findChordVoicing(ctx.rootPc, qualityKey, fretWindow.lo, fretWindow.hi));
 
-    document.getElementById("quality-roman").textContent = bareRomanForDegree(ctx.modeDegree, qualityKey) + " Chord Quality";
+    document.getElementById("quality-roman").textContent =
+      bareRomanForDegree(ctx.modeDegree, qualityKey) + " Chord Quality";
     const info = describeQuality(ctx, qualityKey);
     document.getElementById("quality-category").textContent = info.category;
-    document.getElementById("quality-theory").textContent = info.text + " " + intervalFormula(qualityKey);
+    document.getElementById("quality-theory").textContent = info.text;
   }
 
   document.getElementById("mode-chords").addEventListener("click", (e) => {
