@@ -349,8 +349,8 @@ button.btn {
 }
 .mode-chips { display: flex; flex-wrap: wrap; gap: 6px; }
 .mode-chip {
-  font-size: 9px; letter-spacing: 0.18em; text-transform: uppercase;
-  padding: 6px 9px; white-space: nowrap; border: 1px solid var(--wheat);
+  font-size: 10.5px; letter-spacing: 0.17em; text-transform: uppercase;
+  padding: 6.5px 9.5px; white-space: nowrap; border: 1px solid var(--wheat);
   background: transparent; color: var(--sage);
 }
 .mode-chip.active { border-color: var(--bark); background: var(--bark); color: var(--parchment); }
@@ -383,12 +383,10 @@ button.mode-chip.active:hover { color: var(--parchment); }
 .quality-chips { justify-content: center; gap: 8px; }
 /* text-transform: none — these labels carry glyphs (ø, °, Δ) that CSS
    uppercasing would silently swap for the wrong character (e.g. ø → Ø).
-   Sized up from the base .mode-chip and darkened for legibility — this
-   is the primary control for the whole section, not a minor label. */
-.quality-chips .mode-chip {
-  letter-spacing: 0.03em; text-transform: none; font-size: 13px;
-  padding: 8px 12px; color: var(--bark);
-}
+   Same size as the base .mode-chip (font-size/padding inherited) —
+   darkened for legibility, just with tighter letter-spacing since these
+   are mixed-case rather than all-caps. */
+.quality-chips .mode-chip { letter-spacing: 0.03em; text-transform: none; color: var(--bark); }
 /* The darkened base color above (for the unselected/light-background chips)
    has the same specificity as .mode-chip.active's own light-on-dark text
    and comes after it in the stylesheet, so it was winning and re-darkening
