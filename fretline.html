@@ -480,7 +480,7 @@ button.mode-chip.active:hover { color: var(--parchment); }
           <button type="button" class="btn btn-outline" id="play-btn">Play back</button>
           <button type="button" class="btn btn-outline" id="stop-btn" disabled>Stop</button>
         </div>
-        <p class="shortcuts-hint">Space play/pause · Esc stop · G new line · M metronome · N note names</p>
+        <p class="shortcuts-hint">Space play/pause · Esc stop · G new line · M metronome · N note names · C chords</p>
       </div>
 
       <div id="panel-body">
@@ -581,7 +581,11 @@ button.mode-chip.active:hover { color: var(--parchment); }
           <p class="hint" id="level-hint"></p>
           <label class="checkbox-row">
             <input type="checkbox" id="show-note-names">
-            Show note names and suggested chords
+            Show note names
+          </label>
+          <label class="checkbox-row">
+            <input type="checkbox" id="show-chords">
+            Show suggested chords
           </label>
         </div>
 
@@ -2364,7 +2368,18 @@ button.mode-chip.active:hover { color: var(--parchment); }
 
   function ensureAudioCtx() {
     if (!audioCtx) {
-      audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      // "playback" asks for a larger output buffer: everything here is
+      // scheduled ahead of time, so the extra output latency is invisible,
+      // while the bigger buffer is what keeps a brief CPU spike from
+      // starving the audio device and silently swallowing a short click.
+      audioCtx = new (window.AudioContext || window.webkitAudioContext)({ latencyHint: "playback" });
+      // A context the browser/OS suspends out from under a running metronome
+      // (device switch, power-saving) would otherwise stay silent indefinitely.
+      audioCtx.onstatechange = () => {
+        if (metronomeSource && audioCtx.state !== "running" && audioCtx.state !== "closed") {
+          audioCtx.resume().catch(() => {});
+        }
+      };
       masterGainNode = audioCtx.createGain();
       masterGainNode.gain.value = parseFloat(document.getElementById("volume-range").value) / 100;
       masterGainNode.connect(audioCtx.destination);
@@ -2456,9 +2471,14 @@ button.mode-chip.active:hover { color: var(--parchment); }
     stopPollLoop();
   }
 
+  // Stops *line* playback only — deliberately not the standalone metronome.
+  // This runs on every new line, re-key, and window/container reflow
+  // (ResizeObserver, which also fires when a scrollbar appears), and the
+  // metronome is meant to keep running straight through all of those; it used
+  // to be killed along with them, which looked like it randomly dropping out.
+  // The two modes still never overlap: each start path stops the other.
   function stopPlayback() {
     hardStopAudio();
-    stopMetronome();
     clearNoteHighlights();
     playbackState = "stopped";
     lastTrackedMeasureIdx = null;
@@ -2469,76 +2489,89 @@ button.mode-chip.active:hover { color: var(--parchment); }
   // ---------- standalone metronome ----------
   // Independent of line playback's own metronome clicks (startPlaybackFrom
   // below) — the two never run together, each stops the other on start.
-  let metronomeTimerId = null;
-  let metronomeNextTime = 0;
-  let metronomeBeat = 0;
+  let metronomeSource = null; // the looping AudioBufferSourceNode while running, else null
+  let metronomeRetuneTimer = null;
 
-  // Standard lookahead-scheduling pattern: this runs every 30ms but always
-  // queues real Web-Audio-clock events well beyond that, so a queued click
-  // still fires exactly on time even if the *next* tick of this timer is
-  // delayed. That delay is normally negligible, but browsers throttle
-  // setInterval/setTimeout in a backgrounded or momentarily-deprioritized
-  // tab — sometimes by a second or more — which is almost certainly the
-  // "randomly drops out for a couple seconds" symptom: once already-queued
-  // clicks run out, nothing new gets queued until the throttled timer
-  // finally fires again. A short lookahead (previously 150ms) leaves very
-  // little runway before that happens; a full second gives the scheduler
-  // much more room to survive a throttled/delayed tick without an audible
-  // gap, at the cost of up to ~1s of latency before a tempo/time-signature
-  // change takes effect — an acceptable trade for a click track.
-  function metronomeScheduleAhead() {
-    const ctx = ensureAudioCtx();
-    const bpm = parseInt(tempoRange.value, 10);
-    const beatsPerMeasure = TIME_BEATS[timeSelect.value];
+  // One measure of clicks is rendered into an AudioBuffer and looped by the
+  // audio thread itself, instead of a main-thread timer queueing each click
+  // shortly before it's due. That timer was the weak link: browsers throttle
+  // setInterval in a backgrounded or window-occluded tab (to ~1/s, far
+  // worse after a few minutes), and any long main-thread task (a diagram
+  // re-render, GC) delays it too — either one lets the queued clicks run out
+  // and the metronome stalls or stutters. A looping buffer needs no further
+  // main-thread involvement once started, so nothing outside the audio
+  // thread can make it lag or drop a beat.
+  function buildMetronomeLoop(ctx, bpm, beatsPerMeasure) {
+    const sr = ctx.sampleRate;
     const secPerBeat = 60 / bpm;
-    const lookahead = 1.0;
-    // If we fell behind by more than a full lookahead window — the tab was
-    // backgrounded/throttled for a while — don't replay every missed click
-    // in a rapid burst once this finally runs again; just resume cleanly
-    // on the next beat.
-    if (metronomeNextTime < ctx.currentTime - lookahead) {
-      metronomeBeat = 0;
-      metronomeNextTime = ctx.currentTime + 0.05;
+    const length = Math.max(1, Math.round(beatsPerMeasure * secPerBeat * sr));
+    const buf = ctx.createBuffer(1, length, sr);
+    const data = buf.getChannelData(0);
+    const clickLen = Math.min(Math.round(0.06 * sr), length);
+    for (let b = 0; b < beatsPerMeasure; b++) {
+      const start = Math.round(b * secPerBeat * sr);
+      const freq = b === 0 ? 1600 : 1000; // downbeat higher, same as the playback clicks
+      for (let n = 0; n < clickLen && start + n < length; n++) {
+        const t = n / sr;
+        // Same envelope the oscillator version used: 2ms linear attack to
+        // 0.13, then an exponential decay reaching ~0 at 50ms.
+        const env = t < 0.002
+          ? 0.0001 + (0.13 - 0.0001) * (t / 0.002)
+          : 0.13 * Math.pow(0.0001 / 0.13, (t - 0.002) / 0.048);
+        data[start + n] = env * Math.sin(2 * Math.PI * freq * t);
+      }
     }
-    while (metronomeNextTime < ctx.currentTime + lookahead) {
-      const t = metronomeNextTime;
-      const isDownbeat = metronomeBeat % beatsPerMeasure === 0;
-      const osc = ctx.createOscillator();
-      const gain = ctx.createGain();
-      osc.frequency.value = isDownbeat ? 1600 : 1000;
-      gain.gain.setValueAtTime(0.0001, t);
-      gain.gain.linearRampToValueAtTime(0.13, t + 0.002);
-      gain.gain.exponentialRampToValueAtTime(0.0001, t + 0.05);
-      osc.connect(gain).connect(masterGainNode);
-      osc.start(t);
-      osc.stop(t + 0.06);
-      allOscNodes.push(osc);
-      metronomeBeat++;
-      metronomeNextTime += secPerBeat;
-    }
+    return buf;
+  }
+
+  // Starts a fresh loop at `when` (ctx time) and returns it.
+  function startMetronomeLoop(ctx, when) {
+    const src = ctx.createBufferSource();
+    src.buffer = buildMetronomeLoop(ctx, parseInt(tempoRange.value, 10), TIME_BEATS[timeSelect.value]);
+    src.loop = true;
+    src.connect(masterGainNode);
+    src.start(when);
+    return src;
   }
 
   function startMetronome() {
     stopPlayback(); // don't overlap with line playback or its own clicks
     const ctx = ensureAudioCtx();
     if (ctx.state === "suspended") ctx.resume();
-    metronomeBeat = 0;
-    metronomeNextTime = ctx.currentTime + 0.1;
-    metronomeScheduleAhead();
-    metronomeTimerId = setInterval(metronomeScheduleAhead, 30);
+    metronomeSource = startMetronomeLoop(ctx, ctx.currentTime + 0.1);
     const btn = document.getElementById("metronome-btn");
     btn.textContent = "Stop metronome";
     btn.setAttribute("aria-pressed", "true");
   }
 
   function stopMetronome() {
-    if (metronomeTimerId != null) {
-      clearInterval(metronomeTimerId);
-      metronomeTimerId = null;
+    if (metronomeSource) {
+      clearTimeout(metronomeRetuneTimer);
+      try { metronomeSource.stop(); } catch (e) {}
+      metronomeSource.disconnect();
+      metronomeSource = null;
       const btn = document.getElementById("metronome-btn");
       btn.textContent = "Metronome";
       btn.setAttribute("aria-pressed", "false");
     }
+  }
+
+  // A tempo/time-signature change means a different loop: swap it in once
+  // the controls stop moving (a slider drag fires `input` continuously and
+  // would otherwise restart the loop — and re-trigger a downbeat — on every
+  // pixel), cutting the old loop and starting the new one at the same
+  // instant so the two never overlap.
+  function retuneMetronome() {
+    if (!metronomeSource) return;
+    clearTimeout(metronomeRetuneTimer);
+    metronomeRetuneTimer = setTimeout(() => {
+      if (!metronomeSource) return;
+      const ctx = ensureAudioCtx();
+      const swapAt = ctx.currentTime + 0.05;
+      const old = metronomeSource;
+      metronomeSource = startMetronomeLoop(ctx, swapAt);
+      try { old.stop(swapAt); } catch (e) {}
+    }, 150);
   }
 
   function pausePlayback() {
@@ -2654,6 +2687,7 @@ button.mode-chip.active:hover { color: var(--parchment); }
   const volumeValue = document.getElementById("volume-value");
   const metronomeDuringPlayback = document.getElementById("metronome-during-playback");
   const showNoteNames = document.getElementById("show-note-names");
+  const showChords = document.getElementById("show-chords");
   const stageMetaEl = document.getElementById("stage-meta");
   const metaLineEl = document.getElementById("meta-line");
   const totalCountEl = document.getElementById("total-count");
@@ -2739,7 +2773,9 @@ button.mode-chip.active:hover { color: var(--parchment); }
   tempoRange.addEventListener("input", () => {
     tempoValue.textContent = tempoRange.value;
     stageMetaEl.textContent = tempoRange.value + " bpm · " + measuresSelect.value + " bars";
+    retuneMetronome();
   });
+  timeSelect.addEventListener("change", retuneMetronome);
 
   // Scales note playback and metronome clicks together in real time (both
   // already-sounding and future notes) — see masterGainNode in
@@ -2853,13 +2889,12 @@ button.mode-chip.active:hover { color: var(--parchment); }
   // Draws (or clears) the per-measure suggested-chord label, aligned above
   // the measure's first beat — a rest or a note, either way (same
   // bbox-centering convention as the note name labels) — rather than the
-  // bar's left edge. Shares the same show/hide toggle as note names, so
-  // it's called wherever that is.
+  // bar's left edge. Has its own show/hide toggle, separate from note names.
   function renderChordSuggestionLabels(settings) {
     const svgEl = document.querySelector("#notation svg");
     if (!svgEl) return;
     svgEl.querySelectorAll(".chord-suggestion-label").forEach((el) => el.remove());
-    if (!showNoteNames.checked) return;
+    if (!showChords.checked) return;
     measureChordSuggestions.forEach((entry, mi) => {
       if (!entry || !entry.chord || !entry.firstBeatEl) return;
       let bbox;
@@ -2965,7 +3000,7 @@ button.mode-chip.active:hover { color: var(--parchment); }
     }
   }
   function toggleMetronome() {
-    if (metronomeTimerId != null) stopMetronome();
+    if (metronomeSource) stopMetronome();
     else startMetronome();
   }
 
@@ -2977,14 +3012,14 @@ button.mode-chip.active:hover { color: var(--parchment); }
   document.getElementById("metronome-btn").addEventListener("click", toggleMetronome);
 
   showNoteNames.addEventListener("change", () => {
-    if (lastSettings) {
-      renderNoteNameLabels(lastSettings);
-      renderChordSuggestionLabels(lastSettings);
-    }
+    if (lastSettings) renderNoteNameLabels(lastSettings);
+  });
+  showChords.addEventListener("change", () => {
+    if (lastSettings) renderChordSuggestionLabels(lastSettings);
   });
 
   // App-wide keyboard shortcuts (see the hint under the transport buttons):
-  // Space play/pause, Esc stop, G generate, M metronome, N note names. Plain,
+  // Space play/pause, Esc stop, G generate, M metronome, N note names, C chords. Plain,
   // unmodified keys are always safe to claim in a browser tab — nothing here
   // collides with a built-in browser/OS shortcut — but two guards keep them
   // from misbehaving:
@@ -3010,7 +3045,7 @@ button.mode-chip.active:hover { color: var(--parchment); }
     if (e.key === "Escape") {
       e.preventDefault();
       stopPlayback();
-      if (metronomeTimerId != null) stopMetronome();
+      stopMetronome();
       return;
     }
     if (e.repeat) return; // everything below toggles something — never auto-repeat that
@@ -3024,15 +3059,20 @@ button.mode-chip.active:hover { color: var(--parchment); }
       e.preventDefault();
       showNoteNames.checked = !showNoteNames.checked;
       showNoteNames.dispatchEvent(new Event("change"));
+    } else if (e.key === "c" || e.key === "C") {
+      e.preventDefault();
+      showChords.checked = !showChords.checked;
+      showChords.dispatchEvent(new Event("change"));
     }
   });
 
-  // The moment a backgrounded/throttled tab regains focus, immediately top
-  // up the metronome's schedule instead of waiting up to 30ms for the next
-  // natural setInterval tick — shaves a little more off any audible gap on
-  // top of the larger lookahead in metronomeScheduleAhead().
+  // Some browsers suspend a context while its tab is hidden; if that
+  // happened under a running metronome, bring it back the moment the tab is
+  // visible again rather than leaving the click silent.
   document.addEventListener("visibilitychange", () => {
-    if (document.visibilityState === "visible" && metronomeTimerId != null) metronomeScheduleAhead();
+    if (document.visibilityState === "visible" && metronomeSource && audioCtx && audioCtx.state === "suspended") {
+      audioCtx.resume().catch(() => {});
+    }
   });
 
   // Clicking a note dot on either diagram plays that pitch — delegated once
