@@ -1770,6 +1770,51 @@ button.mode-chip.active:hover { color: var(--parchment); }
       ["- - - °7 - ♭5", "- 1 - - - -", "- - - - ♭3 -"],   // Pos 4: drop 3 on A-G-B-e
       ["- - °7 - ♭5 -", "1 - - ♭3 - -"],                   // Pos 5: drop 3 on E-D-G-B
     ],
+    "7": [ // dominant 7: the five CAGED forms (E, D, C, A, G), shapes found in outside F7 listings
+      ["1 - ♭7 - 5 1", "- - - 3 - -", "- 5 - - - -"],   // Pos 1: E-shape, F7 = 1-3-1-2-1-1
+      ["- - 1 - - -", "- - - - ♭7 -", "- - - 5 - 3"],   // Pos 2: D-shape, F7 = x-x-3-5-4-5
+      ["- - - - 1 -", "- - 3 - - -", "- 1 - ♭7 - -"],   // Pos 3: C-shape, F7 = x-8-7-8-6-x
+      ["- 1 - ♭7 - 5", "- - - - - -", "- - 5 - 3 -"],   // Pos 4: A-shape, F7 = x-8-10-8-10-8
+      ["- - 5 1 3 -", "- - - - - ♭7"],                   // Pos 5: G-shape, F7 = x-x-10-10-10-11
+    ],
+    "-7": [ // minor 7: the five CAGED forms, shapes found in outside F listings
+      ["1 - ♭7 ♭3 5 1","- - - - - -","- 5 - - - -"],   // Pos 1: E-shape F = 1-3-1-1-1-1
+      ["- - 1 - - -","- - - - ♭7 ♭3","- - - 5 - -"],   // Pos 2: D-shape F = x-x-3-5-4-4
+      ["- - ♭3 - - -","- - - - - -","- 1 - ♭7 - -","- - - - ♭3 -"],   // Pos 3: C-shape F = x-8-6-8-9-x
+      ["- 1 - ♭7 - 5","- - - - ♭3 -","- - 5 - - -"],   // Pos 4: A-shape F = x-8-10-8-9-8
+      ["- - - - ♭3 -","- - 5 1 - -","- - - - - ♭7"],   // Pos 5: G-shape F = x-x-10-10-9-11
+    ],
+    "Δ7": [ // major 7: the five CAGED forms, shapes found in outside F listings
+      ["1 - - - 5 1","- - 7 3 - -","- 5 - - - -"],   // Pos 1: E-shape F = 1-3-2-2-1-1
+      ["- 5 1 - - -","- - - - - -","- - - 5 7 3"],   // Pos 2: D-shape F = x-3-3-5-5-5
+      ["- - 3 - - -","- 1 - - - -","- - - 7 - -","- - - - 3 -"],   // Pos 3: C-shape F = x-8-7-9-10-x
+      ["- 1 - - - 5","- - - 7 - -","- - 5 - 3 -"],   // Pos 4: A-shape F = x-8-10-9-10-8
+      ["- - 5 1 3 -","- - - - - -","- - - - - 7"],   // Pos 5: G-shape F = x-x-10-10-10-12
+    ],
+    "ø7": [ // half-diminished 7: four sourced movable shapes
+      ["- - - - ♭5 -","1 - ♭7 ♭3 - -"],   // Pos 1: Root on E, A-string muted (drop 3) F = 1-x-1-1-0-x
+      ["- - 1 - - -","- - - ♭5 ♭7 ♭3"],   // Pos 2: D-form F = x-x-3-4-4-4
+      ["- 1 - ♭7 - -","- - ♭5 - ♭3 -"],   // Pos 3: A-form F = x-8-9-8-9-x
+      ["- - - - - ♭5","- 1 - ♭7 - -","- - - - ♭3 -"],   // Pos 4: A-G-B-e form F = x-8-x-8-9-7
+    ],
+    "sus4": [ // sus4: E, D, C-form, A, G (G-shape top e root added at the user's request)
+      ["1 - - - 5 1","- - - - - -","- 5 1 4 - -"],   // Pos 1: E-shape F = 1-3-3-3-1-1
+      ["- - 1 - - -","- - - - - -","- - - 5 - -","- - - - 1 4"],   // Pos 2: D-shape F = x-x-3-5-6-6
+      ["- - - 5 - -","- - - - 1 -","- - - - - -","- 1 4 - - -"],   // Pos 3: C-form F = x-8-8-5-6-x
+      ["- 1 - - - 5","- - - - - -","- - 5 1 - -","- - - - 4 -"],   // Pos 4: A-shape F = x-8-10-10-11-8
+      ["- - 5 1 - -","- - - - 4 -","- - - - - -","- - - - - 1"],   // Pos 5: G-shape (user-specified top e root) F = x-x-10-10-11-13
+    ],
+    "sus2": [ // sus2: three sourced movable shapes
+      ["1 - - - 5 -","- - - - - -","- 5 1 - - 2"],   // Pos 1: E-form F = 1-3-3-x-1-3
+      ["- 1 - - 2 5","- - - - - -","- - 5 1 - -"],   // Pos 2: A-shape F = x-8-10-10-8-8
+      ["- 2 5 - - -","- - - - - -","- - - 2 - -","1 - - - 5 -"],   // Pos 3: 13-10-10-12-13-x form F = 13-10-10-12-13-x
+    ],
+    "-Δ7": [ // minor-major 7: four sourced movable shapes (E, D, A, G)
+      ["1 - - ♭3 5 1","- - 7 - - -","- 5 - - - -"],   // Pos 1: E-shape F = 1-3-2-1-1-1
+      ["- - 1 - - -","- - - - - ♭3","- - - 5 7 -"],   // Pos 2: D-shape F = x-x-3-5-5-4
+      ["5 1 - - - 5","- - - 7 ♭3 -","- - 5 - - -"],   // Pos 3: A-shape F = 8-8-10-9-9-8
+      ["- - - - - 7","- - - ♭3 5 -","- - - - - -","- - 1 - - -"],   // Pos 4: G-form F = x-x-15-13-13-12
+    ],
   };
   const parsedPatterns = {};
   function patternsFor(qualityKey) {

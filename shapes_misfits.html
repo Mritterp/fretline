@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Voicings that don't fit a pattern</title>
+<style>
+:root { --parchment:#f5f0e8; --wheat:#c4b89a; --sage:#8a9e7e; --moss:#5c6b52; --clay:#b07a5a; --bark:#3d3a30; }
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--parchment); color: var(--bark); font-family: Helvetica, Arial, sans-serif; padding: 18px 24px 60px; }
+h1 { margin: 0 0 4px; font: 400 24px Georgia, serif; }
+.sub { font-size: 12px; color: var(--sage); margin: 0 0 6px; max-width: 820px; line-height: 1.5; }
+.legend { font-size: 11px; color: var(--moss); margin-bottom: 8px; }
+.legend i { display: inline-block; width: 9px; height: 9px; border-radius: 50%; margin: 0 4px 0 12px; vertical-align: -1px; }
+h2 { margin: 34px 0 6px; font: 400 20px Georgia, serif; border-bottom: 1px solid var(--wheat); padding-bottom: 6px; }
+h2 span { font: 10px Helvetica, Arial, sans-serif; letter-spacing: .16em; text-transform: uppercase; color: var(--clay); margin-left: 10px; }
+.card { background: #f9f5ee; border: 1px solid #e3dac6; padding: 8px 12px 6px; margin: 0 0 10px; overflow-x: auto; }
+.card.bad { border-color: #c9856f; background: #fbf1ec; }
+.cap { font-size: 12px; font-weight: 700; margin-bottom: 2px; }
+.cap small { font-weight: 400; color: var(--moss); margin-left: 8px; font-family: Consolas, monospace; font-size: 12px; }
+.why { font-size: 12px; color: var(--bark); line-height: 1.55; margin: 2px 0 4px; max-width: 900px; }
+.why b { color: #9a3d33; }
+svg { display: block; }
+</style>
+</head>
+<body>
+<h1>Voicings that don't fit a pattern</h1>
+<p class="sub">The three major triads Fretline shows in open position that match none of the five movable patterns. Red = what Fretline draws today; below each are the pattern placements that fit the same part of the neck (frets 0–12, the window the app searches).</p>
+<div class="legend"><i style="background:#a6433d"></i>1 (root)<i style="background:#b5982c"></i>3<i style="background:#3e6d8e"></i>5 &nbsp;· dashed = optional note · × = muted string</div>
+<main id="out"></main>
+
+<script>
+const OPEN = [40, 45, 50, 55, 59, 64];
+const STR = ["E", "A", "D", "G", "B", "e"];
+const NAMES = { 3: "E♭", 10: "B♭", 11: "B" };
+const COLOR = { 1: "#a6433d", 3: "#b5982c", 5: "#3e6d8e" };
+const MAXF = 12;
+// These three tabs are the app's own output for the plain major triad in the open-position window,
+// taken from the audit that ran fretline_body.html's real findChordVoicing.
+const APP = [{ root: 3, tab: "x-x-1-0-4-3" }, { root: 10, tab: "x-1-0-3-3-1" }, { root: 11, tab: "x-2-1-4-0-2" }];
+
+const mod12 = (n) => ((n % 12) + 12) % 12;
+const degOf = (root, s, f) => ({ 0: "1", 4: "3", 7: "5" }[mod12(OPEN[s] + f - root)] || "?");
+
+function geom() {
+  const cw = 46, x0 = 44, y0 = 18, rh = 17;
+  return { cw, x0, y0, rh, W: x0 + MAXF * cw + 14, H: y0 + 5 * rh + 26, yOf: (s) => y0 + (5 - s) * rh, xOf: (f) => (f === 0 ? x0 - 20 : x0 + (f - 0.5) * cw) };
+}
+function frame(g) {
+  const p = [];
+  for (let s = 0; s < 6; s++) {
+    p.push(`<line x1="${g.x0}" x2="${g.x0 + MAXF * g.cw}" y1="${g.yOf(s)}" y2="${g.yOf(s)}" stroke="#3D3A30" stroke-width="${0.7 + (5 - s) * 0.12}" opacity=".75"/>`);
+    p.push(`<text x="10" y="${g.yOf(s) + 3.5}" font-size="9" fill="#8A9E7E">${STR[s]}</text>`);
+  }
+  for (let f = 0; f <= MAXF; f++) {
+    const x = g.x0 + f * g.cw;
+    p.push(`<line x1="${x}" x2="${x}" y1="${g.y0}" y2="${g.y0 + 5 * g.rh}" stroke="#C4B89A" stroke-width="${f === 0 ? 3 : 0.9}"/>`);
+    if (f >= 1) p.push(`<text x="${x - g.cw / 2}" y="${g.H - 6}" text-anchor="middle" font-size="${[3,5,7,9,12].includes(f) ? 10 : 9}" font-weight="${[3,5,7,9,12].includes(f) ? 700 : 400}" fill="${[3,5,7,9,12].includes(f) ? "#5C6B52" : "#B5AE98"}">${f}</text>`);
+  }
+  return p;
+}
+function dot(g, s, f, deg, optional) {
+  const cx = g.xOf(f), cy = g.yOf(s), c = COLOR[deg] || "#888";
+  return optional
+    ? `<circle cx="${cx}" cy="${cy}" r="7.6" fill="#F9F5EE" stroke="${c}" stroke-width="1.5" stroke-dasharray="2.5 2"/><text x="${cx}" y="${cy + 3}" text-anchor="middle" font-size="8" font-weight="700" fill="${c}">(${deg})</text>`
+    : `<circle cx="${cx}" cy="${cy}" r="7.6" fill="${c}"/><text x="${cx}" y="${cy + 3}" text-anchor="middle" font-size="8.5" font-weight="700" fill="#F5F0E8">${deg}</text>`;
+}
+function strip(notes, muted, root, hull) {
+  const g = geom(), p = frame(g);
+  if (hull) {
+    const xs = notes.map((n) => g.xOf(n.fret));
+    const xa = Math.min(...xs) - 13, xb = Math.max(...xs) + 13;
+    p.push(`<rect x="${xa}" y="${g.yOf(5) - 12}" width="${xb - xa}" height="${g.yOf(0) - g.yOf(5) + 24}" rx="9" fill="none" stroke="#B07A5A" stroke-dasharray="3 3" opacity=".8"/>`);
+  }
+  muted.forEach((s) => p.push(`<text x="${g.x0 - 20}" y="${g.yOf(s) + 4}" text-anchor="middle" font-size="13" fill="#B07A5A">×</text>`));
+  notes.forEach((n) => p.push(dot(g, n.s, n.fret, n.deg, n.optional)));
+  return `<svg width="${g.W}" height="${g.H}" viewBox="0 0 ${g.W} ${g.H}" font-family="Helvetica,Arial,sans-serif">${p.join("")}</svg>`;
+}
+const tabOf = (notes) => { const t = Array(6).fill("x"); notes.forEach((n) => { t[n.s] = n.fret; }); return t.join("-"); };
+const degName = { 1: "root", 3: "3rd", 5: "5th" };
+
+(async () => {
+  const txt = await (await fetch("shapes_lab.html", { cache: "no-store" })).text();
+  const POS_GRIDS = new Function("return " + txt.match(/const POS_GRIDS = (\[[\s\S]*?\n\]);/)[1])();
+  const tpl = POS_GRIDS.map((p, i) => {
+    const notes = [];
+    p.rows.forEach((line, row) => line.trim().split(/\s+/).forEach((tok, s) => { if (tok !== "-") notes.push({ s, row, optional: tok.startsWith("("), deg: tok.replace(/[()]/g, "") }); }));
+    return { pos: i + 1, notes };
+  });
+  const place = (t, root) => {
+    const rn = t.notes.find((n) => n.deg === "1" && !n.optional), out = [];
+    for (let f = mod12(root - OPEN[rn.s] - rn.row); f <= 24; f += 12) {
+      const notes = t.notes.map((n) => ({ ...n, fret: f + n.row })).filter((n) => n.fret >= 0 && n.fret <= MAXF);
+      if (t.notes.filter((n) => !n.optional).every((n) => { const r = f + n.row; return r >= 0 && r <= MAXF; })) out.push({ pos: t.pos, f, notes });
+    }
+    return out;
+  };
+
+  const html = [];
+  APP.forEach((a) => {
+    const frets = a.tab.split("-").map((x) => (x === "x" ? null : +x));
+    const notes = [], muted = [];
+    frets.forEach((f, s) => { if (f == null) muted.push(s); else notes.push({ s, fret: f, deg: degOf(a.root, s, f) }); });
+    const alts = tpl.flatMap((t) => place(t, a.root));
+    // nearest pattern = the placement sharing the most exact (string, fret) notes with this voicing
+    const score = (pl) => pl.notes.filter((n) => notes.some((m) => m.s === n.s && m.fret === n.fret)).length;
+    const nearest = alts.slice().sort((x, y) => score(y) - score(x))[0];
+    const has5 = notes.some((n) => n.deg === "5");
+    const diffs = [];
+    if (nearest) {
+      for (let s = 0; s < 6; s++) {
+        const mine = notes.find((n) => n.s === s), theirs = nearest.notes.find((n) => n.s === s && !n.optional);
+        const desc = (n) => (n ? `${n.fret === 0 ? "open" : "fret " + n.fret} (${degName[n.deg]})` : "muted");
+        if (theirs && (!mine || mine.fret !== theirs.fret)) diffs.push(`<b>${STR[s]} string</b>: Fretline plays ${desc(mine)}; Pos ${nearest.pos} plays ${desc(theirs)}`);
+      }
+    }
+    html.push(`<h2>${NAMES[a.root]} major<span>open position · frets 0–${MAXF}</span></h2>`);
+    html.push(`<div class="card bad"><div class="cap">What Fretline shows now<small>${a.tab}</small></div>
+      <div class="why">${has5 ? "" : "<b>No 5th at all</b> — the app is allowed to drop the 5th, but every pattern includes it. "}${nearest ? `Closest pattern is Pos ${nearest.pos} (${tabOf(nearest.notes.filter((n) => !n.optional))}); differences: ${diffs.join(" · ") || "none"}.` : ""}</div>
+      ${strip(notes, muted, a.root, false)}</div>`);
+    alts.sort((x, y) => x.f - y.f).forEach((pl) => {
+      html.push(`<div class="card"><div class="cap">Pos ${pl.pos}<small>${tabOf(pl.notes)}</small></div>${strip(pl.notes.map((n) => ({ ...n })), [], a.root, true)}</div>`);
+    });
+  });
+  document.getElementById("out").innerHTML = html.join("");
+})();
+</script>
+</body>
+</html>

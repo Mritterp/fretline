@@ -89,7 +89,7 @@ const $ = (id) => document.getElementById(id);
 ROOTS.forEach((n, pc) => { const o = document.createElement("option"); o.value = pc; o.textContent = n; $("root").appendChild(o); });
 QUALITIES.forEach((q, i) => { const o = document.createElement("option"); o.value = i; o.textContent = q.name; $("quality").appendChild(o); });
 $("root").value = 5;                                                       // F
-$("quality").value = QUALITIES.findIndex((q) => q.name === "Diminished 7");   // the set currently being approved
+$("quality").value = QUALITIES.findIndex((q) => q.name === "Dominant 7");   // the set currently being approved
 $("legend").innerHTML =Object.keys(ROLE_COLOR).map((r) => `<span><i style="background:${ROLE_COLOR[r]}"></i>${ROLE_NAME[r]}</span>`).join("");
 
 // ===================== Movable patterns on the neck =====================
@@ -136,6 +136,59 @@ const EXPLICIT_GRIDS = {
     ["- - ♭5 - ♭3 -", "- - - 1 - -", "- ♭3 - - - -", "- - - - - -"],               // Pos 4
     ["- ♭3 - - - -", "- - - - ♭5 -", "(1) - - ♭3 - 1", "- (♭5) - - - -"],          // Pos 5
   ],
+  // Minor 7 — F7-style listings: akordy.kytary.cz /fm7, fachords.com f/m7 (C-shape fachords only, G-shape akordy only).
+  "Minor 7": [
+    { label: "E-shape (F: 1-3-1-1-1-1)", rows: ["1 - ♭7 ♭3 5 1","- - - - - -","- 5 - - - -"] },
+    { label: "D-shape (F: x-x-3-5-4-4)", rows: ["- - 1 - - -","- - - - ♭7 ♭3","- - - 5 - -"] },
+    { label: "C-shape (F: x-8-6-8-9-x)", rows: ["- - ♭3 - - -","- - - - - -","- 1 - ♭7 - -","- - - - ♭3 -"] },
+    { label: "A-shape (F: x-8-10-8-9-8)", rows: ["- 1 - ♭7 - 5","- - - - ♭3 -","- - 5 - - -"] },
+    { label: "G-shape (F: x-x-10-10-9-11)", rows: ["- - - - ♭3 -","- - 5 1 - -","- - - - - ♭7"] },
+  ],
+  // Major 7 — akordy.kytary.cz /fmaj7, fachords.com f/maj7 (C-shape and G-shape fachords only).
+  "Major 7": [
+    { label: "E-shape (F: 1-3-2-2-1-1)", rows: ["1 - - - 5 1","- - 7 3 - -","- 5 - - - -"] },
+    { label: "D-shape (F: x-3-3-5-5-5)", rows: ["- 5 1 - - -","- - - - - -","- - - 5 7 3"] },
+    { label: "C-shape (F: x-8-7-9-10-x)", rows: ["- - 3 - - -","- 1 - - - -","- - - 7 - -","- - - - 3 -"] },
+    { label: "A-shape (F: x-8-10-9-10-8)", rows: ["- 1 - - - 5","- - - 7 - -","- - 5 - 3 -"] },
+    { label: "G-shape (F: x-x-10-10-10-12)", rows: ["- - 5 1 3 -","- - - - - -","- - - - - 7"] },
+  ],
+  // Half-diminished 7 — akordy.kytary.cz /fm7b5, fachords.com f/m7b5 — only a few movable shapes are listed.
+  "Half-diminished 7": [
+    { label: "Root on E, A-string muted (drop 3) (F: 1-x-1-1-0-x)", rows: ["- - - - ♭5 -","1 - ♭7 ♭3 - -"] },
+    { label: "D-form (F: x-x-3-4-4-4)", rows: ["- - 1 - - -","- - - ♭5 ♭7 ♭3"] },
+    { label: "A-form (F: x-8-9-8-9-x)", rows: ["- 1 - ♭7 - -","- - ♭5 - ♭3 -"] },
+    { label: "A-G-B-e form (F: x-8-x-8-9-7)", rows: ["- - - - - ♭5","- 1 - ♭7 - -","- - - - ♭3 -"] },
+  ],
+  // Suspended 4th — akordy.kytary.cz /fsus4, fachords.com f/sus4 — G-shape: top four strings listed (x-x-10-10-11-x), high-e root added at the user's request.
+  "Suspended 4th": [
+    { label: "E-shape (F: 1-3-3-3-1-1)", rows: ["1 - - - 5 1","- - - - - -","- 5 1 4 - -"] },
+    { label: "D-shape (F: x-x-3-5-6-6)", rows: ["- - 1 - - -","- - - - - -","- - - 5 - -","- - - - 1 4"] },
+    { label: "C-form (F: x-8-8-5-6-x)", rows: ["- - - 5 - -","- - - - 1 -","- - - - - -","- 1 4 - - -"] },
+    { label: "A-shape (F: x-8-10-10-11-8)", rows: ["- 1 - - - 5","- - - - - -","- - 5 1 - -","- - - - 4 -"] },
+    { label: "G-shape (user-specified top e root) (F: x-x-10-10-11-13)", rows: ["- - 5 1 - -","- - - - 4 -","- - - - - -","- - - - - 1"] },
+  ],
+  // Suspended 2nd — akordy.kytary.cz /fsus2, fachords.com f/sus2 — few movable shapes listed.
+  "Suspended 2nd": [
+    { label: "E-form (F: 1-3-3-x-1-3)", rows: ["1 - - - 5 -","- - - - - -","- 5 1 - - 2"] },
+    { label: "A-shape (F: x-8-10-10-8-8)", rows: ["- 1 - - 2 5","- - - - - -","- - 5 1 - -"] },
+    { label: "13-10-10-12-13-x form (F: 13-10-10-12-13-x)", rows: ["- 2 5 - - -","- - - - - -","- - - 2 - -","1 - - - 5 -"] },
+  ],
+  // Minor-major 7 — akordy.kytary.cz /fmmaj7 (fachords lists none) — no sourced C-shape.
+  "Minor-major 7": [
+    { label: "E-shape (F: 1-3-2-1-1-1)", rows: ["1 - - ♭3 5 1","- - 7 - - -","- 5 - - - -"] },
+    { label: "D-shape (F: x-x-3-5-5-4)", rows: ["- - 1 - - -","- - - - - ♭3","- - - 5 7 -"] },
+    { label: "A-shape (F: 8-8-10-9-9-8)", rows: ["5 1 - - - 5","- - - 7 ♭3 -","- - 5 - - -"] },
+    { label: "G-form (F: x-x-15-13-13-12)", rows: ["- - - - - 7","- - - ♭3 5 -","- - - - - -","- - 1 - - -"] },
+  ],
+  // Dominant 7 — only shapes found in outside sources (F7 listings on akordy.kytary.cz, tabs4acoustic.com, fachords.com).
+  // Pos 1-5: the five CAGED forms (E, D, C, A, G). Entries are {label, rows}.
+  "Dominant 7": [
+    { label: "E-shape (E7)", rows: ["1 - ♭7 - 5 1","- - - 3 - -","- 5 - - - -"] },        // F: 1-3-1-2-1-1
+    { label: "D-shape (D7)", rows: ["- - 1 - - -","- - - - ♭7 -","- - - 5 - 3"] },          // F: x-x-3-5-4-5
+    { label: "C-shape (C7)", rows: ["- - - - 1 -","- - 3 - - -","- 1 - ♭7 - -"] },          // F: x-8-7-8-6-x
+    { label: "A-shape (A7)", rows: ["- 1 - ♭7 - 5","- - - - - -","- - 5 - 3 -"] },          // F: x-8-10-8-10-8
+    { label: "G-shape (G7)", rows: ["- - 5 1 3 -","- - - - - ♭7"] },                         // F: x-x-10-10-10-11
+  ],
   // Diminished 7: exactly the five shapes on the jazz-guitar-licks chart (3 drop-2 + 2 drop-3), each once, in neck order.
   // The root is NOT necessarily the lowest note. Dim7 repeats every 3 frets, so each fingering recurs with its roles rotated.
   "Diminished 7": [
@@ -150,6 +203,7 @@ const EXPLICIT_GRIDS = {
 // The map heading notes that each pattern recurs at that interval as another inversion (same shape, the root moves to another note).
 const REPEAT_EVERY = { "Diminished 7": 3 };
 const ALTERNATES_FROM = { "Diminished 7": 4 };
+const MAP_POSITIONS = { "Dominant 7": 5 };   // the map shows only the main positions, not the alternates
 // The map for these qualities uses only the first `positions` patterns and repeats them every `every` frets (roles re-derived from pitch).
 const MAP_REPEAT = { "Diminished 7": { positions: 1, every: 3 } };
 function mapRepeats(rows, rootPc, quality, cfg, maxFret) {
@@ -166,7 +220,8 @@ function mapRepeats(rows, rootPc, quality, cfg, maxFret) {
     return { ...r, places };
   });
 }   // 1-based Pos where the "Alternate voicings" title goes
-function explicitVariant(rows, q) {
+function explicitVariant(entry, q) {
+  const rows = Array.isArray(entry) ? entry : entry.rows, label = Array.isArray(entry) ? "" : entry.label || "";
   const notes = [];
   rows.forEach((line, row) => line.trim().split(/\s+/).forEach((tok, s) => {
     if (tok === "-") return;
@@ -176,7 +231,7 @@ function explicitVariant(rows, q) {
     notes.push({ s, row, iv, role: tone.role, optional: tok.startsWith("(") });
   }));
   const lo = Math.min(...notes.map((n) => n.row)), hi = Math.max(...notes.map((n) => n.row));
-  return { label: "", span: hi - lo, notes: notes.map((n) => ({ ...n, row: n.row - lo })) };
+  return { label, span: hi - lo, notes: notes.map((n) => ({ ...n, row: n.row - lo })) };
 }
 
 // The scale each chord sits in — the "modal pattern" shown behind it.
@@ -332,7 +387,7 @@ function renderPatterns() {
   const rows = [];
   // a hand-edited set may have more (or fewer) than the five derived positions; one template per grid
   const explicit = EXPLICIT_GRIDS[quality.name];
-  const templates = explicit ? explicit.map((_, i) => ({ idx: i, form: i < 5 ? POS_TPL[i].form : "X" + i })) : POS_TPL;
+  const templates = explicit ? explicit.map((_, i) => ({ idx: i, form: i < 5 ? POS_TPL[i].form : "X5" })) : POS_TPL;
   templates.forEach((tpl, i) => patternVariants(tpl, quality, opts.stretch).forEach((v) => {
     const places = placements(v, rootPc, opts.maxFret);
     if (places.length) rows.push({ pos: i + 1, form: tpl.form, label: v.label, places });
@@ -340,7 +395,7 @@ function renderPatterns() {
 
   const html = [];
   const firstPerPos = [], seenPos = new Set();
-  rows.forEach((r) => { if (!seenPos.has(r.pos)) { seenPos.add(r.pos); firstPerPos.push(r); } });
+  rows.forEach((r) => { if (r.pos <= (MAP_POSITIONS[quality.name] || 99) && !seenPos.has(r.pos)) { seenPos.add(r.pos); firstPerPos.push(r); } });
   html.push(`<section class="group"><h2>${ROOTS[rootPc]} ${scale[0]} scale<span>the scale this chord sits inside · numbers are scale degrees</span></h2>`);
   rows.forEach((r) => {
     if (ALTERNATES_FROM[quality.name] === r.pos && !html.some((h) => h.includes("alt-title"))) html.push(`<h3 class="alt-title">Alternate voicings</h3>`);
@@ -348,7 +403,7 @@ function renderPatterns() {
   });
   html.push("</section>");
   if (!rows.length) html.push(`<div class="empty">No fingerable patterns with these settings.</div>`);
-  html.push(`<section class="group"><h2>Map up the neck<span>${ROOTS[rootPc]}${quality.sym} · positions in order Pos 1 → ${templates.length}</span></h2><div class="row">${overviewSVG(MAP_REPEAT[quality.name] ? mapRepeats(firstPerPos, rootPc, quality, MAP_REPEAT[quality.name], opts.maxFret) : firstPerPos, opts.maxFret)}${REPEAT_EVERY[quality.name] ? `<div class="repeat-note">Each pattern repeats every ${REPEAT_EVERY[quality.name]} frets with a different inversion</div>` : ""}</div></section>`);
+  html.push(`<section class="group"><h2>Map up the neck<span>${ROOTS[rootPc]}${quality.sym} · positions in order Pos 1 → ${Math.min(templates.length, MAP_POSITIONS[quality.name] || 99)}</span></h2><div class="row">${overviewSVG(MAP_REPEAT[quality.name] ? mapRepeats(firstPerPos, rootPc, quality, MAP_REPEAT[quality.name], opts.maxFret) : firstPerPos, opts.maxFret)}${REPEAT_EVERY[quality.name] ? `<div class="repeat-note">Each pattern repeats every ${REPEAT_EVERY[quality.name]} frets with a different inversion</div>` : ""}</div></section>`);
   $("out").innerHTML = html.join("");
   const nPlace = rows.reduce((n, r) => n + r.places.length, 0);
   $("summary").textContent = `${ROOTS[rootPc]}${quality.sym} (${quality.name}) — ${rows.length} pattern row${rows.length === 1 ? "" : "s"}, ${nPlace} placements on frets 0–${opts.maxFret}`;
