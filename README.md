@@ -18,6 +18,10 @@ Live app: https://claude.ai/code/artifact/b0f71811-d152-4e1b-a595-7abeb8a99003
 - `splice.js` — build script. Splices `vexflow.js` into `fretline_body.html`
   at the `/*__VEXFLOW_BUNDLE__*/` marker, byte-for-byte via Node Buffers (not
   string/text APIs — see "Gotcha" below), producing `fretline.html`.
+- `ear_training_body.html` — source for the Ear Training page (interval identification and chord-progression
+  recognition); `splice.js` builds it into `ear_training.html` with the same VexFlow bundle. Edit the
+  `_body` file, then run `node splice.js`.
+- `shapes_lab.html` — the standalone Chord Shapes Lab used to review and approve chord patterns.
 - `fretline.html` — the built, publish-ready file. **Generated — don't edit
   directly**, run `node splice.js` after editing `fretline_body.html` instead.
 - `serve.js` — a tiny static file server for local preview (no dependencies).

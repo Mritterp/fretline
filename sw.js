@@ -1,9 +1,10 @@
 // Bump this on every release so installed clients pick up the new fretline.html
 // (activate clears any cache under an older name and re-precaches).
-const CACHE_NAME = "fretline-v1";
+const CACHE_NAME = "fretline-v2";
 
 const PRECACHE_URLS = [
   "./fretline.html",
+  "./ear_training.html",
   "./manifest.webmanifest",
   "./icons/icon-192.png",
   "./icons/icon-512.png",
