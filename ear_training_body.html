@@ -15,7 +15,7 @@
 }
 * { box-sizing: border-box; }
 body { margin: 0; background: var(--parchment); color: var(--bark); font-family: var(--font-body); }
-header { background: var(--parchment); border-bottom: 1px solid var(--wheat); padding: 14px 20px 12px; }
+header { background: var(--parchment); border-bottom: 1px solid var(--wheat); padding: 10px 20px 8px; }
 .brand { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 8px 22px; }
 h1 { margin: 0; font-family: var(--font-display); font-weight: 400; font-size: 30px; }
 h1 a { color: inherit; text-decoration: none; }
@@ -25,38 +25,40 @@ h1 a:hover { color: var(--moss); }
 .site-tab:hover { border-color: var(--sage); color: var(--bark); }
 .site-tab.current { border-color: var(--bark); background: var(--bark); color: var(--parchment); }
 
-main { max-width: 820px; margin: 0 auto; padding: 18px 16px 70px; }
-.modes { display: flex; gap: 0; margin-bottom: 14px; }
-.mode { flex: 1; font: inherit; font-size: 11px; letter-spacing: 0.16em; text-transform: uppercase; padding: 11px 8px; border: 1px solid var(--wheat); background: transparent; color: var(--moss); cursor: pointer; }
+main { max-width: 1100px; margin: 0 auto; padding: 10px 16px 24px; }
+.modes { display: flex; gap: 0; margin-bottom: 8px; }
+.mode { flex: 1; font: inherit; font-size: 11px; letter-spacing: 0.16em; text-transform: uppercase; padding: 9px 8px; border: 1px solid var(--wheat); background: transparent; color: var(--moss); cursor: pointer; }
 .mode + .mode { border-left: 0; }
 .mode[aria-pressed="true"] { background: var(--bark); border-color: var(--bark); color: var(--parchment); }
 
-.scorebar { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; font-size: 12px; color: var(--moss); margin-bottom: 10px; }
+.scorebar { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; font-size: 12px; color: var(--moss); margin-bottom: 6px; }
 .scorebar b { font-size: 15px; color: var(--bark); }
 .linkbtn { font: inherit; font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; background: none; border: 0; color: var(--clay); cursor: pointer; padding: 2px 0; }
 .linkbtn:hover { color: var(--bark); }
 
-.card { background: #f9f5ee; border: 1px solid #e3dac6; padding: 14px 14px 16px; margin-bottom: 14px; }
+.card { background: #f9f5ee; border: 1px solid #e3dac6; padding: 12px 14px 14px; margin-bottom: 12px; }
 .card h2 { margin: 0 0 2px; font-family: var(--font-display); font-weight: 400; font-size: 22px; }
 .sub { font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--sage); margin-bottom: 10px; }
-.staff { min-height: 150px; overflow-x: auto; }
-.staff svg { display: block; margin: 0 auto; }
-.kbd-wrap { overflow-x: auto; border: 1px solid var(--wheat); background: #fff; margin-top: 8px; }
-.kbd-wrap svg { display: block; }
-.status { min-height: 44px; margin: 12px 0 4px; font-size: 14px; line-height: 1.45; }
+.staff { height: clamp(130px, 22vh, 215px); overflow: hidden; }
+.staff svg { display: block; width: 100%; height: 100%; }
+#chd-staff:empty { display: none; }
+.kbd-wrap { overflow: hidden; border: 1px solid var(--wheat); background: #fff; margin-top: 6px; }
+.kbd-wrap svg { display: block; width: 100%; height: auto; }
+.status { min-height: 40px; margin: 8px 0 4px; font-size: 14px; line-height: 1.4; }
 .status.good { color: var(--good); }
 .status.bad { color: var(--bad); }
 .hint { font-size: 12px; color: var(--sage); }
 
-.answers { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 6px; }
-.ans { font: inherit; font-size: 12px; letter-spacing: 0.08em; text-transform: uppercase; padding: 13px 6px; border: 1px solid var(--wheat); background: #fff; color: var(--bark); cursor: pointer; border-radius: 22px; }
+.answers { display: grid; gap: 6px; margin-top: 6px; }
+#int-answers { grid-template-columns: repeat(6, 1fr); }
+.ans { font: inherit; font-size: 11px; letter-spacing: 0.05em; text-transform: uppercase; padding: 10px 4px; border: 1px solid var(--wheat); background: #fff; color: var(--bark); cursor: pointer; border-radius: 18px; }
 .ans:hover:not(:disabled) { border-color: var(--sage); background: var(--linen); }
 .ans.right { background: var(--good-bg); border-color: var(--good); color: var(--good); font-weight: 700; }
 .ans.wrong { background: var(--bad-bg); border-color: var(--bad); color: var(--bad); }
 .ans.picked { background: var(--linen); border-color: var(--bark); font-weight: 700; }
 .ans:disabled { cursor: default; }
 
-.actions { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 10px; margin-top: 14px; }
+.actions { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 10px; margin-top: 10px; }
 .btn { font: inherit; font-size: 11px; letter-spacing: 0.16em; text-transform: uppercase; padding: 11px 16px; border: 1px solid var(--bark); background: var(--bark); color: var(--parchment); cursor: pointer; }
 .btn:hover:not(:disabled) { background: var(--moss); border-color: var(--moss); }
 .btn.ghost { background: transparent; color: var(--bark); border-color: var(--wheat); }
@@ -64,11 +66,14 @@ main { max-width: 820px; margin: 0 auto; padding: 18px 16px 70px; }
 .btn:disabled { opacity: 0.4; cursor: default; }
 .actions .left, .actions .right { display: flex; gap: 8px; flex-wrap: wrap; }
 
-.slot { margin: 12px 0 0; padding-top: 10px; border-top: 1px solid #e3dac6; }
+.slot { margin: 8px 0 0; padding-top: 8px; border-top: 1px solid #e3dac6; display: grid; grid-template-columns: 150px 1fr; gap: 4px 12px; align-items: center; }
 .slot:first-of-type { border-top: 0; padding-top: 0; }
-.slot-head { display: flex; justify-content: space-between; gap: 8px; font-size: 12px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--moss); margin-bottom: 6px; }
-.slot-head .res { letter-spacing: 0; text-transform: none; font-size: 13px; }
-.slot .answers { grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); }
+.slot-head { font-size: 12px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--moss); }
+.slot-head .res { display: block; letter-spacing: 0; text-transform: none; font-size: 12px; margin-top: 2px; }
+.slot-right { display: grid; gap: 5px; }
+.slot .answers { grid-template-columns: repeat(auto-fit, minmax(96px, 1fr)); margin-top: 0; }
+.slot .answers.nums { grid-template-columns: repeat(7, 1fr); max-width: 560px; }
+.slot .answers.nums .ans { font-family: var(--font-display); font-size: 14px; letter-spacing: 0.02em; padding: 7px 2px; text-transform: none; }
 
 details.settings { border: 1px solid var(--wheat); background: transparent; padding: 0 14px; }
 details.settings summary { cursor: pointer; font-size: 11px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--moss); padding: 12px 0; }
@@ -81,10 +86,18 @@ details.settings summary { cursor: pointer; font-size: 11px; letter-spacing: 0.1
 .chips { display: flex; flex-wrap: wrap; gap: 6px; }
 .chip { font: inherit; font-size: 12px; padding: 6px 10px; border: 1px solid var(--wheat); background: transparent; color: var(--sage); cursor: pointer; border-radius: 14px; }
 .chip[aria-pressed="true"] { background: var(--bark); border-color: var(--bark); color: var(--parchment); }
-@media (max-width: 520px) {
+@media (max-width: 1000px) { #int-answers { grid-template-columns: repeat(4, 1fr); } }
+@media (max-width: 700px) {
   header { padding: 12px 14px 10px; }
-  main { padding: 14px 10px 60px; }
-  .ans { font-size: 11px; padding: 12px 4px; }
+  main { padding: 12px 10px 50px; }
+  /* phones: the answer list scrolls inside its own box so the buttons stay a readable, tappable size */
+  #int-answers { grid-template-columns: repeat(2, 1fr); max-height: 38vh; overflow-y: auto; padding: 2px; }
+  .ans { font-size: 12px; padding: 12px 4px; }
+  .slot { grid-template-columns: 1fr; }
+  .slot .answers { grid-template-columns: repeat(2, 1fr); }
+  .slot .answers.nums { grid-template-columns: repeat(7, 1fr); }
+  .kbd-wrap { overflow-x: auto; }
+  .kbd-wrap svg { width: 900px; }
 }
 </style>
 
@@ -129,8 +142,8 @@ details.settings summary { cursor: pointer; font-size: 11px; letter-spacing: 0.1
   <section id="view-chd" hidden>
     <div class="card">
       <h2>Chord Progression</h2>
-      <div class="sub" id="chd-sub">scale up and down, then three chords</div>
-      <div class="status hint" id="chd-status">Press Play: you will hear a scale, then three chords.</div>
+      <div class="sub" id="chd-sub">scale · IV – V – I · a beat · four chords: name the numeral and the quality</div>
+      <div class="status hint" id="chd-status">Press Repeat all: you will hear a scale, a IV–V–I, then four chords.</div>
       <div id="chd-slots"></div>
       <div class="staff" id="chd-staff"></div>
       <div class="actions">
@@ -248,15 +261,21 @@ details.settings summary { cursor: pointer; font-size: 11px; letter-spacing: 0.1
   // ---------- staff + keyboard ----------
   function renderStaff(el, moments, flat) {
     el.innerHTML = "";
-    const W = Math.max(260, Math.min(520, el.clientWidth || 520));
+    const W = 150 + Math.max(2, moments.length) * 130;   // drawing units; the SVG scales to its box
     const renderer = new Renderer(el, Renderer.Backends.SVG);
     // ledger lines need room: measure how far the notes sit above the treble staff / below the bass staff
     const step = (m) => 7 * Math.floor(m / 12) + [0, 0, 1, 1, 2, 3, 3, 4, 4, 5, 5, 6][mod(m)];   // diatonic steps (5px each)
     const all = [].concat(...moments);
     const above = all.length ? Math.max(0, (step(Math.max(...all)) - step(77)) * 5 + 8) : 0;   // top line is F5
     const below = all.length ? Math.max(0, (step(43) - step(Math.min(...all))) * 5 + 8) : 0;   // bottom line is G2
-    const trebleY = 20 + above, bassY = trebleY + 40 + 80;
-    renderer.resize(W, bassY + 40 + below + 20);
+    const trebleY = 20 + above, bassY = trebleY + 40 + 56;
+    const H = bassY + 40 + below + 20;
+    renderer.resize(W, H);
+    const svgEl = el.querySelector("svg");
+    svgEl.setAttribute("viewBox", "0 0 " + W + " " + H);
+    svgEl.setAttribute("width", "100%"); svgEl.setAttribute("height", "100%");
+    svgEl.style.width = "100%"; svgEl.style.height = "100%";
+    el.style.removeProperty("width"); el.style.removeProperty("height");   // ...and VexFlow also pins the container   // VexFlow sets fixed px sizes inline; let the viewBox scale instead
     const c = renderer.getContext();
     const treble = new Stave(10, trebleY, W - 24).addClef("treble"), bass = new Stave(10, bassY, W - 24).addClef("bass");
     treble.setContext(c).draw(); bass.setContext(c).draw();
@@ -277,10 +296,10 @@ details.settings summary { cursor: pointer; font-size: 11px; letter-spacing: 0.1
     const beats = moments.length * 2;
     const vt = new Voice({ num_beats: beats, beat_value: 4 }).setStrict(false).addTickables(tn);
     const vb = new Voice({ num_beats: beats, beat_value: 4 }).setStrict(false).addTickables(bn);
-    new Formatter().joinVoices([vt]).joinVoices([vb]).format([vt, vb], W - 110);
+    new Formatter().joinVoices([vt]).joinVoices([vb]).format([vt, vb], W - 120);
     vt.draw(c, treble); vb.draw(c, bass);
   }
-  const KBD = { kw: 26, h: 128 };
+  const KBD = { kw: 26, h: 112 };
   function renderKeyboard(el, marks) {   // marks: [{midi, label}]
     const isBlack = (m) => [1, 3, 6, 8, 10].includes(mod(m));
     const whites = []; for (let m = LOW; m <= HIGH; m++) if (!isBlack(m)) whites.push(m);
@@ -288,7 +307,7 @@ details.settings summary { cursor: pointer; font-size: 11px; letter-spacing: 0.1
     const W = whites.length * KBD.kw, p = [];
     whites.forEach((m) => {
       p.push(`<rect x="${xOf.get(m)}" y="0" width="${KBD.kw}" height="${KBD.h}" fill="#fff" stroke="#c4b89a" stroke-width="1"/>`);
-      if (mod(m) === 0) p.push(`<text x="${xOf.get(m) + KBD.kw / 2}" y="${KBD.h - 6}" text-anchor="middle" font-size="9" fill="#8a9e7e" font-family="Helvetica,Arial,sans-serif">C${Math.floor(m / 12) - 1}</text>`);
+      if (mod(m) === 0) p.push(`<text x="${xOf.get(m) + KBD.kw / 2}" y="${KBD.h - 6}" text-anchor="middle" font-size="11" fill="#8a9e7e" font-family="Helvetica,Arial,sans-serif">C${Math.floor(m / 12) - 1}</text>`);
     });
     for (let m = LOW; m <= HIGH; m++) if (isBlack(m)) {
       const x = xOf.get(m - 1) + KBD.kw - 8;
@@ -296,14 +315,14 @@ details.settings summary { cursor: pointer; font-size: 11px; letter-spacing: 0.1
     }
     marks.forEach((k) => {
       const black = isBlack(k.midi);
-      const cx = black ? xOf.get(k.midi - 1) + KBD.kw : xOf.get(k.midi) + KBD.kw / 2, cy = black ? KBD.h * 0.6 - 16 : KBD.h - 24;
-      p.push(`<circle cx="${cx}" cy="${cy}" r="11" fill="#b07a5a" stroke="#fff" stroke-width="1.5"/><text x="${cx}" y="${cy + 3.5}" text-anchor="middle" font-size="9.5" font-weight="700" fill="#fff" font-family="Helvetica,Arial,sans-serif">${k.label}</text>`);
+      const cx = black ? xOf.get(k.midi - 1) + KBD.kw : xOf.get(k.midi) + KBD.kw / 2, cy = black ? KBD.h * 0.6 - 16 : KBD.h - 26;
+      p.push(`<circle cx="${cx}" cy="${cy}" r="13" fill="#b07a5a" stroke="#fff" stroke-width="1.5"/><text x="${cx}" y="${cy + 4.5}" text-anchor="middle" font-size="12" font-weight="700" fill="#fff" font-family="Helvetica,Arial,sans-serif">${k.label}</text>`);
     });
-    el.innerHTML = `<svg width="${W}" height="${KBD.h}" viewBox="0 0 ${W} ${KBD.h}">${p.join("")}</svg>`;
-    if (marks.length) {
+    el.innerHTML = `<svg viewBox="0 0 ${W} ${KBD.h}" preserveAspectRatio="xMidYMid meet">${p.join("")}</svg>`;
+    if (marks.length && el.scrollWidth > el.clientWidth) {   // phones keep a scrollable keyboard: centre it on the notes
       const mid = marks.reduce((s, k) => s + k.midi, 0) / marks.length;
       let nearest = whites[0]; whites.forEach((m) => { if (Math.abs(m - mid) < Math.abs(nearest - mid)) nearest = m; });
-      el.scrollLeft = Math.max(0, xOf.get(nearest) - el.clientWidth / 2);
+      el.scrollLeft = Math.max(0, (xOf.get(nearest) / W) * el.scrollWidth - el.clientWidth / 2);
     }
   }
 
@@ -367,24 +386,27 @@ details.settings summary { cursor: pointer; font-size: 11px; letter-spacing: 0.1
 
   // ======================= Chord progressions =======================
   let C = null, cChecked = false;
-  const picks = [null, null, null];
+  const N_CHORDS = 4, ROMAN = ["I", "II", "III", "IV", "V", "VI", "VII"];
+  const picks = Array.from({ length: N_CHORDS }, () => ({ deg: null, q: null }));
+  const resetPicks = () => picks.forEach((p) => { p.deg = null; p.q = null; });
+  const complete = () => picks.every((p) => p.deg !== null && p.q !== null);
   const rootName = (pc) => NAME_FLAT[mod(pc)];
-  const chordLabel = (ch) => rootName(ch.pc) + " " + QUALS.find((q) => q.id === ch.q).name;
+  const chordLabel = (ch) => ROMAN[ch.deg] + " · " + rootName(ch.pc) + " " + QUALS.find((q) => q.id === ch.q).name;
   function pool(scale, tonic) {
     const sc = new Set(scale.iv.map((i) => mod(tonic + i)));
     const out = [];
-    scale.iv.forEach((deg) => {
-      const pc = mod(tonic + deg);
+    scale.iv.forEach((semis, deg) => {
+      const pc = mod(tonic + semis);
       S.quals.forEach((qid) => {
         const q = QUALS.find((x) => x.id === qid);
-        if (q.iv.every((i) => sc.has(mod(pc + i)))) out.push({ pc, q: qid, tonic: deg === 0 });
+        if (q.iv.every((i) => sc.has(mod(pc + i)))) out.push({ deg, pc, q: qid, tonic: deg === 0 });
       });
     });
     return out;
   }
   function newChords(autoplay) {
     cancelPlay();
-    cChecked = false; picks.fill(null);
+    cChecked = false; resetPicks();
     $("chd-staff").innerHTML = ""; $("chd-check").disabled = true;
     const scales = SCALES.filter((s) => S.scales.includes(s.id));
     let made = null;
@@ -392,12 +414,12 @@ details.settings summary { cursor: pointer; font-size: 11px; letter-spacing: 0.1
       const scale = pick(scales), tonic = rnd(12), pl = pool(scale, tonic), tonics = pl.filter((x) => x.tonic);
       if (!tonics.length || pl.length < 2) continue;
       const first = pick(tonics), seq = [first];
-      for (let i = 1; i < 3; i++) {
+      for (let i = 1; i < N_CHORDS; i++) {
         let c2, guard = 0;
         do { c2 = pick(pl); guard++; } while (guard < 20 && seq[i - 1].pc === c2.pc && seq[i - 1].q === c2.q);
         seq.push(c2);
       }
-      made = { scale, tonic, chords: seq.map((x) => ({ pc: x.pc, q: x.q })) };
+      made = { scale, tonic, chords: seq.map((x) => ({ deg: x.deg, pc: x.pc, q: x.q })) };
     }
     if (!made) {
       C = null; $("chd-slots").innerHTML = "";
@@ -410,68 +432,79 @@ details.settings summary { cursor: pointer; font-size: 11px; letter-spacing: 0.1
     C.tonicMidi = 48 + C.tonic;
     buildChordSlots();
     $("chd-status").className = "status hint";
-    $("chd-status").textContent = `Listen to the ${C.scale.name.toLowerCase()} scale, then name the quality of each of the three chords.`;
+    $("chd-status").textContent = `Listen to the ${C.scale.name.toLowerCase()} scale, then name the Roman numeral (scale degree) and the quality of each of the four chords.`;
     $("chd-next").textContent = "Next"; $("chd-next").disabled = true;
     if (autoplay && gestured) playChords(true); else $("chd-status").textContent += " (Press Repeat all to start.)";
   }
   function buildChordSlots() {
     const host = $("chd-slots"); host.innerHTML = "";
-    for (let i = 0; i < 3; i++) {
+    for (let i = 0; i < N_CHORDS; i++) {
       const slot = document.createElement("div"); slot.className = "slot";
-      slot.innerHTML = `<div class="slot-head"><span>Chord ${i + 1}</span><span class="res" id="res${i}"></span></div><div class="answers" id="ans${i}"></div>`;
+      slot.innerHTML = `<div class="slot-head"><span>Chord ${i + 1}</span><span class="res" id="res${i}"></span></div><div class="slot-right"><div class="answers nums" id="nums${i}"></div><div class="answers" id="ans${i}"></div></div>`;
       host.appendChild(slot);
-      const row = slot.querySelector(".answers");
-      QUALS.filter((q) => S.quals.includes(q.id)).forEach((q) => {
+      const make = (host2, label, key, value) => {
         const b = document.createElement("button");
-        b.type = "button"; b.className = "ans"; b.textContent = q.name; b.dataset.q = q.id;
+        b.type = "button"; b.className = "ans"; b.textContent = label; b.dataset[key] = value;
         b.addEventListener("click", () => {
           if (cChecked) return;
-          picks[i] = q.id;
-          row.querySelectorAll(".ans").forEach((x) => x.classList.toggle("picked", x === b));
-          $("chd-check").disabled = picks.some((x) => x === null);
+          picks[i][key] = value;
+          host2.querySelectorAll(".ans").forEach((x) => x.classList.toggle("picked", x === b));
+          $("chd-check").disabled = !complete();
         });
-        row.appendChild(b);
-      });
+        host2.appendChild(b);
+      };
+      ROMAN.forEach((r, d) => make(slot.querySelector(".nums"), r, "deg", d));
+      QUALS.filter((q) => S.quals.includes(q.id)).forEach((q) => make(slot.querySelector("#ans" + i), q.name, "q", q.id));
     }
   }
   function voicing(ch, rootMidi) {
     const q = QUALS.find((x) => x.id === ch.q);
     return [rootMidi - 12].concat(q.iv.map((i) => rootMidi + i));   // low root doubled for body
   }
-  function playChords(withScale) {
+  // a triad built from the scale's own notes on scale degree d (0 = I, 3 = IV, 4 = V), so a minor key gets minor iv / v
+  function scaleTriad(d) {
+    const notes = [0, 2, 4].map((k) => { const idx = d + k; return C.tonicMidi + C.scale.iv[idx % 7] + 12 * Math.floor(idx / 7); });
+    return [notes[0] - 12].concat(notes);
+  }
+  const BEAT = 0.8;   // seconds
+  function playChords(withIntro) {
     if (!C) return;
     cancelPlay();
     const c = audio();
     let t = c.currentTime + 0.08;
-    if (withScale) {
+    if (withIntro) {
       const up = C.scale.iv.map((i) => C.tonicMidi + i).concat([C.tonicMidi + 12]), seq = up.concat(up.slice(0, -1).reverse());
-      seq.forEach((m, k) => tone(m, t + k * 0.32, 0.4, 0.22));
-      t += seq.length * 0.32 + 0.55;
+      seq.forEach((m, k) => tone(m, t + k * 0.17, 0.24, 0.22));     // quick scale, up and back down
+      t += seq.length * 0.17 + 0.35;
+      [3, 4, 0].forEach((d, k) => scaleTriad(d).forEach((m, j) => tone(m, t + k * BEAT, BEAT * 0.95, j === 0 ? 0.14 : 0.1)));   // IV - V - I
+      t += 3 * BEAT + BEAT;                                          // then one beat of silence before the test chords
     }
     C.chords.forEach((ch, k) => {
-      voicing(ch, C.rootMidi[k]).forEach((m, j) => tone(m, t + k * 1.5, 1.4, j === 0 ? 0.14 : 0.1));
+      voicing(ch, C.rootMidi[k]).forEach((m, j) => tone(m, t + k * 1.4, 1.3, j === 0 ? 0.14 : 0.1));
     });
   }
   function checkChords() {
-    if (!C || cChecked || picks.some((x) => x === null)) return;
+    if (!C || cChecked || !complete()) return;
     cChecked = true;
     let right = 0;
     C.chords.forEach((ch, i) => {
-      const ok = picks[i] === ch.q; if (ok) right++;
-      const row = $("ans" + i);
-      row.querySelectorAll(".ans").forEach((b) => {
+      const degOk = picks[i].deg === ch.deg, qOk = picks[i].q === ch.q, ok = degOk && qOk; if (ok) right++;
+      const mark = (hostId, key, truth, chosen) => $(hostId).querySelectorAll(".ans").forEach((b) => {
         b.disabled = true; b.classList.remove("picked");
-        if (b.dataset.q === ch.q) b.classList.add("right");
-        else if (b.dataset.q === picks[i]) b.classList.add("wrong");
+        const v = b.dataset[key];
+        if (v === String(truth)) b.classList.add("right");
+        else if (v === String(chosen)) b.classList.add("wrong");
       });
+      mark("nums" + i, "deg", ch.deg, picks[i].deg);
+      mark("ans" + i, "q", ch.q, picks[i].q);
       $("res" + i).textContent = (ok ? "✓ " : "✗ ") + chordLabel(ch);
       $("res" + i).style.color = ok ? "var(--good)" : "var(--bad)";
     });
-    S.score.chd.n++; S.score.chd.chords += 3; S.score.chd.chordsOk += right;
-    if (right === 3) S.score.chd.ok++;
+    S.score.chd.n++; S.score.chd.chords += N_CHORDS; S.score.chd.chordsOk += right;
+    if (right === N_CHORDS) S.score.chd.ok++;
     save(); showScore();
-    $("chd-status").className = "status " + (right === 3 ? "good" : "bad");
-    $("chd-status").textContent = (right === 3 ? "All three correct! " : `${right} of 3 correct. `) + `Key: ${rootName(C.tonic)} ${C.scale.name}. Chords: ${C.chords.map(chordLabel).join(" → ")}.`;
+    $("chd-status").className = "status " + (right === N_CHORDS ? "good" : "bad");
+    $("chd-status").textContent = (right === N_CHORDS ? "All four correct! " : `${right} of ${N_CHORDS} fully correct (numeral and quality). `) + `Key: ${rootName(C.tonic)} ${C.scale.name}. Chords: ${C.chords.map(chordLabel).join(" → ")}.`;
     renderStaff($("chd-staff"), C.chords.map((ch, k) => voicing(ch, C.rootMidi[k]).slice(1)), true);
     $("chd-check").disabled = true; $("chd-next").disabled = false;
   }
