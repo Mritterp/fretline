@@ -64,7 +64,13 @@ header.masthead {
   border-bottom: 1px solid var(--wheat);
 }
 
-.title-group { display: flex; align-items: flex-end; gap: 14px; }
+.title-group { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 10px 22px; }
+.site-tabs { display: flex; gap: 8px; margin-bottom: 5px; }
+.site-tab {
+  font-size: 10px; letter-spacing: 0.18em; text-transform: uppercase; text-decoration: none;
+  padding: 7px 12px; border: 1px solid var(--wheat); color: var(--sage);
+}
+.site-tab:hover { border-color: var(--sage); color: var(--bark); }
 
 h1 {
   margin: 0;
@@ -459,6 +465,9 @@ button.mode-chip.active:hover { color: var(--parchment); }
   <header class="masthead">
     <div class="title-group">
       <h1>Fretline</h1>
+      <nav class="site-tabs" aria-label="Pages">
+        <a class="site-tab" href="shapes_lab.html">Chord Shapes Lab</a>
+      </nav>
     </div>
   </header>
 
@@ -1709,7 +1718,88 @@ button.mode-chip.active:hover { color: var(--parchment); }
     }).join("");
   }
 
+  // ---------- approved chord patterns ----------
+  // The standard voicings Fretline draws. Each chord quality gets a set of movable
+  // patterns that chain up and down the neck — every pattern picks up where the
+  // previous one leaves off, then the whole cycle repeats an octave higher — and a
+  // chord is always shown as one of its quality's patterns, planted wherever the
+  // pattern's root notes land on the chord's root. When more than one pattern fits
+  // the visible frets, the LOWEST one wins, even if that means it starts on fret 1
+  // or 2 rather than using open strings. A quality with no approved set yet is not
+  // listed here and falls back to the search in findChordVoicing().
+  //
+  // Every note in a pattern is part of it and is drawn — nothing is optional here.
+  // The pattern lab (shapes_lab.html) also shows candidate extra notes in parentheses;
+  // one only reaches this table when it is approved, i.e. written without parentheses.
+  //
+  // Grid format: one string per fret row (first row = the pattern's lowest fret),
+  // one token per string from low E to high e. A token is a chord-tone degree
+  // ("1" "3" "5" "♭3" "♭7" …) or "-" for no note.
+  const DEGREE_IV = { "1": 0, "2": 2, "♭3": 3, "3": 4, "4": 5, "♭5": 6, "5": 7, "°7": 9, "♭7": 10, "7": 11 };
+  const APPROVED_PATTERNS = {
+    "": [ // major triad
+      ["1 - - - 5 1", "- - - 3 - -", "- 5 1 - - -", "- - - - - -"],   // Pos 1
+      ["- 5 1 - - -", "- - - - - -", "- - - 5 - 3", "- - - - 1 -"],   // Pos 2
+      ["- - - 5 - 3", "- - - - 1 -", "- - 3 - - -", "- 1 - - - -"],   // Pos 3
+      ["- 1 - - - 5", "- - - - - -", "- - 5 1 3 -", "- - - - - -"],   // Pos 4
+      ["- - 5 1 3 -", "- - - - - -", "- - - - - -", "- - - - - 1"],   // Pos 5
+    ],
+    "-": [ // minor triad
+      ["1 - - ♭3 5 1", "- - - - - -", "- 5 1 - - -", "- - - - - -"],   // Pos 1
+      ["- - 1 - - -", "- - - - - ♭3", "- - - 5 - -", "- - - - 1 -"],   // Pos 2 (4 strings)
+      ["- - - 5 - -", "- - ♭3 - 1 -", "- - - - - -", "- 1 - - - -"],   // Pos 3 (4 strings)
+      ["- 1 - - - 5", "- - - - ♭3 -", "- - 5 1 - -", "- - - - - -"],   // Pos 4
+      ["- - 5 - - -", "- - - - - -", "- - - - - -", "- - - ♭3 5 1"],  // Pos 5 (D-string 5th + top-3-string barre)
+    ],
+    "°": [ // diminished triad (optional notes from the chart are not drawn)
+      ["1 - - ♭3 - -", "- ♭5 - - - -", "- - 1 - - -", "- - - - - -"],   // Pos 1 (high-e 1 removed)
+      ["- - 1 - - -", "- - - ♭5 - ♭3", "- - - - - -", "- - - - 1 -"],   // Pos 2
+      ["- - ♭3 - 1 -", "♭5 - - - - -", "- 1 - - - -"],   // Pos 3 (G-string 1 removed, B-string 1 added)
+      ["- - ♭5 - ♭3 -", "- - - 1 - -", "- ♭3 - - - -", "- - - - - -"],   // Pos 4
+      ["- ♭3 - - - -", "- - - - ♭5 -", "- - - ♭3 - 1", "- - - - - -"],   // Pos 5
+    ],
+  };
+  const parsedPatterns = {};
+  function patternsFor(qualityKey) {
+    if (!APPROVED_PATTERNS[qualityKey]) return null;
+    if (!parsedPatterns[qualityKey]) {
+      parsedPatterns[qualityKey] = APPROVED_PATTERNS[qualityKey].map((rows) => {
+        const notes = [];
+        rows.forEach((line, row) => line.trim().split(/\s+/).forEach((tok, s) => {
+          if (tok !== "-") notes.push({ s, row, iv: DEGREE_IV[tok] });
+        }));
+        return { notes };
+      });
+    }
+    return parsedPatterns[qualityKey];
+  }
+
+  // The lowest approved pattern whose notes all fall inside fretLo..fretHi, as a
+  // per-string {fret, role} array (null = muted) — same shape searchVoicing returns.
+  function patternVoicing(rootPc, qualityKey, fretLo, fretHi) {
+    const patterns = patternsFor(qualityKey);
+    if (!patterns) return null;
+    let best = null;
+    patterns.forEach((p) => {
+      const rn = p.notes.find((n) => n.iv === 0);
+      const first = ((((rootPc - OPEN_STRING_MIDI[rn.s] - rn.row) % 12) + 12) % 12);
+      for (let f = first; f <= fretHi; f += 12) {
+        if (!p.notes.every((n) => f + n.row >= fretLo && f + n.row <= fretHi)) continue;
+        if (!best || f < best.f) best = { f, p };
+        break; // the next octave up of this pattern is never lower
+      }
+    });
+    if (!best) return null;
+    const voicing = new Array(6).fill(null);
+    best.p.notes.forEach((n) => {
+      voicing[n.s] = { fret: best.f + n.row, role: n.iv === 0 ? "root" : QUALITIES[qualityKey].tones.find((t) => t.i === n.iv).role };
+    });
+    return voicing;
+  }
+
   // ---------- chord-shape fretboard highlight (real, fingerable voicings) ----------
+  // Qualities with an approved pattern set (APPROVED_PATTERNS above) are drawn from
+  // it; everything below is the search used for the qualities that don't have one yet.
   // Finds an actual guitar chord shape for the given root+quality, confined
   // to the frets already visible in the current diagram (fretLo..fretHi):
   // a per-string {fret, role} assignment (or null for a muted/unused
@@ -1749,7 +1839,8 @@ button.mode-chip.active:hover { color: var(--parchment); }
   // all — callers should just leave the diagram unhighlighted then, not
   // treat it as an error.
   function findChordVoicing(rootPc, qualityKey, fretLo, fretHi) {
-    return searchVoicing(rootPc, qualityKey, fretLo, fretHi, true, false)
+    return patternVoicing(rootPc, qualityKey, fretLo, fretHi)
+      || searchVoicing(rootPc, qualityKey, fretLo, fretHi, true, false)
       || searchVoicing(rootPc, qualityKey, fretLo, fretHi, false, false)
       || searchVoicing(rootPc, qualityKey, fretLo, fretHi, true, true)
       || searchVoicing(rootPc, qualityKey, fretLo, fretHi, false, true);

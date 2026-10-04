@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Chord Shapes Lab</title>
+<style>
+:root {
+  --parchment: #f5f0e8; --linen: #e8e0d0; --wheat: #c4b89a; --sage: #8a9e7e;
+  --moss: #5c6b52; --clay: #b07a5a; --bark: #3d3a30;
+  --font-display: Georgia, 'Times New Roman', serif;
+  --font-body: Helvetica, Arial, sans-serif;
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--parchment); color: var(--bark); font-family: var(--font-body); }
+header { position: sticky; top: 0; z-index: 5; background: var(--parchment); border-bottom: 1px solid var(--wheat); padding: 14px 24px 12px; }
+.brand { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 8px 22px; margin-bottom: 10px; }
+h1 { margin: 0; font-family: var(--font-display); font-weight: 400; font-size: 30px; }
+h1 a { color: inherit; text-decoration: none; }
+h1 a:hover { color: var(--moss); }
+.site-tabs { display: flex; gap: 8px; margin-bottom: 4px; }
+.site-tab { font-size: 10px; letter-spacing: 0.18em; text-transform: uppercase; text-decoration: none; padding: 7px 12px; border: 1px solid var(--wheat); color: var(--sage); }
+.site-tab:hover { border-color: var(--sage); color: var(--bark); }
+.site-tab.current { border-color: var(--bark); background: var(--bark); color: var(--parchment); }
+.controls { display: flex; flex-wrap: wrap; gap: 14px 22px; align-items: center; }
+.controls label { font-size: 10px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--moss); display: flex; align-items: center; gap: 8px; }
+.controls select { font: inherit; font-size: 13px; letter-spacing: 0; text-transform: none; padding: 5px 8px; background: var(--parchment); border: 1px solid var(--wheat); color: var(--bark); }
+#summary { margin-top: 8px; font-size: 12px; color: var(--sage); }
+.legend { display: inline-flex; gap: 12px; margin-left: 6px; }
+.legend i { display: inline-block; width: 9px; height: 9px; border-radius: 50%; margin-right: 4px; vertical-align: -1px; }
+main { padding: 8px 24px 60px; }
+.group { margin-top: 26px; }
+.group h2 { margin: 0 0 10px; font-family: var(--font-display); font-weight: 400; font-size: 19px; border-bottom: 1px solid var(--wheat); padding-bottom: 6px; }
+.group h2 span { font-family: var(--font-body); font-size: 10px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--sage); margin-left: 10px; }
+.row { margin: 0 0 10px; padding: 8px 10px 4px; background: #f9f5ee; border: 1px solid #e3dac6; overflow-x: auto; }
+.rowhead { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 18px; margin-bottom: 2px; }
+.title { font-size: 13px; font-weight: 700; }
+.title .order { font-weight: 400; color: var(--moss); letter-spacing: 0.06em; margin-left: 8px; }
+svg { display: block; }
+.note { margin-top: 36px; font-size: 12px; line-height: 1.6; color: var(--moss); max-width: 760px; }
+.empty { font-size: 12px; color: var(--sage); padding: 6px 2px 14px; }
+</style>
+</head>
+<body>
+<header>
+  <div class="brand">
+    <h1><a href="fretline.html">Fretline</a></h1>
+    <nav class="site-tabs" aria-label="Pages">
+      <a class="site-tab current" href="shapes_lab.html" aria-current="page">Chord Shapes Lab</a>
+    </nav>
+  </div>
+  <div class="controls">
+    <label>Root <select id="root"></select></label>
+    <label>Chord <select id="quality"></select></label>
+    <label>Frets shown <select id="frets"><option>12</option><option selected>15</option><option>17</option></select></label>
+    <span class="legend" id="legend"></span>
+  </div>
+  <div id="summary"></div>
+</header>
+<main id="out"></main>
+
+<script>
+const OPEN = [40, 45, 50, 55, 59, 64];                 // low E .. high e
+const STRING_NAME = ["E", "A", "D", "G", "B", "e"];
+const MAX_STRETCH = 4;   // widest fingerable span, in frets (open strings don't count)
+const ROOTS = ["C", "D♭", "D", "E♭", "E", "F", "G♭", "G", "A♭", "A", "B♭", "B"]; // index = pitch class
+const ROLE_COLOR = { root: "#a6433d", second: "#b8763f", third: "#b5982c", fourth: "#6e8f4c", fifth: "#3e6d8e", seventh: "#7a5c9e" };
+const ROLE_NAME = { root: "Root", second: "2nd", third: "3rd", fourth: "4th", fifth: "5th", seventh: "7th" };
+const IV_LABEL = { 0: "R", 2: "2", 3: "♭3", 4: "3", 5: "4", 6: "♭5", 7: "5", 9: "°7", 10: "♭7", 11: "7" };
+
+// Adding a chord quality = adding one line here; nothing else is chord-specific.
+const QUALITIES = [
+  { name: "Major triad",       sym: "",    tones: [[0, "root"], [4, "third"], [7, "fifth"]] },
+  { name: "Minor triad",       sym: "-",   tones: [[0, "root"], [3, "third"], [7, "fifth"]] },
+  { name: "Diminished triad",  sym: "°",   tones: [[0, "root"], [3, "third"], [6, "fifth"]] },
+  { name: "Suspended 2nd",     sym: "sus2", tones: [[0, "root"], [2, "second"], [7, "fifth"]] },
+  { name: "Suspended 4th",     sym: "sus4", tones: [[0, "root"], [5, "fourth"], [7, "fifth"]] },
+  { name: "Major 7",           sym: "Δ7",  tones: [[0, "root"], [4, "third"], [7, "fifth"], [11, "seventh"]] },
+  { name: "Dominant 7",        sym: "7",   tones: [[0, "root"], [4, "third"], [7, "fifth"], [10, "seventh"]] },
+  { name: "Minor 7",           sym: "-7",  tones: [[0, "root"], [3, "third"], [7, "fifth"], [10, "seventh"]] },
+  { name: "Half-diminished 7", sym: "ø7",  tones: [[0, "root"], [3, "third"], [6, "fifth"], [10, "seventh"]] },
+  { name: "Diminished 7",      sym: "°7",  tones: [[0, "root"], [3, "third"], [6, "fifth"], [9, "seventh"]] },
+  { name: "Minor-major 7",     sym: "-Δ7", tones: [[0, "root"], [3, "third"], [7, "fifth"], [11, "seventh"]] },
+].map((q) => ({ ...q, tones: q.tones.map(([i, role]) => ({ i, role })) }));
+
+const $ = (id) => document.getElementById(id);
+ROOTS.forEach((n, pc) => { const o = document.createElement("option"); o.value = pc; o.textContent = n; $("root").appendChild(o); });
+QUALITIES.forEach((q, i) => { const o = document.createElement("option"); o.value = i; o.textContent = q.name; $("quality").appendChild(o); });
+$("root").value = 5;                                                       // F
+$("quality").value = QUALITIES.findIndex((q) => q.name === "Diminished triad");   // the set currently being approved
+$("legend").innerHTML =Object.keys(ROLE_COLOR).map((r) => `<span><i style="background:${ROLE_COLOR[r]}"></i>${ROLE_NAME[r]}</span>`).join("");
+
+// ===================== Movable patterns on the neck =====================
+// Five key-independent patterns, transcribed from Example.pdf: columns = strings (low E → high e),
+// rows = frets going up the neck from the pattern's first fret, cells = chord-tone degree,
+// "(x)" = optional note. They are the source of truth; every other quality is derived from them.
+// For the chosen root each pattern is planted wherever its root notes land on the root's pitch class.
+const POS_GRIDS = [
+  { form: "E", rows: ["1 - - - 5 1", "- - - 3 - -", "- 5 1 - - -", "- - - - - -"] },
+  { form: "D", rows: ["- 5 1 - - -", "- - - - - -", "(3) - - 5 - 3", "- - - - 1 -"] },
+  { form: "C", rows: ["(3) - - 5 - 3", "- - - - 1 -", "- - 3 - - -", "- 1 - - - -"] },
+  { form: "A", rows: ["(5) 1 - - - 5", "- - - - - -", "- - 5 1 3 -", "- - - - - -"] },
+  { form: "G", rows: ["- - 5 1 3 -", "- - - - - -", "- (3) - - - -", "(1) - - - (5) 1"] },
+];
+const SHAPE_COLOR = { C: "#b07a5a", A: "#5c6b52", G: "#3e6d8e", E: "#a6433d", D: "#7a5c9e" };
+const DEG_ROLE = { "1": "root", "3": "third", "5": "fifth" };
+const MAJOR_IV = { root: 0, third: 4, fifth: 7 };
+const POS_TPL = POS_GRIDS.map((p, idx) => {
+  const notes = [];
+  p.rows.forEach((line, row) => line.trim().split(/\s+/).forEach((tok, s) => {
+    if (tok === "-") return;
+    notes.push({ s, row, role: DEG_ROLE[tok.replace(/[()]/g, "")], optional: tok.startsWith("(") });
+  }));
+  return { form: p.form, idx, notes };
+});
+
+// Hand-edited sets. A quality listed here uses exactly these grids instead of the draft derived from the
+// major triad. Same format as above, but any degree is allowed: "1" "2" "♭3" "3" "4" "♭5" "5" "°7" "♭7" "7".
+const DEGREE_IV = { "1": 0, "2": 2, "♭3": 3, "3": 4, "4": 5, "♭5": 6, "5": 7, "°7": 9, "♭7": 10, "7": 11 };
+const EXPLICIT_GRIDS = {
+  // Worked out on F minor, where Pos 1 is the easy 6-string starting shape (1-3-3-1-1-1).
+  "Minor triad": [
+    ["1 - - ♭3 5 1", "- - - - - -", "- 5 1 - - -", "- - - - - -"],       // Pos 1
+    ["- - 1 - - -", "- - - - - ♭3", "- - - 5 - -", "- - - - 1 -"],       // Pos 2 — 4 strings (A-string 5th removed)
+    ["- - - 5 - -", "- - ♭3 - 1 -", "- - - - - -", "- 1 - - - -"],       // Pos 3 — 4 strings (high-e ♭3 removed)
+    ["(5) 1 - - - 5", "- - - - ♭3 -", "- - 5 1 - -", "- - - - - -"],     // Pos 4
+    ["- - 5 - - -", "- - - - - -", "- - - - - -", "- - - ♭3 5 1"],      // Pos 5 — 5th on D, barre of ♭3-5-1 on the top 3 strings
+  ],
+  // From the user's Diminished.pdf ("3" / "5" there = ♭3 / ♭5; [x] there = optional here).
+  "Diminished triad": [
+    ["1 - - ♭3 - -", "- ♭5 - - - -", "- - 1 - - -", "- - - (♭5) - -"],              // Pos 1 — high-e 1 removed
+    ["- - 1 - - -", "- - - ♭5 - ♭3", "- - - - - -", "- - (♭3) - 1 -"],             // Pos 2
+    ["- - ♭3 - 1 -", "♭5 - - - - -", "- 1 - - - -", "- - (♭5) - (♭3) -"],  // Pos 3 — G-string 1 removed, B-string 1 solid
+    ["- - ♭5 - ♭3 -", "- - - 1 - -", "- ♭3 - - - -", "- - - - - -"],               // Pos 4
+    ["- ♭3 - - - -", "- - - - ♭5 -", "(1) - - ♭3 - 1", "- (♭5) - - - -"],          // Pos 5
+  ],
+};
+function explicitVariant(rows, q) {
+  const notes = [];
+  rows.forEach((line, row) => line.trim().split(/\s+/).forEach((tok, s) => {
+    if (tok === "-") return;
+    const iv = DEGREE_IV[tok.replace(/[()]/g, "")];
+    const tone = iv === 0 ? { role: "root" } : q.tones.find((t) => t.i === iv);
+    if (!tone) throw new Error(`${q.name}: degree ${tok} isn't in this chord`);
+    notes.push({ s, row, iv, role: tone.role, optional: tok.startsWith("(") });
+  }));
+  const lo = Math.min(...notes.map((n) => n.row)), hi = Math.max(...notes.map((n) => n.row));
+  return { label: "", span: hi - lo, notes: notes.map((n) => ({ ...n, row: n.row - lo })) };
+}
+
+// The scale each chord sits in — the "modal pattern" shown behind it.
+const SCALE_FOR = {
+  "Major triad": ["Ionian", [0, 2, 4, 5, 7, 9, 11]], "Minor triad": ["Aeolian", [0, 2, 3, 5, 7, 8, 10]],
+  "Diminished triad": ["Locrian", [0, 1, 3, 5, 6, 8, 10]], "Suspended 2nd": ["Ionian", [0, 2, 4, 5, 7, 9, 11]],
+  "Suspended 4th": ["Mixolydian", [0, 2, 4, 5, 7, 9, 10]], "Major 7": ["Ionian", [0, 2, 4, 5, 7, 9, 11]],
+  "Dominant 7": ["Mixolydian", [0, 2, 4, 5, 7, 9, 10]], "Minor 7": ["Dorian", [0, 2, 3, 5, 7, 9, 10]],
+  "Half-diminished 7": ["Locrian", [0, 1, 3, 5, 6, 8, 10]], "Diminished 7": ["Whole-half diminished", [0, 2, 3, 5, 6, 8, 9, 11]],
+  "Minor-major 7": ["Melodic minor", [0, 2, 3, 5, 7, 9, 11]],
+};
+
+const slotIv = (q, slot) => {
+  if (slot === "root") return 0;
+  if (slot === "fifth") return q.tones.find((t) => t.role === "fifth").i;
+  return q.tones.find((t) => !["root", "fifth", "seventh"].includes(t.role)).i;   // 3rd / 2nd / 4th
+};
+const degLabel = (iv) => (iv === 0 ? "1" : IV_LABEL[iv]);
+
+// Re-spell a major pattern as another quality. Triad/sus: the 3rd and 5th slide by the difference
+// from major (a lowered note moves one fret toward the nut on its string). 7th chords: one required
+// root/5th — never the lowest root — is swapped for the 7th on the same string, one variant per
+// candidate. Anything wider than the stretch limit isn't fingerable and is dropped.
+function patternVariants(tpl, q, stretch) {
+  if (EXPLICIT_GRIDS[q.name]) return [explicitVariant(EXPLICIT_GRIDS[q.name][tpl.idx], q)].filter((v) => v.span <= stretch);
+  const seventh = q.tones.find((t) => t.role === "seventh");
+  const base = tpl.notes.map((n) => {
+    const iv = slotIv(q, n.role);
+    return { ...n, iv, row: n.row + iv - MAJOR_IV[n.role] };
+  });
+  const variants = [];
+  if (!seventh) variants.push({ label: "", notes: base });
+  else {
+    const bass = base.filter((n) => !n.optional && n.role === "root").sort((a, b) => a.s - b.s)[0];
+    base.forEach((n) => {
+      if (n.optional || n === bass || (n.role !== "root" && n.role !== "fifth")) return;
+      const delta = ((seventh.i - n.iv + 18) % 12) - 6;               // nearest fret move to the 7th, −6..+5
+      variants.push({
+        label: `7th on the ${STRING_NAME[n.s]} string, replacing ${n.role === "root" ? "a doubled root" : "the 5th"}`,
+        notes: base.map((m) => (m === n ? { ...m, role: "seventh", iv: seventh.i, row: m.row + delta } : m)),
+      });
+    });
+  }
+  return variants.map((v) => {
+    const lo = Math.min(...v.notes.map((n) => n.row)), hi = Math.max(...v.notes.map((n) => n.row));
+    return { label: v.label, span: hi - lo, notes: v.notes.map((n) => ({ ...n, row: n.row - lo })) };
+  }).filter((v) => v.span <= stretch);
+}
+
+// Every place this pattern fits on the neck for the root: its root notes must land on the root's
+// pitch class, every required note must be on the board, and optional notes that fall off are dropped.
+function placements(v, rootPc, maxFret) {
+  const rn = v.notes.find((n) => n.role === "root" && !n.optional);
+  const f0 = (((rootPc - OPEN[rn.s] - rn.row) % 12) + 12) % 12;
+  const out = [];
+  for (let f = f0; f <= maxFret; f += 12) {
+    const notes = [];
+    let ok = true;
+    v.notes.forEach((n) => {
+      const fret = f + n.row;
+      if (fret < 0 || fret > maxFret) { if (!n.optional) ok = false; return; }
+      notes.push({ ...n, fret });
+    });
+    if (ok) out.push({ f, notes });
+  }
+  return out;
+}
+
+// ---- drawing ----
+// k scales the dots, numbers and padding together; y0 is the headroom above the top string.
+function boardGeom(maxFret, o = {}) {
+  const cw = o.cw || 52, x0 = 46, y0 = o.y0 || 22, rh = o.rh || 18, k = o.k || 1;
+  return { cw, x0, y0, rh, k, W: x0 + maxFret * cw + 18, H: y0 + 5 * rh + 16 + 12 * k,
+    yOf: (s) => y0 + (5 - s) * rh, xOf: (f) => (f === 0 ? x0 - 20 : x0 + (f - 0.5) * cw) };
+}
+function boardFrame(g, maxFret) {
+  const p = [];
+  for (let s = 0; s < 6; s++) {
+    p.push(`<line x1="${g.x0}" x2="${g.x0 + maxFret * g.cw}" y1="${g.yOf(s)}" y2="${g.yOf(s)}" stroke="#3D3A30" stroke-width="${0.7 + (5 - s) * 0.12}" opacity="0.75"/>`);
+    p.push(`<text x="10" y="${g.yOf(s) + 3.5}" font-size="9" fill="#8A9E7E" font-family="Helvetica,Arial,sans-serif">${STRING_NAME[s]}</text>`);
+  }
+  for (let f = 0; f <= maxFret; f++) {
+    const x = g.x0 + f * g.cw;
+    p.push(`<line x1="${x}" x2="${x}" y1="${g.y0}" y2="${g.y0 + 5 * g.rh}" stroke="#C4B89A" stroke-width="${f === 0 ? 3 : 0.9}"/>`);
+    if (f >= 1) {
+      const mark = [3, 5, 7, 9, 12, 15, 17].includes(f);
+      p.push(`<text x="${x - g.cw / 2}" y="${g.H - 6}" text-anchor="middle" font-size="${(mark ? 10 : 9) * g.k}" font-weight="${mark ? 700 : 400}" fill="${mark ? "#5C6B52" : "#B5AE98"}" font-family="Helvetica,Arial,sans-serif">${f}</text>`);
+    }
+  }
+  return p;
+}
+function noteDot(g, n) {
+  const k = g.k, cx = g.xOf(n.fret), cy = g.yOf(n.s), c = ROLE_COLOR[n.role], l = degLabel(n.iv);
+  if (n.optional) {
+    return `<circle cx="${cx}" cy="${cy}" r="${8.2 * k}" fill="#F9F5EE" stroke="${c}" stroke-width="1.5" stroke-dasharray="2.5 2"/><text x="${cx}" y="${cy + 3 * k}" text-anchor="middle" font-size="${8 * k}" font-weight="700" fill="${c}" font-family="Helvetica,Arial,sans-serif">(${l})</text>`;
+  }
+  return `<circle cx="${cx}" cy="${cy}" r="${8.2 * k}" fill="${c}"/><text x="${cx}" y="${cy + 3 * k}" text-anchor="middle" font-size="${8.5 * k}" font-weight="700" fill="#F5F0E8" font-family="Helvetica,Arial,sans-serif">${l}</text>`;
+}
+function hullRect(g, place, color, fill) {
+  const k = g.k, xs = place.notes.map((n) => g.xOf(n.fret));
+  const xa = Math.min(...xs) - 14 * k, xb = Math.max(...xs) + 14 * k;
+  return { xa, xb, svg: `<rect x="${xa}" y="${g.yOf(5) - 13 * k}" width="${xb - xa}" height="${g.yOf(0) - g.yOf(5) + 26 * k}" rx="10" fill="${fill || "none"}" stroke="${color}" stroke-width="1.2" ${fill ? "" : 'stroke-dasharray="3 3"'} opacity="0.85"/>` };
+}
+
+function patternRowSVG(row, scale, rootPc, maxFret) {
+  const g = boardGeom(maxFret), p = boardFrame(g, maxFret);
+  const scalePcs = scale[1].map((i) => (rootPc + i) % 12);
+  const degreeOf = (pc) => scalePcs.indexOf(pc) + 1;
+  // the scale pattern the position sits in: ringed notes with their scale degree, plus a faint trace everywhere else
+  row.places.forEach((pl) => {
+    const nz = pl.notes.map((n) => n.fret).filter((f) => f > 0);
+    const lo = Math.max(0, Math.min(...nz) - 1);
+    const hi = Math.min(maxFret, Math.max(lo + 4, Math.max(...nz) + 1));
+    for (let s = 0; s < 6; s++) for (let f = lo; f <= hi; f++) {
+      const d = degreeOf((OPEN[s] + f) % 12);
+      if (!d) continue;
+      p.push(`<circle cx="${g.xOf(f)}" cy="${g.yOf(s)}" r="7" fill="#EFE9D9" stroke="#8A9E7E" stroke-width="0.9"/><text x="${g.xOf(f)}" y="${g.yOf(s) + 2.8}" text-anchor="middle" font-size="7.5" fill="#6F8466" font-family="Helvetica,Arial,sans-serif">${d}</text>`);
+    }
+  });
+  for (let s = 0; s < 6; s++) for (let f = 0; f <= maxFret; f++) {
+    if (!degreeOf((OPEN[s] + f) % 12)) continue;
+    p.push(`<circle cx="${g.xOf(f)}" cy="${g.yOf(s)}" r="2.2" fill="#8A9E7E" opacity="0.28"/>`);
+  }
+  row.places.forEach((pl) => {
+    p.push(hullRect(g, pl, SHAPE_COLOR[row.form]).svg);
+    pl.notes.forEach((n) => p.push(noteDot(g, n)));
+  });
+  return `<svg width="${g.W}" height="${g.H}" viewBox="0 0 ${g.W} ${g.H}">${p.join("")}</svg>`;
+}
+
+function overviewSVG(rows, maxFret) {
+  // same size as the rows, with extra headroom so the position numbers aren't clipped
+  const g = boardGeom(maxFret, { y0: 38 }), p = boardFrame(g, maxFret), labels = [], seen = new Map();
+  rows.forEach((row) => row.places.forEach((pl) => {
+    const h = hullRect(g, pl, SHAPE_COLOR[row.form], SHAPE_COLOR[row.form] + "1c");
+    p.push(h.svg);
+    labels.push(`<text x="${(h.xa + h.xb) / 2}" y="${g.yOf(5) - 13 - 7}" text-anchor="middle" font-size="14" font-weight="700" fill="${SHAPE_COLOR[row.form]}" font-family="Georgia,serif">${row.pos}</text>`);
+    pl.notes.forEach((n) => { const k = n.s + ":" + n.fret; if (!seen.has(k) || (seen.get(k).optional && !n.optional)) seen.set(k, n); });
+  }));
+  seen.forEach((n) => p.push(noteDot(g, n)));
+  return `<svg width="${g.W}" height="${g.H}" viewBox="0 0 ${g.W} ${g.H}">${p.join("")}${labels.join("")}</svg>`;
+}
+
+function renderPatterns() {
+  const rootPc = +$("root").value, quality = QUALITIES[+$("quality").value];
+  const opts = { stretch: MAX_STRETCH, maxFret: +$("frets").value };
+  const scale = SCALE_FOR[quality.name];
+  const rows = [];
+  POS_TPL.forEach((tpl, i) => patternVariants(tpl, quality, opts.stretch).forEach((v) => {
+    const places = placements(v, rootPc, opts.maxFret);
+    if (places.length) rows.push({ pos: i + 1, form: tpl.form, label: v.label, places });
+  }));
+
+  const html = [];
+  const firstPerPos = [], seenPos = new Set();
+  rows.forEach((r) => { if (!seenPos.has(r.pos)) { seenPos.add(r.pos); firstPerPos.push(r); } });
+  html.push(`<section class="group"><h2>Each pattern in its scale position<span>${ROOTS[rootPc]} ${scale[0]} · numbers are scale degrees</span></h2>`);
+  rows.forEach((r) => {
+    html.push(`<div class="row"><div class="rowhead"><div class="title">Pos ${r.pos}.${r.label ? `<span class="order">${r.label}</span>` : ""}</div></div>${patternRowSVG(r, scale, rootPc, opts.maxFret)}</div>`);
+  });
+  html.push("</section>");
+  if (!rows.length) html.push(`<div class="empty">No fingerable patterns with these settings.</div>`);
+  html.push(`<section class="group"><h2>Map up the neck<span>${ROOTS[rootPc]}${quality.sym} · positions in order Pos 1 → 5, each repeating an octave higher</span></h2><div class="row">${overviewSVG(firstPerPos, opts.maxFret)}</div></section>`);
+  html.push(`<p class="note">Each row is one movable pattern placed everywhere it fits on the neck for ${ROOTS[rootPc]}${quality.sym}. Solid circles are the chord (1, 3, 5…); dashed circles in parentheses are optional notes, left out where they would fall off the board. Fretline draws only the solid notes — an optional note reaches the app once it is approved (written without parentheses). Ringed circles are the scale the position sits in (numbers = scale degree). Pos 1–5 are the five patterns from your example. The major triad is transcribed from that example; other qualities are derived by moving the 3rd and 5th (and swapping in the 7th for 7th chords), so check them before trusting them. Variants wider than the stretch limit are left out.</p>`);
+  $("out").innerHTML = html.join("");
+  const nPlace = rows.reduce((n, r) => n + r.places.length, 0);
+  $("summary").textContent = `${ROOTS[rootPc]}${quality.sym} (${quality.name}) — ${rows.length} pattern row${rows.length === 1 ? "" : "s"}, ${nPlace} placements on frets 0–${opts.maxFret}`;
+}
+
+["root", "quality", "frets"].forEach((id) => $(id).addEventListener("change", renderPatterns));
+renderPatterns();
+</script>
+</body>
+</html>
