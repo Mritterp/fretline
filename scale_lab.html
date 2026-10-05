@@ -73,7 +73,7 @@ main { padding: 14px 24px 50px; max-width: 1500px; margin: 0 auto; }
     <span class="seg" role="group" aria-label="Show on the fretboard">
       <button type="button" id="show-int" aria-pressed="true">Intervals</button><button type="button" id="show-note" aria-pressed="false">Notes</button>
     </span>
-    <button type="button" class="tog" id="seg" aria-pressed="false">Segovia pattern</button>
+    <button type="button" class="tog" id="seg" aria-pressed="false">Highlight Segovia scale</button>
     <label>Frets <select id="frets"><option>12</option><option selected>15</option><option>17</option><option>22</option><option>24</option></select></label>
     <span class="player"><button type="button" class="btn" id="play">Play scale</button>
       <label>Direction <select id="dir"><option value="updown" selected>up &amp; down</option><option value="up">up</option><option value="down">down</option></select></label></span>
@@ -161,6 +161,7 @@ main { padding: 14px 24px 50px; max-width: 1500px; margin: 0 auto; }
     const rootPc = +$("root").value, rootName = ROOTS.find((r) => r[1] === rootPc)[0], sc = SCALES[+$("scale").value];
     const seg = segInfo(rootPc, sc), segOn = !!(seg && segPref);
     $("seg").disabled = !seg; $("seg").setAttribute("aria-pressed", String(segOn));
+    if (!playing) $("play").textContent = segOn ? "Play Segovia scale" : "Play scale";
     $("seg").title = seg ? "Segovia's fixed scale fingering for this key" : "Segovia's book has only major and minor scales: choose Major, Natural minor or Melodic minor";
     const maxFret = Math.max(+$("frets").value, segOn ? Math.max(...seg.up.map((n) => n.f), ...seg.ghost.map((n) => n.f)) : 0);
     const byPc = new Map();   // pitch class -> {interval, note, root}
@@ -227,7 +228,8 @@ main { padding: 14px 24px 50px; max-width: 1500px; margin: 0 auto; }
 
   // ---- play the scale: root up an octave and/or back down, lighting each pitch on the board as it sounds ----
   let timers = [], playing = false;
-  function setPlaying(on) { playing = on; $("play").textContent = on ? "Stop" : "Play scale"; }
+  function playLabel() { const sc = SCALES[+$("scale").value], seg = segInfo(+$("root").value, sc); return seg && segPref ? "Play Segovia scale" : "Play scale"; }
+  function setPlaying(on) { playing = on; $("play").textContent = on ? "Stop" : playLabel(); }
   function stopScale() {
     timers.forEach(clearTimeout); timers = [];
     oscs.forEach((o) => { try { o.stop(); } catch (e) {} }); oscs = [];
