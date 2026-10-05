@@ -170,6 +170,7 @@ details.settings summary { cursor: pointer; font-size: 11px; letter-spacing: 0.1
       <label>Volume <input type="range" id="volume" min="0" max="100" value="80"></label>
     </div>
     <div id="set-int">
+      <div class="setrow"><label>Root note register from <select id="reg-lo"></select></label><label>to <select id="reg-hi"></select></label><span class="hint">the lower note of each interval falls from the first C to the last B of these registers (default C1–C6); the upper note can reach C8</span></div>
       <div class="setgroup"><h3>Directions</h3><div class="chips" id="dir-chips"></div></div>
       <div class="setgroup"><h3>Intervals <button type="button" class="linkbtn" id="int-all">all</button><button type="button" class="linkbtn" id="int-none">none</button><button type="button" class="linkbtn" id="int-simple">within an octave</button></h3><div class="chips" id="int-chips"></div></div>
     </div>
@@ -231,7 +232,7 @@ details.settings summary { cursor: pointer; font-size: 11px; letter-spacing: 0.1
   const defaults = () => ({
     tone: "triangle", volume: 80, mode: "int",
     dirs: ["up", "down", "both"], ints: INTERVALS.map((i) => i.n),
-    nChords: 4, scales: ["major", "minor"], quals: ["maj", "min", "dim", "maj7", "dom7", "min7", "hdim7"],
+    regLo: 1, regHi: 6, nChords: 4, scales: ["major", "minor"], quals: ["maj", "min", "dim", "maj7", "dom7", "min7", "hdim7"],
     score: { int: { ok: 0, n: 0 }, chd: { ok: 0, n: 0, chordsOk: 0, chords: 0 } },
   });
   let S = defaults();
@@ -387,7 +388,7 @@ details.settings summary { cursor: pointer; font-size: 11px; letter-spacing: 0.1
   function updateIntSub() {
     const d = S.dirs.length === DIRS.length ? "any direction" : DIRS.filter((x) => S.dirs.includes(x.id)).map((x) => x.name.toLowerCase()).join(" / ");
     const maxN = Math.max(0, ...S.ints);
-    $("int-sub").textContent = `${d} · up to ${maxN <= 12 ? "an octave" : maxN === 24 ? "two octaves" : maxN + " semitones"}`;
+    $("int-sub").textContent = `${d} · up to ${maxN <= 12 ? "an octave" : maxN === 24 ? "two octaves" : maxN + " semitones"} · roots C${S.regLo}–C${S.regHi}`;
   }
   function drawIntervalVisuals() {
     if (!Q) return;
@@ -403,8 +404,12 @@ details.settings summary { cursor: pointer; font-size: 11px; letter-spacing: 0.1
   function newInterval(autoplay) {
     cancelPlay();
     if (!S.ints.length || !S.dirs.length) { $("int-status").className = "status bad"; $("int-status").textContent = "Turn on at least one interval and one direction in Settings."; Q = null; return; }
-    const n = pick(S.ints), dir = pick(S.dirs);
-    const lo = LOW + rnd(HIGH - n - LOW + 1), hi = lo + n;
+    // root (lower) note: from C{regLo} up to B{regHi}, and the upper note must still fit on the piano
+    const rootMin = Math.max(LOW, 12 * (S.regLo + 1)), rootMax = Math.min(HIGH, 12 * (S.regHi + 1) + 11);
+    const usable = S.ints.filter((i) => rootMin + i <= HIGH);
+    if (!usable.length) { $("int-status").className = "status bad"; $("int-status").textContent = "None of the selected intervals fit in that register: lower the register or pick smaller intervals."; Q = null; return; }
+    const n = pick(usable), dir = pick(S.dirs);
+    const lo = rootMin + rnd(Math.min(rootMax, HIGH - n) - rootMin + 1), hi = lo + n;
     Q = { n, dir, lo, hi, first: dir === "down" ? hi : lo, second: dir === "down" ? lo : hi };
     qAnswered = false;
     intBtns.forEach((b) => { b.className = "ans"; b.disabled = false; });
@@ -654,6 +659,16 @@ details.settings summary { cursor: pointer; font-size: 11px; letter-spacing: 0.1
   });
   resetPicks(); chordCopy();
   $("chd-check").addEventListener("click", checkChords);
+  for (const id of ["reg-lo", "reg-hi"]) for (let r = 1; r <= 6; r++) { const o = document.createElement("option"); o.value = r; o.textContent = "C" + r; $(id).appendChild(o); }
+  $("reg-lo").value = String(S.regLo); $("reg-hi").value = String(S.regHi);
+  const onRegister = (changed) => {
+    S.regLo = +$("reg-lo").value; S.regHi = +$("reg-hi").value;
+    if (S.regLo > S.regHi) { if (changed === "lo") S.regHi = S.regLo; else S.regLo = S.regHi; }   // keep the range valid
+    $("reg-lo").value = String(S.regLo); $("reg-hi").value = String(S.regHi);
+    save(); updateIntSub(); newInterval(false);
+  };
+  $("reg-lo").addEventListener("change", () => onRegister("lo"));
+  $("reg-hi").addEventListener("change", () => onRegister("hi"));
   $("int-all").addEventListener("click", () => { S.ints = INTERVALS.map((i) => i.n); save(); refreshIntervalChips(); onIntSettings(); });
   $("int-none").addEventListener("click", () => { S.ints = []; save(); refreshIntervalChips(); onIntSettings(); });
   $("int-simple").addEventListener("click", () => { S.ints = INTERVALS.filter((i) => i.n <= 12).map((i) => i.n); save(); refreshIntervalChips(); onIntSettings(); });
