@@ -159,34 +159,34 @@ details.diff th { color: var(--bark); font-weight: 600; }
   const DISC = { S: { c: [630, 518], r: 143 }, D: { c: [1615, 510], r: 143 }, T: { c: [1025, 932], r: 143 } };
   const MAIN = [
     // tonic
-    { id: "I", region: "T", ring: "out", off: 0, at: [1022, 752], tr: ["I", "maj"], jz: ["I△", "maj7"] },
-    { id: "vi", region: "T", ring: "out", off: 9, at: [1212, 935], tr: ["vi", "min"], jz: ["vi7", "m7"] },
+    { id: "I", region: "T", ring: "out", off: 0, at: [1021, 757], ja: [1022, 754], tr: ["I", "maj"], jz: ["I△", "maj7"] },
+    { id: "vi", region: "T", ring: "out", off: 9, at: [1204, 932], ja: [1212, 929], tr: ["vi", "min"], jz: ["vi7", "m7"] },
     { id: "iii", region: "T", ring: "out", off: 4, at: [1495, 835], circle: 52, tr: ["iii", "min"], jz: ["iii7", "m7"] },
-    { id: "io", region: "T", ring: "out", off: 0, at: [1022, 1105], tr: ["i°", "dim"], jz: ["i°7", "dim7"] },
-    { id: "i", region: "T", ring: "in", off: 0, at: [1022, 848], tr: ["i", "min"], jz: ["i", "min"] },
-    { id: "bIII", region: "T", ring: "in", off: 3, at: [925, 930], tr: ["♭III", "maj"], jz: ["♭III△", "maj7"] },
-    { id: "vio", region: "T", ring: "in", off: 9, at: [1120, 930], tr: ["vi°", "dim"], jz: ["vi7♭5", "m7b5"] },
+    { id: "io", region: "T", ring: "out", off: 0, at: [1022, 1105], ja: [1023, 1105], tr: ["i°", "dim"], jz: ["i°7", "dim7"] },
+    { id: "i", region: "T", ring: "in", off: 0, at: [1022, 848], ja: [1022, 846], tr: ["i", "min"], jz: ["i", "min"] },
+    { id: "bIII", region: "T", ring: "in", off: 3, at: [925, 930], ja: [933, 928], wd: [37, 53], tr: ["♭III", "maj"], jz: ["♭III△", "maj7"] },
+    { id: "vio", region: "T", ring: "in", off: 9, at: [1120, 930], ja: [1111, 929], wd: [40, 61], tr: ["vi°", "dim"], jz: ["vi7♭5", "m7b5"] },
     // subdominant
-    { id: "IV", region: "S", ring: "out", off: 5, at: [500, 383], tr: ["IV", "maj"], jz: ["IV△", "maj7"] },
-    { id: "ii", region: "S", ring: "out", off: 2, at: [735, 378], col: "blue", tr: ["ii", "min"], jz: ["ii7", "m7"] },
-    { id: "iv", region: "S", ring: "in", off: 5, at: [547, 445], tr: ["iv", "min"], jz: ["iv7", "m7"] },
-    { id: "iio", region: "S", ring: "in", off: 2, at: [694, 445], col: "lblue", tr: ["ii°", "dim"], jz: ["ii7♭5", "m7b5"] },
-    { id: "bVI", region: "S", ring: "in", off: 8, at: [532, 577], tr: ["♭VI", "maj"], jz: ["♭VI△", "maj7"] },
-    { id: "bII", region: "S", ring: "in", off: 1, at: [648, 627], adv: 1, tr: ["♭II", "maj"], jz: ["♭II△", "maj7"] },
-    { id: "II", region: "S", ring: "out", off: 2, at: [789, 461], adv: 1, tr: ["II", "maj"], jz: ["II7♭5", "dom7b5"] },
-    { id: "subii", region: "S", ring: "out", off: 8, at: [454, 569], adv: 1, col: "red", tr: ["♭vi7", "m7"], jz: ["subii7", "m7"] },
+    { id: "IV", region: "S", ring: "out", off: 5, at: [508, 388], ja: [501, 385], tr: ["IV", "maj"], jz: ["IV△", "maj7"] },
+    { id: "ii", region: "S", ring: "out", off: 2, at: [730, 381], ja: [731, 381], col: "blue", tr: ["ii", "min"], jz: ["ii7", "m7"] },
+    { id: "iv", region: "S", ring: "in", off: 5, at: [547, 445], ja: [554, 440], wd: [26, 40], tr: ["iv", "min"], jz: ["iv7", "m7"] },
+    { id: "iio", region: "S", ring: "in", off: 2, at: [694, 445], ja: [683, 443], col: "lblue", wd: [29, 52], tr: ["ii°", "dim"], jz: ["ii7♭5", "m7b5"] },
+    { id: "bVI", region: "S", ring: "in", off: 8, at: [532, 577], ja: [540, 572], wd: [38, 55], tr: ["♭VI", "maj"], jz: ["♭VI△", "maj7"] },
+    { id: "bII", region: "S", ring: "in", off: 1, at: [648, 627], ja: [655, 625], adv: 1, wd: [29, 44], tr: ["♭II", "maj"], jz: ["♭II△", "maj7"] },
+    { id: "II", region: "S", ring: "out", off: 2, at: [786, 461], ja: [806, 458], adv: 1, tr: ["II", "maj"], jz: ["II7♭5", "dom7b5"] },
+    { id: "subii", region: "S", ring: "out", off: 8, at: [457, 569], ja: [448, 568], adv: 1, col: "red", wd: [56, 56], tr: ["♭vi7", "m7"], jz: ["subii7", "m7"] },
     { id: "bIII07", region: "S", ring: "out", off: 3, at: [872, 347], circle: 46, adv: 1, tr: ["♭III°7", "dim7"], jz: ["♭III°7", "dim7"] },
     // dominant
-    { id: "V7", region: "D", ring: "out", off: 7, at: [1750, 385], col: "blue", tr: ["V7", "dom7"], jz: ["V7", "dom7"] },
-    { id: "V7in", region: "D", ring: "in", off: 7, at: [1668, 430], col: "lblue", tr: ["V7", "dom7"], jz: ["V7", "dom7"] },
-    { id: "bVII", region: "D", ring: "in", off: 10, at: [1537, 442], tr: ["♭VII", "maj"], jz: ["♭VII7", "dom7"] },
-    { id: "V", region: "D", ring: "in", off: 7, at: [1717, 517], adv: 1, tr: ["V", "maj"], jz: ["V", "maj"] },
-    { id: "N6", region: "D", ring: "in", off: 1, bass: 4, at: [1525, 572], tr: ["N⁶", "maj"], jz: ["N⁶", "maj"] },
-    { id: "vii07", region: "D", ring: "in", off: 11, at: [1625, 618], tr: ["vii°7", "dim7"], jz: ["vii°7", "dim7"] },
-    { id: "viio", region: "D", ring: "out", off: 11, at: [1718, 672], tr: ["vii°", "dim"], jz: ["vii7♭5", "m7b5"] },
-    { id: "N7", region: "D", ring: "out", off: 1, at: [1447, 627], col: "red", tr: ["N⁷", "dom7"], jz: ["subV7", "dom7"] },
-    { id: "I64", region: "D", ring: "out", off: 0, bass: 7, at: [1890, 322], tr: ["I⁶₄", "maj"], jz: ["I⁶₄", "maj"] },
-    { id: "V7sus4", region: "D", ring: "out", off: 7, at: [1880, 418], tr: ["V7sus4", "sus7"], jz: ["V7sus4", "sus7"] },
+    { id: "V7", region: "D", ring: "out", off: 7, at: [1749, 386], ja: [1752, 384], col: "blue", tr: ["V7", "dom7"], jz: ["V7", "dom7"] },
+    { id: "V7in", region: "D", ring: "in", off: 7, at: [1668, 430], ja: [1669, 427], col: "lblue", tr: ["V7", "dom7"], jz: ["V7", "dom7"] },
+    { id: "bVII", region: "D", ring: "in", off: 10, at: [1537, 442], ja: [1546, 439], wd: [47, 61], tr: ["♭VII", "maj"], jz: ["♭VII7", "dom7"] },
+    { id: "V", region: "D", ring: "in", off: 7, at: [1717, 517], ja: [1717, 518], adv: 1, tr: ["V", "maj"], jz: ["V", "maj"] },
+    { id: "N6", region: "D", ring: "in", off: 1, bass: 4, at: [1525, 572], ja: [1525, 568], wd: [34, 35], tr: ["N⁶", "maj"], jz: ["N⁶", "maj"] },
+    { id: "vii07", region: "D", ring: "in", off: 11, at: [1625, 618], ja: [1626, 617], wd: [65, 64], tr: ["vii°7", "dim7"], jz: ["vii°7", "dim7"] },
+    { id: "viio", region: "D", ring: "out", off: 11, at: [1718, 672], ja: [1730, 671], wd: [46, 68], tr: ["vii°", "dim"], jz: ["vii7♭5", "m7b5"] },
+    { id: "N7", region: "D", ring: "out", off: 1, at: [1447, 627], ja: [1436, 626], col: "red", wd: [36, 68], tr: ["N⁷", "dom7"], jz: ["subV7", "dom7"] },
+    { id: "I64", region: "D", ring: "out", off: 0, bass: 7, at: [1879, 322], tr: ["I⁶₄", "maj"], jz: ["I⁶₄", "maj"] },
+    { id: "V7sus4", region: "D", ring: "out", off: 7, at: [1852, 418], tr: ["V7sus4", "sus7"], jz: ["V7sus4", "sus7"] },
     { id: "i64", region: "D", ring: "in", circle: 44, off: 0, bass: 7, at: [1869, 510], tr: ["i⁶₄", "min"], jz: ["i⁶₄", "min"] },
   ];
   // Approach clusters, one per target, with every label at the position it has on the supplied maps (2000 x 1400 frame).
@@ -258,7 +258,7 @@ details.diff th { color: var(--bark); font-weight: 600; }
     byId.clear();
     const T = jazz() ? "jz" : "tr";
     MAIN.filter((m) => (m.adv ? 2 : 1) <= level).forEach((m) => {
-      byId.set(m.id, { id: m.id, kind: "main", region: m.region, ring: m.ring, off: m.off, bass: m.bass, q: m[T][1], label: m[T][0], prog: m[T][0], pos: m.at, col: m.col || "", circle: m.circle || 0 });
+      byId.set(m.id, { id: m.id, kind: "main", region: m.region, ring: m.ring, off: m.off, bass: m.bass, q: m[T][1], label: m[T][0], prog: m[T][0], wd: m.wd ? m.wd[jazz() ? 1 : 0] : 0, pos: jazz() && m.ja ? m.ja : m.at, col: m.col || "", circle: m.circle || 0 });
     });
     if (level < 2) return;
     // medium: the five diatonic targets with the ii–V pair only; advanced: all eight clusters with every approach chord
@@ -417,7 +417,7 @@ details.diff th { color: var(--bark); font-weight: 600; }
   const fontOf = (n) => (n.kind === "member" ? 24 : 34);
   const _mc = document.createElement("canvas").getContext("2d"), _wc = new Map();
   function textW(label, f) { const k = f + "|" + label; if (!_wc.has(k)) { _mc.font = "700 " + f + "px " + LABEL_FONT; _wc.set(k, _mc.measureText(label).width); } return _wc.get(k); }
-  function boxOf(n) { if (n.circle) return [n.circle * 2, n.circle * 2]; const f = fontOf(n); return [Math.max(46, textW(n.label, f) + 18), f + 14]; }
+  function boxOf(n) { if (n.circle) return [n.circle * 2, n.circle * 2]; const f = fontOf(n); return [Math.max(46, (n.wd ? Math.min(n.wd, textW(n.label, f)) : textW(n.label, f)) + 18), f + 14]; }
 
   // geometry shared by the drawing code
   function edgeTo(n, fromPt, gap) { const dx = n.pos[0] - fromPt[0], dy = n.pos[1] - fromPt[1], d = Math.hypot(dx, dy) || 1, ux = dx / d, uy = dy / d, e = edgeDist(n, ux, uy) + gap; return [n.pos[0] - ux * e, n.pos[1] - uy * e]; }
@@ -480,7 +480,7 @@ details.diff th { color: var(--bark); font-weight: 600; }
       }
     };
     if (level >= 2) CLUSTERS.forEach((c) => {
-      const t = byId.get(c.t), N = byId.get(c.t + "/N6"), V = byId.get(c.t + "/V7"), g = GEO[c.t]; if (!t || !N || !g) return;
+      const t = byId.get(c.t), N = byId.get(c.t + "/N6"), V = byId.get(c.t + "/V7"), g = GEO[c.t]; if (!t || !g || (level === 2 && !["IV", "ii", "V7", "vi", "iii"].includes(c.t))) return;
       const Q = g.Q, P = g.P, R = 76;
       // the ii ring is open at the lower left (where the substitute label sits); the V ring is open at the top right and lower right
       svg.appendChild(el("path", { d: arcD(Q, R, 148, 477), fill: "none", stroke: tan, "stroke-width": "2.4" }));
@@ -572,11 +572,17 @@ details.diff th { color: var(--bark); font-weight: 600; }
       const fill = isCur && !circ ? "#fbf8f1" : onDark ? (n.col === "lblue" ? COLORS.lblue : "#f3efe6") : COLORS[n.col || ""];
       const room = circ * 2 - 16, fitSize = (txt, sz) => { const w = textW(txt, sz); return w > room ? sz * room / w : sz; };
       const put = (txt, sz, ty) => g.appendChild(el("text", { x, y: ty, "text-anchor": "middle", "font-size": sz.toFixed(1), "font-weight": "700", fill, "font-family": LABEL_FONT, "pointer-events": "none" }, txt));
-      if (circ && n.kind === "member" && n.label.includes("/")) {   // "ii7♭5/IV" in a small circle: numeral on one line, "/IV" under it
-        const i = n.label.indexOf("/"), a = n.label.slice(0, i), b = n.label.slice(i), s1 = fitSize(a, f), s2 = fitSize(b, f * 0.9);
-        put(a, s1, y - 3); put(b, s2, y + s2 * 0.95);
+      if (circ && n.kind === "member" && n.label.includes("/")) {   // "ii7♭5/IV" in a small circle: one line, as on the original, squeezed to the circle's width
+        const T = circ * 2 - 10, w22 = textW(n.label, 22), sz = w22 > T ? Math.max(14, 22 * (T / w22) / 0.8) : 22, wn = textW(n.label, sz);
+        const tx = el("text", { x, y: y + sz * 0.34, "text-anchor": "middle", "font-size": sz.toFixed(1), "font-weight": "700", fill, "font-family": LABEL_FONT, "pointer-events": "none" }, n.label);
+        if (wn > T) { tx.setAttribute("textLength", T.toFixed(1)); tx.setAttribute("lengthAdjust", "spacingAndGlyphs"); }
+        g.appendChild(tx);
       } else if (circ) { const sz = fitSize(n.label, f); put(n.label, sz, y + sz * 0.34); }
-      else put(n.label, f, y + f * 0.34);
+      else if (n.wd && textW(n.label, f) > n.wd) {   // squeeze to the width of the original lettering (shrinking first if that would flatten the glyphs too much)
+        const wn = textW(n.label, f), k = n.wd / wn, sz = k >= 0.75 ? f : f * k / 0.75;
+        const tx = el("text", { x, y: y + sz * 0.34, "text-anchor": "middle", "font-size": sz.toFixed(1), "font-weight": "700", fill, "font-family": LABEL_FONT, "pointer-events": "none" }, n.label);
+        tx.setAttribute("textLength", n.wd.toFixed(1)); tx.setAttribute("lengthAdjust", "spacingAndGlyphs"); g.appendChild(tx);
+      } else put(n.label, f, y + f * 0.34);
     });
     renderProg(); renderInfo(fol, ENH);
     $("m-trad").setAttribute("aria-pressed", String(!jazz())); $("m-jazz").setAttribute("aria-pressed", String(jazz()));
