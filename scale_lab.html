@@ -30,7 +30,6 @@ h1 { margin: 0; font-family: var(--font-display); font-weight: 400; font-size: 3
 .tog[aria-pressed="true"] { background: var(--clay); border-color: var(--clay); color: var(--parchment); }
 .tog:disabled { opacity: 0.4; cursor: default; }
 .board.segmode .dot:not(.seg):not(.ghost) { opacity: 0.2; }
-.dot.seg circle { stroke: #e3a53a; stroke-width: 3.5; }
 .dot.ghost circle { fill: #f9f5ee; stroke: var(--clay); stroke-width: 2; stroke-dasharray: 3 2.5; }
 .dot.ghost text { fill: var(--clay); }
 .segnote { font-size: 11px; color: var(--moss); margin-top: 8px; max-width: 900px; line-height: 1.5; }
@@ -73,7 +72,7 @@ main { padding: 14px 24px 50px; max-width: 1500px; margin: 0 auto; }
     <span class="seg" role="group" aria-label="Show on the fretboard">
       <button type="button" id="show-int" aria-pressed="true">Intervals</button><button type="button" id="show-note" aria-pressed="false">Notes</button>
     </span>
-    <button type="button" class="tog" id="seg" aria-pressed="false">Highlight Segovia scale</button>
+    <button type="button" class="tog" id="seg" aria-pressed="false">Segovia scale</button>
     <label>Frets <select id="frets"><option>12</option><option selected>15</option><option>17</option><option>22</option><option>24</option></select></label>
     <span class="player"><button type="button" class="btn" id="play">Play scale</button>
       <label>Direction <select id="dir"><option value="updown" selected>up &amp; down</option><option value="up">up</option><option value="down">down</option></select></label></span>
@@ -206,7 +205,7 @@ main { padding: 14px 24px 50px; max-width: 1500px; margin: 0 auto; }
     $("board").className = "board" + (segOn ? " segmode" : "");
     const note = $("segnote");
     note.hidden = !segOn;
-    if (segOn) note.textContent = "Segovia's fingering from his Diatonic Major and Minor Scales (ascending, " + seg.up.length + " notes starting on " + noteName(OPEN[seg.up[0].s] + seg.up[0].f) + "): the ringed notes are the ones his pattern uses." + (seg.ghost.length ? " Dashed notes are the lowered 6th and 7th used coming back down (natural minor)." : "") + " Hover a note for its finger. Coming down, the book keeps these positions with small changes where it crosses strings.";
+    if (segOn) note.textContent = "Segovia's fingering from his Diatonic Major and Minor Scales (ascending, " + seg.up.length + " notes starting on " + noteName(OPEN[seg.up[0].s] + seg.up[0].f) + "): the full-colour notes are the ones his pattern uses; the others are dimmed." + (seg.ghost.length ? " Dashed notes are the lowered 6th and 7th used coming back down (natural minor)." : "") + " Hover a note for its finger. Coming down, the book keeps these positions with small changes where it crosses strings.";
     $("board").innerHTML = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${rootName} ${sc.name} on the guitar fretboard">${p.join("")}</svg>`;
     $("show-int").setAttribute("aria-pressed", String(!showNotes)); $("show-note").setAttribute("aria-pressed", String(showNotes));
   }
