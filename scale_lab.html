@@ -34,6 +34,17 @@ h1 { margin: 0; font-family: var(--font-display); font-weight: 400; font-size: 3
 .dot.ghost text { fill: var(--clay); }
 .keys { display: flex; flex-wrap: wrap; gap: 6px 22px; margin: 14px 0 0; font-size: 11px; color: var(--moss); }
 .keys kbd { font: inherit; font-size: 10px; letter-spacing: 0.06em; padding: 2px 6px; border: 1px solid var(--wheat); border-bottom-width: 2px; border-radius: 3px; background: #fff; color: var(--bark); }
+.picker { display: grid; grid-template-columns: max-content 1fr; gap: 6px 14px; align-items: center; margin: 0 0 14px; padding: 10px 12px; background: #f9f5ee; border: 1px solid #e3dac6; }
+.picker .pk-row { display: contents; }
+.picker .pk-mode, .picker .pk-chip, .picker .pk-label { font: inherit; font-size: 12px; padding: 5px 12px; border: 1px solid var(--wheat); background: transparent; color: var(--moss); cursor: pointer; border-radius: 14px; }
+.picker .pk-mode { min-width: 120px; text-align: left; font-family: var(--font-display); font-size: 14px; color: var(--bark); border-radius: 4px; padding: 6px 12px; }
+.picker .pk-label { cursor: default; border-color: transparent; font-size: 10px; letter-spacing: 0.16em; text-transform: uppercase; padding-left: 0; }
+.picker .pk-mode:hover, .picker .pk-chip:hover { border-color: var(--sage); background: var(--linen); }
+.picker [aria-pressed="true"] { background: var(--bark); border-color: var(--bark); color: var(--parchment); }
+.picker .pk-vars { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; min-height: 30px; }
+.picker .pk-vars::before { content: "\2192"; color: var(--wheat); font-size: 12px; margin-right: 2px; }
+.picker .pk-vars:empty::before { content: ""; }
+@media (max-width: 700px) { .picker { grid-template-columns: 1fr; } .picker .pk-vars { padding-left: 14px; } }
 .segnote { font-size: 11px; color: var(--moss); margin-top: 8px; max-width: 900px; line-height: 1.5; }
 .player { display: inline-flex; align-items: center; gap: 12px; }
 .btn { font: inherit; font-size: 11px; letter-spacing: 0.16em; text-transform: uppercase; padding: 8px 16px; border: 1px solid var(--bark); background: var(--bark); color: var(--parchment); cursor: pointer; }
@@ -70,7 +81,7 @@ main { padding: 14px 24px 50px; max-width: 1500px; margin: 0 auto; }
   </div>
   <div class="controls">
     <label>Root <select id="root"></select></label>
-    <label>Scale <select id="scale"></select></label>
+    <select id="scale" hidden aria-hidden="true"></select>
     <span class="seg" role="group" aria-label="Show on the fretboard">
       <button type="button" id="show-int" aria-pressed="true">Intervals</button><button type="button" id="show-note" aria-pressed="false">Notes</button>
     </span>
@@ -82,6 +93,7 @@ main { padding: 14px 24px 50px; max-width: 1500px; margin: 0 auto; }
 </header>
 
 <main>
+  <div class="picker" id="picker" role="group" aria-label="Scale"></div>
   <div class="title-row"><h2 id="title"></h2><div class="facts" id="facts"></div></div>
   <div class="board" id="board"></div>
   <div class="segnote" id="segnote" hidden></div>
@@ -150,6 +162,38 @@ main { padding: 14px 24px 50px; max-width: 1500px; margin: 0 auto; }
   ROOTS.forEach(([n, pc]) => { const o = document.createElement("option"); o.value = pc; o.textContent = n; $("root").appendChild(o); });
   SCALES.forEach((sc, i) => { const o = document.createElement("option"); o.value = i; o.textContent = sc.name; $("scale").appendChild(o); });
   $("root").value = "0"; $("scale").value = "0";
+  // Scale picker: the seven modes of the major scale run down the first column; each mode's close relatives step out to the right.
+  const PICKER = [
+    { mode: ["Ionian", "Major (Ionian)"], vars: [["Major pentatonic", "Major pentatonic"]] },
+    { mode: ["Dorian", "Dorian"], vars: [] },
+    { mode: ["Phrygian", "Phrygian"], vars: [["Phrygian dominant", "Phrygian dominant"]] },
+    { mode: ["Lydian", "Lydian"], vars: [] },
+    { mode: ["Mixolydian", "Mixolydian"], vars: [["Lydian dominant", "Lydian dominant"]] },
+    { mode: ["Aeolian (natural minor)", "Natural minor (Aeolian)"], vars: [["Harmonic minor", "Harmonic minor"], ["Melodic minor", "Melodic minor (ascending)"], ["Minor pentatonic", "Minor pentatonic"], ["Blues", "Blues (minor)"]] },
+    { mode: ["Locrian", "Locrian"], vars: [["Altered", "Altered (super Locrian)"]] },
+    { label: "Symmetrical", vars: [["Whole tone", "Whole tone"], ["Diminished W–H", "Diminished (whole-half)"], ["Diminished H–W", "Diminished (half-whole)"]] },
+  ];
+  const scaleIndex = (name) => SCALES.findIndex((x) => x.name === name);
+  const PICK_ORDER = PICKER.flatMap((r) => (r.mode ? [r.mode[1]] : []).concat(r.vars.map((v) => v[1])));   // top-to-bottom, left-to-right
+  (function buildPicker() {
+    const host = $("picker");
+    PICKER.forEach((row) => {
+      const wrap = document.createElement("div"); wrap.className = "pk-row";
+      const first = document.createElement(row.mode ? "button" : "span");
+      if (row.mode) { first.type = "button"; first.className = "pk-mode"; first.textContent = row.mode[0]; first.dataset.scale = row.mode[1]; }
+      else { first.className = "pk-label"; first.textContent = row.label; }
+      const vars = document.createElement("div"); vars.className = "pk-vars";
+      row.vars.forEach(([label, name]) => { const b = document.createElement("button"); b.type = "button"; b.className = "pk-chip"; b.textContent = label; b.dataset.scale = name; vars.appendChild(b); });
+      wrap.appendChild(first); wrap.appendChild(vars); host.appendChild(wrap);
+    });
+    host.addEventListener("click", (e) => {
+      const b = e.target.closest && e.target.closest("[data-scale]");
+      if (!b) return;
+      $("scale").value = String(scaleIndex(b.dataset.scale));
+      $("scale").dispatchEvent(new Event("change"));
+    });
+  })();
+  const syncPicker = () => { const cur = SCALES[+$("scale").value].name; document.querySelectorAll("#picker [data-scale]").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.scale === cur))); };
   let showNotes = false;
   try { showNotes = localStorage.getItem("fretline-scale-show") === "notes"; } catch (e) {}
 
@@ -170,6 +214,7 @@ main { padding: 14px 24px 50px; max-width: 1500px; margin: 0 auto; }
   function render() {
     if (typeof stopScale === "function") stopScale();
     const rootPc = +$("root").value, rootName = ROOTS.find((r) => r[1] === rootPc)[0], sc = SCALES[+$("scale").value];
+    syncPicker();
     const seg = segInfo(rootPc, sc), segOn = !!(seg && segPref);
     $("seg").disabled = !seg; $("seg").setAttribute("aria-pressed", String(segOn));
     if (!playing) $("play").textContent = segOn ? "Play Segovia scale" : "Play scale";
@@ -299,8 +344,12 @@ main { padding: 14px 24px 50px; max-width: 1500px; margin: 0 auto; }
     else if (key === "f") stepSelect($("frets"), 1);
     else if (key === "ArrowRight") { e.preventDefault(); stepSelect($("root"), 1); }
     else if (key === "ArrowLeft") { e.preventDefault(); stepSelect($("root"), -1); }
-    else if (key === "ArrowDown") { e.preventDefault(); stepSelect($("scale"), 1); }
-    else if (key === "ArrowUp") { e.preventDefault(); stepSelect($("scale"), -1); }
+    else if (key === "ArrowDown" || key === "ArrowUp") {
+      e.preventDefault();
+      const i = PICK_ORDER.indexOf(SCALES[+$("scale").value].name), n = PICK_ORDER.length;
+      $("scale").value = String(scaleIndex(PICK_ORDER[(i + (key === "ArrowDown" ? 1 : -1) + n) % n]));
+      $("scale").dispatchEvent(new Event("change"));
+    }
   });
   $("seg").addEventListener("click", () => { segPref = !segPref; try { localStorage.setItem("fretline-scale-segovia", segPref ? "on" : "off"); } catch (e) {} render(); });
   $("show-int").addEventListener("click", () => setShow(false));
