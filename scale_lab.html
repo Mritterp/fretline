@@ -26,6 +26,14 @@ h1 { margin: 0; font-family: var(--font-display); font-weight: 400; font-size: 3
 .controls { display: flex; flex-wrap: wrap; gap: 12px 22px; align-items: center; }
 .controls label { font-size: 10px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--moss); display: flex; align-items: center; gap: 8px; }
 .controls select { font: inherit; font-size: 13px; letter-spacing: 0; text-transform: none; padding: 5px 8px; background: var(--parchment); border: 1px solid var(--wheat); color: var(--bark); }
+.tog { font: inherit; font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase; padding: 7px 14px; border: 1px solid var(--wheat); background: transparent; color: var(--moss); cursor: pointer; }
+.tog[aria-pressed="true"] { background: var(--clay); border-color: var(--clay); color: var(--parchment); }
+.tog:disabled { opacity: 0.4; cursor: default; }
+.board.segmode .dot:not(.seg):not(.ghost) { opacity: 0.2; }
+.dot.seg circle { stroke: #e3a53a; stroke-width: 3.5; }
+.dot.ghost circle { fill: #f9f5ee; stroke: var(--clay); stroke-width: 2; stroke-dasharray: 3 2.5; }
+.dot.ghost text { fill: var(--clay); }
+.segnote { font-size: 11px; color: var(--moss); margin-top: 8px; max-width: 900px; line-height: 1.5; }
 .player { display: inline-flex; align-items: center; gap: 12px; }
 .btn { font: inherit; font-size: 11px; letter-spacing: 0.16em; text-transform: uppercase; padding: 8px 16px; border: 1px solid var(--bark); background: var(--bark); color: var(--parchment); cursor: pointer; }
 .btn:hover { background: var(--moss); border-color: var(--moss); }
@@ -65,6 +73,7 @@ main { padding: 14px 24px 50px; max-width: 1500px; margin: 0 auto; }
     <span class="seg" role="group" aria-label="Show on the fretboard">
       <button type="button" id="show-int" aria-pressed="true">Intervals</button><button type="button" id="show-note" aria-pressed="false">Notes</button>
     </span>
+    <button type="button" class="tog" id="seg" aria-pressed="false">Segovia pattern</button>
     <label>Frets <select id="frets"><option>12</option><option selected>15</option><option>17</option><option>22</option><option>24</option></select></label>
     <span class="player"><button type="button" class="btn" id="play">Play scale</button>
       <label>Direction <select id="dir"><option value="updown" selected>up &amp; down</option><option value="up">up</option><option value="down">down</option></select></label></span>
@@ -74,6 +83,7 @@ main { padding: 14px 24px 50px; max-width: 1500px; margin: 0 auto; }
 <main>
   <div class="title-row"><h2 id="title"></h2><div class="facts" id="facts"></div></div>
   <div class="board" id="board"></div>
+  <div class="segnote" id="segnote" hidden></div>
   <div class="legend"><span><i style="background:var(--root)"></i>root</span><span><i style="background:var(--moss)"></i>other scale notes</span><span id="hint">Click any note to hear it.</span></div>
 </main>
 
@@ -109,6 +119,13 @@ main { padding: 14px 24px 50px; max-width: 1500px; margin: 0 auto; }
     { name: "Diminished (half-whole)", semis: [0, 1, 3, 4, 6, 7, 9, 10], deg: ["1", "♭2", "♭3", "3", "♯4", "5", "6", "♭7"] },
   ];
 
+  // Andres Segovia, "Diatonic Major and Minor Scales" (Columbia Music Co., 1953): the ascending fingering of each of the 24 scales,
+  // transcribed from the printed string brackets and finger numbers. Each note is [string (0 = low E), fret, scale-degree index, finger].
+  // Minor scales are melodic minor going up. Keys that share a printed shape reuse it moved along the neck.
+  const SEGOVIA = {"major":{"0":[[1,3,0,2],[1,5,1,4],[2,2,2,1],[2,3,3,2],[2,5,4,4],[3,2,5,1],[3,4,6,3],[3,5,0,1],[3,7,1,3],[4,5,2,1],[4,6,3,2],[4,8,4,4],[5,5,5,1],[5,7,6,3],[5,8,0,4]],"1":[[1,4,0,2],[1,6,1,4],[2,3,2,1],[2,4,3,2],[2,6,4,4],[3,3,5,1],[3,5,6,3],[3,6,0,1],[3,8,1,3],[4,6,2,1],[4,7,3,2],[4,9,4,4],[5,6,5,1],[5,8,6,3],[5,9,0,4]],"2":[[1,5,0,2],[1,7,1,4],[2,4,2,1],[2,5,3,2],[2,7,4,4],[3,4,5,1],[3,6,6,3],[3,7,0,1],[3,9,1,3],[4,7,2,1],[4,8,3,2],[4,10,4,4],[5,7,5,1],[5,9,6,3],[5,10,0,4]],"3":[[1,6,0,2],[1,8,1,4],[2,5,2,1],[2,6,3,2],[2,8,4,4],[3,5,5,1],[3,7,6,3],[3,8,0,1],[3,10,1,3],[4,8,2,1],[4,9,3,2],[4,11,4,4],[5,8,5,1],[5,10,6,3],[5,11,0,4]],"4":[[0,0,0,0],[0,2,1,1],[0,4,2,3],[0,5,3,4],[0,7,4,2],[0,9,5,4],[1,6,6,1],[1,7,0,2],[1,9,1,4],[2,6,2,1],[2,7,3,2],[2,9,4,4],[3,6,5,1],[3,8,6,3],[3,9,0,1],[3,11,1,3],[4,9,2,1],[4,10,3,2],[4,12,4,4],[5,9,5,1],[5,11,6,3],[5,12,0,4]],"5":[[0,1,0,1],[0,3,1,3],[1,0,2,0],[1,1,3,1],[1,3,4,3],[1,5,5,1],[1,7,6,3],[1,8,0,4],[2,5,1,1],[2,7,2,3],[2,8,3,4],[3,5,4,1],[3,7,5,3],[4,5,6,1],[4,6,0,2],[4,8,1,4],[5,5,2,1],[5,6,3,2],[5,8,4,4],[5,10,5,1],[5,12,6,3],[5,13,0,4]],"6":[[0,2,0,2],[0,4,1,4],[1,1,2,1],[1,2,3,2],[1,4,4,4],[2,1,5,1],[2,3,6,3],[2,4,0,4],[3,1,1,1],[3,3,2,3],[3,4,3,1],[3,6,4,3],[4,4,5,1],[4,6,6,3],[4,7,0,4],[5,4,1,1],[5,6,2,3],[5,7,3,1],[5,9,4,3],[5,11,5,1],[5,13,6,3],[5,14,0,4]],"7":[[0,3,0,2],[0,5,1,4],[1,2,2,1],[1,3,3,2],[1,5,4,4],[2,2,5,1],[2,4,6,3],[2,5,0,4],[3,2,1,1],[3,4,2,3],[3,5,3,1],[3,7,4,3],[4,5,5,1],[4,7,6,3],[4,8,0,4],[5,5,1,1],[5,7,2,3],[5,8,3,1],[5,10,4,3],[5,12,5,1],[5,14,6,3],[5,15,0,4]],"8":[[0,4,0,2],[0,6,1,4],[1,3,2,1],[1,4,3,2],[1,6,4,4],[2,3,5,1],[2,5,6,3],[2,6,0,4],[3,3,1,1],[3,5,2,3],[3,6,3,1],[3,8,4,3],[4,6,5,1],[4,8,6,3],[4,9,0,4],[5,6,1,1],[5,8,2,3],[5,9,3,1],[5,11,4,3],[5,13,5,1],[5,15,6,3],[5,16,0,4]],"9":[[0,5,0,2],[0,7,1,4],[1,4,2,1],[1,5,3,2],[1,7,4,4],[2,4,5,1],[2,6,6,3],[2,7,0,4],[3,4,1,1],[3,6,2,3],[3,7,3,1],[3,9,4,3],[4,7,5,1],[4,9,6,3],[4,10,0,4],[5,7,1,1],[5,9,2,3],[5,10,3,1],[5,12,4,3],[5,14,5,1],[5,16,6,3],[5,17,0,4]],"10":[[0,6,0,2],[0,8,1,4],[1,5,2,1],[1,6,3,2],[1,8,4,4],[2,5,5,1],[2,7,6,3],[2,8,0,4],[3,5,1,1],[3,7,2,3],[3,8,3,1],[3,10,4,3],[4,8,5,1],[4,10,6,3],[4,11,0,4],[5,8,1,1],[5,10,2,3],[5,11,3,1],[5,13,4,3],[5,15,5,1],[5,17,6,3],[5,18,0,4]],"11":[[0,7,0,2],[0,9,1,4],[1,6,2,1],[1,7,3,2],[1,9,4,4],[2,6,5,1],[2,8,6,3],[2,9,0,4],[3,6,1,1],[3,8,2,3],[3,9,3,1],[3,11,4,3],[4,9,5,1],[4,11,6,3],[4,12,0,4],[5,9,1,1],[5,11,2,3],[5,12,3,1],[5,14,4,3],[5,16,5,1],[5,18,6,3],[5,19,0,4]]},"minor":{"0":[[1,3,0,1],[1,5,1,3],[1,6,2,4],[2,3,3,1],[2,5,4,3],[2,7,5,1],[2,9,6,3],[2,10,0,4],[3,7,1,1],[3,8,2,2],[3,10,3,4],[4,8,4,2],[4,10,5,4],[5,7,6,1],[5,8,0,2]],"1":[[1,4,0,1],[1,6,1,3],[1,7,2,4],[2,4,3,1],[2,6,4,3],[2,8,5,1],[2,10,6,3],[2,11,0,4],[3,8,1,1],[3,9,2,2],[3,11,3,4],[4,9,4,2],[4,11,5,4],[5,8,6,1],[5,9,0,2]],"2":[[1,5,0,1],[1,7,1,3],[1,8,2,4],[2,5,3,1],[2,7,4,3],[2,9,5,1],[2,11,6,3],[2,12,0,4],[3,9,1,1],[3,10,2,2],[3,12,3,4],[4,10,4,2],[4,12,5,4],[5,9,6,1],[5,10,0,2]],"3":[[1,6,0,1],[1,8,1,3],[1,9,2,4],[2,6,3,1],[2,8,4,3],[2,10,5,1],[2,12,6,3],[2,13,0,4],[3,10,1,1],[3,11,2,2],[3,13,3,4],[4,11,4,2],[4,13,5,4],[5,10,6,1],[5,11,0,2]],"4":[[0,0,0,0],[0,2,1,1],[0,3,2,2],[0,5,3,4],[1,2,4,1],[1,4,5,3],[1,6,6,3],[1,7,0,4],[2,4,1,1],[2,5,2,2],[2,7,3,4],[2,9,4,2],[2,11,5,4],[3,8,6,1],[3,9,0,2],[3,11,1,4],[4,8,2,1],[4,10,3,3],[4,12,4,2],[4,14,5,4],[5,11,6,1],[5,12,0,2]],"5":[[0,1,0,1],[0,3,1,3],[0,4,2,4],[1,1,3,1],[1,3,4,3],[1,5,5,1],[1,7,6,3],[1,8,0,4],[2,5,1,1],[2,6,2,2],[2,8,3,4],[3,5,4,1],[3,7,5,3],[4,5,6,1],[4,6,0,1],[4,8,1,3],[4,9,2,4],[5,6,3,1],[5,8,4,3],[5,10,5,1],[5,12,6,3],[5,13,0,4]],"6":[[0,2,0,1],[0,4,1,3],[0,5,2,4],[1,2,3,1],[1,4,4,3],[1,6,5,1],[1,8,6,3],[1,9,0,4],[2,6,1,1],[2,7,2,2],[2,9,3,4],[3,6,4,1],[3,8,5,3],[4,6,6,1],[4,7,0,1],[4,9,1,3],[4,10,2,4],[5,7,3,1],[5,9,4,3],[5,11,5,1],[5,13,6,3],[5,14,0,4]],"7":[[0,3,0,1],[0,5,1,3],[0,6,2,4],[1,3,3,1],[1,5,4,3],[1,7,5,1],[1,9,6,3],[1,10,0,4],[2,7,1,1],[2,8,2,2],[2,10,3,4],[3,7,4,1],[3,9,5,3],[4,7,6,1],[4,8,0,1],[4,10,1,3],[4,11,2,4],[5,8,3,1],[5,10,4,3],[5,12,5,1],[5,14,6,3],[5,15,0,4]],"8":[[0,4,0,1],[0,6,1,3],[0,7,2,4],[1,4,3,1],[1,6,4,3],[1,8,5,1],[1,10,6,3],[1,11,0,4],[2,8,1,1],[2,9,2,2],[2,11,3,4],[3,8,4,1],[3,10,5,3],[4,8,6,1],[4,9,0,1],[4,11,1,3],[4,12,2,4],[5,9,3,1],[5,11,4,3],[5,13,5,1],[5,15,6,3],[5,16,0,4]],"9":[[0,5,0,1],[0,7,1,3],[0,8,2,4],[1,5,3,1],[1,7,4,3],[1,9,5,1],[1,11,6,3],[1,12,0,4],[2,9,1,1],[2,10,2,2],[2,12,3,4],[3,9,4,1],[3,11,5,3],[4,9,6,1],[4,10,0,1],[4,12,1,3],[4,13,2,4],[5,10,3,1],[5,12,4,3],[5,14,5,1],[5,16,6,3],[5,17,0,4]],"10":[[1,1,0,1],[1,3,1,3],[1,4,2,4],[2,1,3,1],[2,3,4,3],[2,5,5,1],[2,7,6,3],[2,8,0,1],[2,10,1,3],[2,11,2,4],[3,8,3,1],[3,10,4,3],[4,8,5,1],[4,10,6,3],[4,11,0,1],[4,13,1,3],[4,14,2,4],[5,11,3,1],[5,13,4,3],[5,15,5,1],[5,17,6,3],[5,18,0,4]],"11":[[1,2,0,1],[1,4,1,3],[1,5,2,4],[2,2,3,1],[2,4,4,3],[2,6,5,1],[2,8,6,3],[2,9,0,1],[2,11,1,3],[2,12,2,4],[3,9,3,1],[3,11,4,3],[4,9,5,1],[4,11,6,3],[4,12,0,1],[4,14,1,3],[4,15,2,4],[5,12,3,1],[5,14,4,3],[5,16,5,1],[5,18,6,3],[5,19,0,4]]}};
+  let segPref = false;
+  try { segPref = localStorage.getItem("fretline-scale-segovia") === "on"; } catch (e) {}
+  const MELODIC = [0, 2, 3, 5, 7, 9, 11], MELODIC_DEG = ["1", "2", "♭3", "4", "5", "6", "7"];
   const ACC = { "-2": "𝄫", "-1": "♭", "0": "", "1": "♯", "2": "𝄪" };
   // spell a note from its interval: the degree number picks the letter, the pitch decides the accidental
   function spell(rootName, rootPc, semis, degLabel) {
@@ -125,9 +142,27 @@ main { padding: 14px 24px 50px; max-width: 1500px; margin: 0 auto; }
   let showNotes = false;
   try { showNotes = localStorage.getItem("fretline-scale-show") === "notes"; } catch (e) {}
 
+  // The Segovia path for the current root + scale, or null when the book has none. up = ascending notes; ghost = descending-only natural-minor notes.
+  function segInfo(rootPc, sc) {
+    const kind = sc.name === "Major (Ionian)" ? "major" : /^(Natural|Melodic) minor/.test(sc.name) ? "minor" : null;
+    if (!kind) return null;
+    const rows = SEGOVIA[kind][rootPc];
+    if (!rows) return null;
+    const natural = /^Natural/.test(sc.name), rootName = ROOTS.find((r) => r[1] === rootPc)[0];
+    const lowered = (r) => kind === "minor" && (r[2] === 5 || r[2] === 6);
+    const label = (r) => { const semi = r[2] === 5 ? 8 : 10, deg = r[2] === 5 ? "♭6" : "♭7"; return { interval: deg, note: spell(rootName, rootPc, semi, deg) }; };
+    const up = rows.map((r) => ({ s: r[0], f: natural && lowered(r) ? r[1] - 1 : r[1], deg: r[2], finger: r[3] }));
+    const down = rows.map((r) => ({ s: r[0], f: lowered(r) ? r[1] - 1 : r[1], deg: r[2], finger: r[3] }));
+    const ghost = kind === "minor" && !natural ? rows.filter(lowered).map((r) => Object.assign({ s: r[0], f: r[1] - 1 }, label(r))) : [];
+    return { up, down, ghost };
+  }
   function render() {
     if (typeof stopScale === "function") stopScale();
-    const rootPc = +$("root").value, rootName = ROOTS.find((r) => r[1] === rootPc)[0], sc = SCALES[+$("scale").value], maxFret = +$("frets").value;
+    const rootPc = +$("root").value, rootName = ROOTS.find((r) => r[1] === rootPc)[0], sc = SCALES[+$("scale").value];
+    const seg = segInfo(rootPc, sc), segOn = !!(seg && segPref);
+    $("seg").disabled = !seg; $("seg").setAttribute("aria-pressed", String(segOn));
+    $("seg").title = seg ? "Segovia's fixed scale fingering for this key" : "Segovia's book has only major and minor scales: choose Major, Natural minor or Melodic minor";
+    const maxFret = Math.max(+$("frets").value, segOn ? Math.max(...seg.up.map((n) => n.f), ...seg.ghost.map((n) => n.f)) : 0);
     const byPc = new Map();   // pitch class -> {interval, note, root}
     sc.semis.forEach((semi, i) => byPc.set(mod(rootPc + semi), { interval: sc.deg[i], note: spell(rootName, rootPc, semi, sc.deg[i]), root: i === 0 }));
 
@@ -160,8 +195,17 @@ main { padding: 14px 24px 50px; max-width: 1500px; margin: 0 auto; }
       const m = OPEN[s] + f, info = byPc.get(mod(m));
       if (!info) continue;
       const cx = xOf(f), cy = yOf(s), label = showNotes ? info.note : info.interval, fill = info.root ? "var(--root)" : "var(--moss)";
-      p.push(`<g class="dot" data-midi="${m}" data-pc="${mod(m)}" data-s="${s}" data-f="${f}"><title>${noteName(m)}${showNotes ? "" : " · " + info.note}</title><circle cx="${cx}" cy="${cy}" r="11.5" fill="${fill}"/><text x="${cx}" y="${cy + 4}" text-anchor="middle" font-size="${label.length > 2 ? 10 : 12}" font-weight="700" fill="#F5F0E8" font-family="Helvetica,Arial,sans-serif">${label}</text></g>`);
+      const sn = segOn ? seg.up.find((n) => n.s === s && n.f === f) : null;
+      p.push(`<g class="dot${sn ? " seg" : ""}" data-midi="${m}" data-pc="${mod(m)}" data-s="${s}" data-f="${f}"><title>${noteName(m)}${showNotes ? "" : " · " + info.note}${sn ? " · Segovia finger " + sn.finger : ""}</title><circle cx="${cx}" cy="${cy}" r="11.5" fill="${fill}"/><text x="${cx}" y="${cy + 4}" text-anchor="middle" font-size="${label.length > 2 ? 10 : 12}" font-weight="700" fill="#F5F0E8" font-family="Helvetica,Arial,sans-serif">${label}</text></g>`);
     }
+    if (segOn) seg.ghost.forEach((n) => {
+      const m = OPEN[n.s] + n.f, cx = xOf(n.f), cy = yOf(n.s), label = showNotes ? n.note : n.interval;
+      p.push(`<g class="dot ghost" data-midi="${m}" data-pc="${mod(m)}" data-s="${n.s}" data-f="${n.f}"><title>${noteName(m)} · only when descending (natural minor)</title><circle cx="${cx}" cy="${cy}" r="11.5"/><text x="${cx}" y="${cy + 4}" text-anchor="middle" font-size="${label.length > 2 ? 10 : 12}" font-weight="700" font-family="Helvetica,Arial,sans-serif">${label}</text></g>`);
+    });
+    $("board").className = "board" + (segOn ? " segmode" : "");
+    const note = $("segnote");
+    note.hidden = !segOn;
+    if (segOn) note.textContent = "Segovia's fingering from his Diatonic Major and Minor Scales (ascending, " + seg.up.length + " notes starting on " + noteName(OPEN[seg.up[0].s] + seg.up[0].f) + "): the ringed notes are the ones his pattern uses." + (seg.ghost.length ? " Dashed notes are the lowered 6th and 7th used coming back down (natural minor)." : "") + " Hover a note for its finger. Coming down, the book keeps these positions with small changes where it crosses strings.";
     $("board").innerHTML = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${rootName} ${sc.name} on the guitar fretboard">${p.join("")}</svg>`;
     $("show-int").setAttribute("aria-pressed", String(!showNotes)); $("show-note").setAttribute("aria-pressed", String(showNotes));
   }
@@ -194,17 +238,28 @@ main { padding: 14px 24px 50px; max-width: 1500px; margin: 0 auto; }
     if (playing) { stopScale(); return; }
     ensureAudio();
     const rootPc = +$("root").value, sc = SCALES[+$("scale").value], base = 40 + mod(rootPc - 40);   // the lowest full octave on the guitar: root at its lowest spot at or above the low E (E2)
-    const up = sc.semis.map((x) => base + x).concat([base + 12]), down = up.slice().reverse();
-    const dir = $("dir").value, seq = dir === "up" ? up : dir === "down" ? down : up.concat(down.slice(1));
-    const step = 0.42, t0 = audioCtx.currentTime + 0.08;
+    const seg = segInfo(rootPc, sc), segOn = !!(seg && segPref), dir = $("dir").value;
+    let seq, step = 0.42;
+    if (segOn) {   // follow Segovia's own strings and frets, one dot at a time
+      const asc = seg.up, desc = seg.down.slice().reverse();
+      const path = dir === "up" ? asc : dir === "down" ? desc : asc.concat(desc.slice(1));
+      seq = path.map((n) => ({ m: OPEN[n.s] + n.f, s: n.s, f: n.f }));
+      step = 0.3;
+    } else {
+      const up = sc.semis.map((x) => base + x).concat([base + 12]), down = up.slice().reverse();
+      seq = (dir === "up" ? up : dir === "down" ? down : up.concat(down.slice(1))).map((m) => ({ m }));
+    }
+    const t0 = audioCtx.currentTime + 0.08;
     setPlaying(true);
-    seq.forEach((m, k) => {
-      tone(m, t0 + k * step, step * 1.5);
+    seq.forEach((n, k) => {
+      tone(n.m, t0 + k * step, step * 1.5);
       const on = (k * step + 0.08) * 1000;
       timers.push(setTimeout(() => {
         document.querySelectorAll(".dot.playing").forEach((d) => d.classList.remove("playing"));
-        // one dot at a time: of the places this exact pitch lives, light the one at the lowest fret (open strings first)
-        const spots = [...document.querySelectorAll('.dot[data-midi="' + m + '"]')].sort((a, b) => +a.dataset.f - +b.dataset.f || +a.dataset.s - +b.dataset.s);
+        // one dot at a time: Segovia's exact string and fret, or else the lowest-fret place this pitch lives (open strings first)
+        const spots = n.s !== undefined
+          ? [...document.querySelectorAll('.dot[data-s="' + n.s + '"][data-f="' + n.f + '"]')]
+          : [...document.querySelectorAll('.dot[data-midi="' + n.m + '"]')].sort((a, b) => +a.dataset.f - +b.dataset.f || +a.dataset.s - +b.dataset.s);
         if (spots[0]) spots[0].classList.add("playing");
       }, on));
     });
@@ -215,6 +270,7 @@ main { padding: 14px 24px 50px; max-width: 1500px; margin: 0 auto; }
 
   ["root", "scale", "frets"].forEach((id) => $(id).addEventListener("change", render));
   const setShow = (notes) => { showNotes = notes; try { localStorage.setItem("fretline-scale-show", notes ? "notes" : "intervals"); } catch (e) {} render(); };
+  $("seg").addEventListener("click", () => { segPref = !segPref; try { localStorage.setItem("fretline-scale-segovia", segPref ? "on" : "off"); } catch (e) {} render(); });
   $("show-int").addEventListener("click", () => setShow(false));
   $("show-note").addEventListener("click", () => setShow(true));
   render();
