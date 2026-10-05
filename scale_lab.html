@@ -102,7 +102,7 @@ main { padding: 14px 24px 50px; max-width: 1500px; margin: 0 auto; }
     <span><kbd>Space</kbd> play / stop</span>
     <span><kbd>S</kbd> Segovia scale</span>
     <span><kbd>K</kbd> key: intervals / notes</span>
-    <span><kbd>↑</kbd> <kbd>↓</kbd> scale</span>
+    <span><kbd>↑</kbd> <kbd>↓</kbd> <kbd>←</kbd> <kbd>→</kbd> scale (rows / along the row)</span>
     <span>click a note to hear it</span>
   </p>
   <div class="legend"><span><i style="background:var(--root)"></i>root</span><span><i style="background:var(--moss)"></i>other scale notes</span><span id="hint">Click any note to hear it.</span></div>
@@ -173,7 +173,7 @@ main { padding: 14px 24px 50px; max-width: 1500px; margin: 0 auto; }
     { mode: ["Chromatic", "Chromatic"], vars: [["Whole tone", "Whole tone"], ["Diminished W–H", "Diminished (whole-half)"], ["Diminished H–W", "Diminished (half-whole)"]] },
   ];
   const scaleIndex = (name) => SCALES.findIndex((x) => x.name === name);
-  const PICK_ORDER = PICKER.flatMap((r) => (r.mode ? [r.mode[1]] : []).concat(r.vars.map((v) => v[1])));   // top-to-bottom, left-to-right
+  const PICK_GRID = PICKER.map((r) => (r.mode ? [r.mode[1]] : []).concat(r.vars.map((v) => v[1])));   // one array per picker row
   (function buildPicker() {
     const host = $("picker");
     PICKER.forEach((row) => {
@@ -343,10 +343,15 @@ main { padding: 14px 24px 50px; max-width: 1500px; margin: 0 auto; }
     const key = k.length === 1 ? k.toLowerCase() : k;
     if (key === "s") { if (!$("seg").disabled) $("seg").click(); }
     else if (key === "k") setShow(!showNotes);   // K = key: flip between intervals and note names
-    else if (key === "ArrowDown" || key === "ArrowUp") {
+    else if (key === "ArrowDown" || key === "ArrowUp" || key === "ArrowLeft" || key === "ArrowRight") {
+      // navigate the picker as a grid: left/right move along a row (mode, then its variations); up/down move to the nearest scale in the row above or below
       e.preventDefault();
-      const i = PICK_ORDER.indexOf(SCALES[+$("scale").value].name), n = PICK_ORDER.length;
-      $("scale").value = String(scaleIndex(PICK_ORDER[(i + (key === "ArrowDown" ? 1 : -1) + n) % n]));
+      const cur = SCALES[+$("scale").value].name;
+      let r = PICK_GRID.findIndex((row) => row.includes(cur)), c = PICK_GRID[r].indexOf(cur);
+      if (key === "ArrowRight") c = Math.min(c + 1, PICK_GRID[r].length - 1);
+      else if (key === "ArrowLeft") c = Math.max(c - 1, 0);
+      else { r = Math.max(0, Math.min(PICK_GRID.length - 1, r + (key === "ArrowDown" ? 1 : -1))); c = Math.min(c, PICK_GRID[r].length - 1); }
+      $("scale").value = String(scaleIndex(PICK_GRID[r][c]));
       $("scale").dispatchEvent(new Event("change"));
     }
   });
