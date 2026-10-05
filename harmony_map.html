@@ -113,17 +113,17 @@ details.diff th { color: var(--bark); font-weight: 600; }
   <div class="info" id="info"></div>
   <div class="mapwrap"><svg id="map" viewBox="0 0 2000 1400" role="img" aria-label="Tonal harmony map"></svg></div>
   <div class="legend" id="legend">
-    <span><b style="color:#27408b">blue</b> ii – V pairs</span>
-    <span><b style="color:#8b2020">red</b> sub ii – sub V pairs</span>
-    <span>dark circle = minor-mode chords</span>
-    <span class="mv" data-k="solid"><svg width="30" height="10"><line x1="1" y1="5" x2="25" y2="5" stroke="#9a6a4a" stroke-width="2.5"/><path d="M25 1 L30 5 L25 9z" fill="#9a6a4a"/></svg>solid arrow: a dominant resolving home (5–7–1, also vii°7 → I)</span>
-    <span class="mv" data-k="dot"><svg width="30" height="10"><line x1="1" y1="5" x2="25" y2="5" stroke="#9a6a4a" stroke-width="2.5" stroke-dasharray="1 4" stroke-linecap="round"/><path d="M25 1 L30 5 L25 9z" fill="#9a6a4a"/></svg>dotted arrow: deceptive path (V7 → vi, V7 → ♭VI)</span>
-    <span class="mv" data-k="dash"><svg width="30" height="10"><line x1="1" y1="5" x2="25" y2="5" stroke="#9a6a4a" stroke-width="2.5" stroke-dasharray="6 4"/><path d="M25 1 L30 5 L25 9z" fill="#9a6a4a"/></svg>dashed arrow: sub V7 resolving in place of V7</span>
-    <span class="mv" data-k="bracket"><svg width="24" height="12"><path d="M1 1 L1 10 L23 10 L23 1" fill="none" stroke="#9a6a4a" stroke-width="2.4"/></svg>solid bracket: subdominant ↔ dominant (2–5), either direction</span>
-    <span class="mv" data-k="dbracket"><svg width="24" height="12"><path d="M1 1 L1 10 L23 10 L23 1" fill="none" stroke="#9a6a4a" stroke-width="2.4" stroke-dasharray="5 3"/></svg>dashed bracket: 2 → sub V (or sub 2 → 5)</span>
-    <span class="mv" data-k="green"><svg width="30" height="10"><line x1="1" y1="5" x2="25" y2="5" stroke="#4f7a45" stroke-width="2.5"/><path d="M25 1 L30 5 L25 9z" fill="#4f7a45"/></svg>green arrow: other suggested movement</span>
-    <span class="mv" data-k="gdash"><svg width="30" height="10"><line x1="1" y1="5" x2="25" y2="5" stroke="#4f7a45" stroke-width="2.5" stroke-dasharray="4 3"/><path d="M25 1 L30 5 L25 9z" fill="#4f7a45"/></svg>dashed green arrow: alternative</span>
-    <span class="mv" data-k="flow"><svg width="22" height="14"><rect x="1" y="1" width="20" height="12" rx="4" fill="none" stroke="#8a9e7e" stroke-width="1.6" stroke-dasharray="1.5 2.5"/></svg>dotted outline: same-function chords you could also reach</span>
+    <span><b style="color:#27408b">Blue</b> = a secondary ii – V (the two chords that lead into a target chord)</span>
+    <span><b style="color:#8b2020">Red</b> = tritone substitutes (a sub ii and sub V7 that can replace the blue pair)</span>
+    <span>Outside a dark circle = major-mode chords; inside = minor-mode chords</span>
+    <span class="mv" data-k="solid"><svg width="30" height="10"><line x1="1" y1="5" x2="25" y2="5" stroke="#9a6a4a" stroke-width="2.5"/><path d="M25 1 L30 5 L25 9z" fill="#9a6a4a"/></svg>solid arrow: resolves to the target (V7 → I)</span>
+    <span class="mv" data-k="dot"><svg width="30" height="10"><line x1="1" y1="5" x2="25" y2="5" stroke="#9a6a4a" stroke-width="2.5" stroke-dasharray="1 4" stroke-linecap="round"/><path d="M25 1 L30 5 L25 9z" fill="#9a6a4a"/></svg>dotted arrow: deceptive path (V7 → vi or ♭VI)</span>
+    <span class="mv" data-k="dash"><svg width="30" height="10"><line x1="1" y1="5" x2="25" y2="5" stroke="#9a6a4a" stroke-width="2.5" stroke-dasharray="6 4"/><path d="M25 1 L30 5 L25 9z" fill="#9a6a4a"/></svg>dashed arrow: sub V7 resolving to the target</span>
+    <span class="mv" data-k="bracket"><svg width="24" height="12"><path d="M1 1 L1 10 L23 10 L23 1" fill="none" stroke="#9a6a4a" stroke-width="2.4"/></svg>solid bracket: subdominant ↔ dominant, either way</span>
+    <span class="mv" data-k="dbracket"><svg width="24" height="12"><path d="M1 1 L1 10 L23 10 L23 1" fill="none" stroke="#9a6a4a" stroke-width="2.4" stroke-dasharray="5 3"/></svg>dashed bracket: ii → sub V7 (or sub ii → V7)</span>
+    <span class="mv" data-k="green"><svg width="30" height="10"><line x1="1" y1="5" x2="25" y2="5" stroke="#4f7a45" stroke-width="2.5"/><path d="M25 1 L30 5 L25 9z" fill="#4f7a45"/></svg>green arrow: suggested next chord</span>
+    <span class="mv" data-k="gdash"><svg width="30" height="10"><line x1="1" y1="5" x2="25" y2="5" stroke="#4f7a45" stroke-width="2.5" stroke-dasharray="4 3"/><path d="M25 1 L30 5 L25 9z" fill="#4f7a45"/></svg>dashed green arrow: alternative next chord</span>
+    <span class="mv" data-k="flow"><svg width="22" height="14"><rect x="1" y="1" width="20" height="12" rx="4" fill="none" stroke="#8a9e7e" stroke-width="1.6" stroke-dasharray="1.5 2.5"/></svg>dotted outline: other chords you could reach from here</span>
   </div>
   <p class="keys" aria-label="Keyboard shortcuts">
     <span><kbd>Space</kbd> play progression</span>
@@ -389,7 +389,6 @@ details.diff th { color: var(--bark); font-weight: 600; }
   }
 
   // ---------- how one chord relates to the next ----------
-  const INTERVAL = ["same root", "root up a half step", "root up a whole step", "root up a minor third", "root up a major third", "root up a fourth (down a fifth)", "root up a tritone", "root up a fifth (down a fourth)", "root up a minor sixth (down a major third)", "root up a major sixth (down a minor third)", "root down a whole step", "root down a half step"];
   function relation(aId, bId) {
     const A = byId.get(aId), B = byId.get(bId); if (!A || !B) return "";
     const d = mod(rootOf(B) - rootOf(A)), PA = pcsOf(A), PB = pcsOf(B);
@@ -401,12 +400,12 @@ details.diff th { color: var(--bark); font-weight: 600; }
     if (role === "V7sus4" && domB && d === 0) t = "suspension resolves into the dominant";
     else if ((role === "I64" || role === "i64") && domB && d === 7) t = "cadential 6/4 resolves into the dominant";
     else if (role === "N6" && domB) t = "Neapolitan sixth → dominant";
-    else if (A.q === "dim7") t = d === 1 ? "diminished 7th → resolves up a half step (leading tone)" : [4, 7, 10].includes(d) ? "diminished 7th, spelled another way, resolving up a half step" : "diminished 7th moving to a different chord";
-    else if (domA && d === 5) t = tonicB ? "authentic resolution: dominant → tonic (down a fifth)" : "dominant resolves down a fifth (secondary dominant)";
-    else if (domA && d === 11) t = "tritone-sub resolution: the dominant a half step above moves down by half step";
+    else if (A.q === "dim7") t = d === 1 ? "diminished 7th → resolves to its target (acts as a leading-tone chord)" : [4, 7, 10].includes(d) ? "diminished 7th, spelled another way, resolving to its target" : "diminished 7th moving to a different chord";
+    else if (domA && d === 5) t = tonicB ? "authentic resolution: dominant → tonic" : "dominant resolves to its target (secondary dominant)";
+    else if (domA && d === 11) t = "tritone-substitute resolution: sub V7 resolves in place of the V7";
     else if (domA && String(A.id).startsWith("V7") && (B.id === "vi" || B.id === "bVI")) t = "deceptive cadence: dominant → vi / ♭VI instead of the tonic";
-    else if (minorA && domB && d === 5) t = "ii–V: minor 7th → the dominant a fifth below";
-    else if (minorA && domB && d === 11) t = "ii → subV7: the ii–V with the V replaced by its tritone sub";
+    else if (minorA && domB && d === 5) t = "ii–V: the ii leads to its dominant";
+    else if (minorA && domB && d === 11) t = "ii → sub V7: the ii–V with a tritone-substitute V";
     else if (A.region === "S" && B.region === "T") t = "plagal-type: subdominant → tonic";
     else if (A.region === "S" && B.region === "D") t = "predominant → dominant";
     else if (A.region === "T" && B.region === "S") t = "tonic → predominant (leaving home)";
@@ -415,7 +414,7 @@ details.diff th { color: var(--bark); font-weight: 600; }
     else if (A.region === "D" && B.region === "T") t = "dominant → tonic family";
     else if (A.region === B.region) t = "moves within the " + REGION_NAME[A.region] + " region";
     else t = "chromatic connection";
-    return t + " · " + INTERVAL[d] + (shared ? " · " + shared + " shared tone" + (shared > 1 ? "s" : "") : "");
+    return t + (shared ? " · " + shared + " shared note" + (shared > 1 ? "s" : "") : "");
   }
   // lines describing chord i of the progression (or, for a chord not in it, how it would follow the selected one)
   function relationLines(id, i) {
