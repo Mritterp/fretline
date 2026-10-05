@@ -166,32 +166,30 @@ details.diff th { color: var(--bark); font-weight: 600; }
     { id: "vii07", region: "D", ring: "in", off: 11, at: [1625, 618], tr: ["vii°7", "dim7"], jz: ["vii°7", "dim7"] },
     { id: "viio", region: "D", ring: "out", off: 11, at: [1730, 668], tr: ["vii°", "dim"], jz: ["vii7♭5", "m7b5"] },
     { id: "N7", region: "D", ring: "out", off: 1, at: [1435, 630], col: "red", tr: ["N⁷", "dom7"], jz: ["subV7", "dom7"] },
-    { id: "I64", region: "D", ring: "out", off: 0, bass: 7, at: [1875, 325], tr: ["I⁶₄", "maj"], jz: ["I⁶₄", "maj"] },
-    { id: "V7sus4", region: "D", ring: "out", off: 7, at: [1862, 415], tr: ["V7sus4", "sus7"], jz: ["V7sus4", "sus7"] },
-    { id: "i64", region: "D", ring: "in", circle: 44, off: 0, bass: 7, at: [1865, 510], tr: ["i⁶₄", "min"], jz: ["i⁶₄", "min"] },
+    { id: "I64", region: "D", ring: "out", off: 0, bass: 7, at: [1890, 322], tr: ["I⁶₄", "maj"], jz: ["I⁶₄", "maj"] },
+    { id: "V7sus4", region: "D", ring: "out", off: 7, at: [1880, 418], tr: ["V7sus4", "sus7"], jz: ["V7sus4", "sus7"] },
+    { id: "i64", region: "D", ring: "in", circle: 44, off: 0, bass: 7, at: [1880, 512], tr: ["i⁶₄", "min"], jz: ["i⁶₄", "min"] },
   ];
-  // Approach clusters (advanced map): the chords that lead into a target. hub = V7-of-target inner position; arcs = the two top-right arcs.
+  // Approach clusters, one per target, with every label at the position it has on the supplied maps (2000 x 1400 frame).
+  // pos = where each approach chord sits; circles = which of them are drawn as black circles (minor-mode); plain = ii7♭5 shown as plain blue text.
   const CLUSTERS = [
-    { t: "IV", suf: "IV", hub: [345, 352], i64: [295, 258], sus: [310, 172], minor: true, inner: true, i64in: [420, 160] },
-    { t: "ii", suf: "II", hub: [825, 172], i64: [925, 130], sus: [958, 52], minor: true },
-    { t: "V7", suf: "V", hub: [1782, 172], i64: [1925, 45], sus: [1945, 128], inner: true, minor: true, gr: true },
-    { t: "bVII", suf: "♭VII", hub: [1350, 375], i64: [1300, 255], sus: [1340, 172] },
-    { t: "bVI", suf: "♭VI", hub: [415, 745], i64: [590, 732], sus: [540, 798] },
-    { t: "bIII", suf: "♭III", hub: [735, 964], i64: [650, 846], sus: [820, 846] },
-    { t: "vi", suf: "VI", hub: [1380, 1135], i64: [1335, 985], sus: [1450, 998], minor: true },
-    { t: "iii", suf: "III", hub: [1807, 947], i64: [1965, 870], sus: [1945, 960], minor: true },
+    { t: "IV", suf: "IV", circles: ["iio", "V7in", "N6", "i64"], pos: { ii: [185, 313], iio: [140, 370], V7: [390, 293], V7in: [345, 352], N6: [290, 410], vii07: [375, 445], subii: [50, 452], N7: [222, 460], I64: [295, 258], V7sus4: [310, 172], i64: [420, 160] } },
+    { t: "ii", suf: "II", circles: ["iio", "N6"], pos: { ii: [680, 140], iio: [622, 187], V7: [840, 148], N6: [772, 235], vii07: [880, 265], subii: [535, 272], N7: [697, 282], I64: [925, 130], V7sus4: [958, 52] } },
+    { t: "V7", suf: "V", gr: true, circles: ["iio", "V7in", "N6"], pos: { ii: [1625, 125], iio: [1580, 182], V7: [1835, 118], V7in: [1782, 172], N6: [1730, 230], vii07: [1820, 258], subii: [1470, 265], N7: [1650, 278], I64: [1925, 45], V7sus4: [1945, 128] } },
+    { t: "bVII", suf: "♭VII", circles: ["N6"], pos: { ii: [1200, 355], V7: [1400, 340], N6: [1298, 430], vii07: [1370, 455], subii: [1070, 460], N7: [1215, 478], I64: [1300, 255], V7sus4: [1340, 172] } },
+    { t: "bVI", suf: "♭VI", circles: ["N6"], pos: { ii: [265, 730], V7: [455, 718], N6: [360, 805], vii07: [440, 840], subii: [115, 848], N7: [295, 850], I64: [590, 732], V7sus4: [540, 798] } },
+    { t: "bIII", suf: "♭III", circles: ["N6"], pos: { ii: [580, 953], V7: [780, 935], N6: [680, 1022], vii07: [760, 1052], subii: [445, 1067], N7: [610, 1077], I64: [655, 846], V7sus4: [822, 852] } },
+    { t: "vi", suf: "VI", circles: ["iio", "N6"], pos: { ii: [1228, 1095], iio: [1170, 1150], V7: [1430, 1095], N6: [1320, 1195], vii07: [1410, 1225], subii: [1075, 1230], N7: [1260, 1243], I64: [1335, 985], V7sus4: [1450, 998] } },
+    { t: "iii", suf: "III", circles: ["N6"], pos: { iio: [1640, 935], V7: [1830, 915], N6: [1752, 1005], vii07: [1840, 1040], subii: [1525, 1040], N7: [1690, 1065], I64: [1965, 870], V7sus4: [1945, 960] } },
   ];
-  // member templates, relative to the cluster hub
-  const MEMBERS = [
-    { role: "ii", off: 2, q: "m7", d: [-160, -39], col: "blue", lab: "ii7" },
-    { role: "iio", off: 2, q: "m7b5", d: [-205, 18], col: "lblue", lab: "ii7♭5", circle: 44, needs: "minor" },
-    { role: "V7", off: 7, q: "dom7", d: [45, -59], col: "blue", lab: "V7" },
-    { role: "V7in", off: 7, q: "dom7", d: [0, 0], col: "lblue", lab: "V7", circle: 44, needs: "inner" },
-    { role: "N6", off: 1, bass: 4, q: "maj", d: [-55, 58], lab: "N⁶", circle: 44 },
-    { role: "vii07", off: 11, q: "dim7", d: [30, 93], lab: "vii°7" },
-    { role: "subii", off: 8, q: "m7", d: [-310, 103], col: "red", lab: null },
-    { role: "N7", off: 1, q: "dom7", d: [-123, 108], col: "red", lab: null },
-  ];
+  const ROLES = {   // semitones above the target's root, chord quality, label, colour
+    ii: { off: 2, q: "m7", lab: "ii7", col: "blue" }, iio: { off: 2, q: "m7b5", lab: "ii7♭5", col: "blue", colCircle: "lblue" },
+    V7: { off: 7, q: "dom7", lab: "V7", col: "blue" }, V7in: { off: 7, q: "dom7", lab: "V7", col: "lblue" },
+    N6: { off: 1, q: "maj", bass: 4, lab: "N⁶", col: "" }, vii07: { off: 11, q: "dim7", lab: "vii°7", col: "" },
+    subii: { off: 8, q: "m7", lab: null, col: "red" }, N7: { off: 1, q: "dom7", lab: null, col: "red" },
+    I64: { off: 0, q: "maj", bass: 7, lab: "I⁶₄", col: "" }, V7sus4: { off: 7, q: "sus7", lab: "V7sus4", col: "" }, i64: { off: 0, q: "min", bass: 7, lab: "i⁶₄", col: "" },
+  };
+  const MEDIUM_ROLES = ["ii", "iio", "V7", "V7in"];
 
   // ---------- state ----------
   let mapType = "trad", level = 1, prog = [], current = null, playingTimers = [], audioCtx = null, oscs = [], lastMean = 62;
@@ -211,27 +209,18 @@ details.diff th { color: var(--bark); font-weight: 600; }
       byId.set(m.id, { id: m.id, kind: "main", region: m.region, ring: m.ring, off: m.off, bass: m.bass, q: m[T][1], label: m[T][0], prog: m[T][0], pos: m.at, col: m.col || "", circle: m.circle || 0 });
     });
     if (level < 2) return;
-    // medium: the five diatonic targets with the ii–V pair only; advanced: all eight targets with every approach chord
+    // medium: the five diatonic targets with the ii–V pair only; advanced: all eight clusters with every approach chord
     CLUSTERS.filter((c) => level === 3 || ["IV", "ii", "V7", "vi", "iii"].includes(c.t)).forEach((c) => {
-      const tgt = byId.get(c.t), tOff = tgt.off;
-      const sufName = c.suf;
-      const put = (role, lab, off, q, pos, col, circle, bass) => {
-        byId.set(c.t + "/" + role, { id: c.t + "/" + role, kind: "member", role, target: c.t, region: tgt.region, ring: circle ? "in" : "out", off: mod(tOff + off), bass, q, label: lab + "/" + sufName, prog: lab + "/" + sufName, pos, col, circle });
-      };
-      MEMBERS.forEach((m) => {
-        if (level === 2 && !["ii", "iio", "V7", "V7in"].includes(m.role)) return;
-        if (m.needs === "minor" && !c.minor) return;
-        if (m.needs === "inner" && !c.inner) return;
-        let lab = m.lab;
-        if (m.role === "subii") lab = jazz() ? "subii7" : "♭vi7";
-        if (m.role === "N7") lab = jazz() ? "subV7" : (c.gr ? "Gr+⁶" : "N⁷");
-        put(m.role, lab, m.off, m.q, [c.hub[0] + m.d[0], c.hub[1] + m.d[1]], m.col, m.circle || 0, m.bass);
+      const tgt = byId.get(c.t);
+      Object.entries(c.pos).forEach(([role, pos]) => {
+        if (level === 2 && !MEDIUM_ROLES.includes(role)) return;
+        const r = ROLES[role], circle = c.circles.includes(role) ? 44 : 0;
+        let lab = r.lab;
+        if (role === "subii") lab = jazz() ? "subii7" : "♭vi7";
+        if (role === "N7") lab = jazz() ? "subV7" : (c.gr ? "Gr+⁶" : "N⁷");
+        byId.set(c.t + "/" + role, { id: c.t + "/" + role, kind: "member", role, target: c.t, region: tgt.region, ring: circle ? "in" : "out", off: mod(tgt.off + r.off), bass: r.bass, q: r.q,
+          label: lab + "/" + c.suf, prog: lab + "/" + c.suf, pos, col: circle && r.colCircle ? r.colCircle : r.col, circle });
       });
-      if (level === 3) {
-        put("I64", "I⁶₄", 0, "maj", c.i64, "", 0, 7);
-        put("V7sus4", "V7sus4", 7, "sus7", c.sus, "", 0, undefined);
-        if (c.i64in) put("i64", "i⁶₄", 0, "min", c.i64in, "", 44, 7);
-      }
     });
   }
 
@@ -243,7 +232,7 @@ details.diff th { color: var(--bark); font-weight: 600; }
   };
   const ALT = { V7: ["vi", "bVI"], V7in: ["bVI", "vi"], ii: ["N7"], iio: ["N7"], bVII: ["bIII"], I: ["iii"], IV: ["iv"], iv: ["IV"] };
   const REGION_FLOW = { T: ["S", "D"], S: ["D", "T"], D: ["T"] };
-  const MEMBER_STRONG = { ii: ["V7"], iio: ["V7in"], subii: ["N7"], V7sus4: ["V7"], I64: ["V7"], i64: ["V7in"], N6: ["V7"], V7: ["@t"], V7in: ["@t"], vii07: ["@t"] };
+  const MEMBER_STRONG = { ii: ["V7"], iio: ["V7in", "V7"], subii: ["N7"], V7sus4: ["V7"], I64: ["V7"], i64: ["V7in", "V7"], N6: ["V7"], V7: ["@t"], V7in: ["@t"], vii07: ["@t"] };
   const MEMBER_ALT = { ii: ["N7"], iio: ["N7"], N7: ["@t"] };
 
   function followers(id) {
@@ -269,8 +258,7 @@ details.diff th { color: var(--bark); font-weight: 600; }
   const fontOf = (n) => (n.kind === "member" ? 24 : 34);
   function boxOf(n) { const f = fontOf(n), w = Math.max(60, [...n.label].length * f * 0.58 + 22); return [w, f + 16]; }
 
-  // faint decorative arrows from the original map (drawn only where both ends are visible)
-  const STATIC = [["V7", "I", "solid"], ["N7", "I", "dash"], ["V7", "vi", "dot"], ["V7in", "bVI", "dot"], ["ii", "N7", "dash"], ["bII", "I", "solid"], ["bVI", "I", "solid"], ["N6", "V7in", "solid"]];
+  // geometry shared by the drawing code
   function edgeDist(n, ux, uy) {   // distance from a node's centre to the edge of its label box (or circle) along the unit vector
     const [w, h] = boxOf(n), hw = Math.max(w / 2, n.circle || 0) + 4, hh = Math.max(h / 2, n.circle || 0) + 4;
     return Math.min(Math.abs(ux) < 1e-6 ? Infinity : hw / Math.abs(ux), Math.abs(uy) < 1e-6 ? Infinity : hh / Math.abs(uy));
@@ -306,33 +294,48 @@ details.diff th { color: var(--bark); font-weight: 600; }
       if (t === "DOMINANT") { x = 1960; y = 810; }
       svg.appendChild(el("text", { x, y, "text-anchor": a || "start", "font-size": "26", fill: "#8a8576", opacity: "0.7", "letter-spacing": "6", "font-family": "Helvetica,Arial,sans-serif" }, t));
     });
-    // approach clusters: sub-circles (ii circle + V circle), connector, tree lines, bracket and arrows into the target
+    // approach clusters: the two sub-circles (ii circle, V circle), connector, line to the target, bracket, dashed bracket and arrows, as on the map
+    const tan = "#a99a76", brown = "#9a6a4a", ink = "#26231e";
+    const edgePt = (pt, n, tow) => { const dx = tow[0] - pt[0], dy = tow[1] - pt[1], d = Math.hypot(dx, dy) || 1, ux = dx / d, uy = dy / d, e = edgeDist(n, -ux, -uy); return [tow[0] - ux * e, tow[1] - uy * e]; };
     if (level >= 2) CLUSTERS.forEach((c) => {
-      const t = byId.get(c.t), V = byId.get(c.t + "/V7"); if (!t || !V) return;
-      const [hx, hy] = c.hub, tan = "#a99a76", brown = "#9a6a4a";
-      svg.appendChild(el("circle", { cx: hx - 200, cy: hy + 10, r: 88, fill: "none", stroke: tan, "stroke-width": "2.4" }));
-      svg.appendChild(el("circle", { cx: hx - 22, cy: hy + 30, r: 84, fill: "none", stroke: tan, "stroke-width": "2.4" }));
-      svg.appendChild(el("line", { x1: hx - 112, y1: hy + 14, x2: hx - 106, y2: hy + 14, stroke: "#26231e", "stroke-width": "3" }));
-      svg.appendChild(el("line", { x1: hx - 116, y1: hy + 14, x2: hx - 100, y2: hy + 14, stroke: "#26231e", "stroke-width": "3" }));
-      [c.t + "/I64", c.t + "/V7sus4", c.t + "/i64"].forEach((id) => { const m = byId.get(id); if (m) svg.appendChild(el("line", { x1: V.pos[0], y1: V.pos[1] - 18, x2: m.pos[0], y2: m.pos[1] + 14, stroke: tan, "stroke-width": "2" })); });
-      const apd = arrowPath(V, t, 0.18); if (apd) svg.appendChild(el("path", { d: apd, fill: "none", stroke: brown, "stroke-width": "3.2", opacity: "0.75", "marker-end": "url(#ah1)" }));
+      const t = byId.get(c.t), N = byId.get(c.t + "/N6"), V = byId.get(c.t + "/V7"); if (!t || !N) return;
+      const [nx, ny] = N.pos, c1 = [nx - 178, ny - 25], c2 = [nx + 22, ny - 28];
+      svg.appendChild(el("circle", { cx: c1[0], cy: c1[1], r: 82, fill: "none", stroke: tan, "stroke-width": "2.4" }));
+      svg.appendChild(el("circle", { cx: c2[0], cy: c2[1], r: 72, fill: "none", stroke: tan, "stroke-width": "2.4" }));
+      svg.appendChild(el("line", { x1: nx - 99, y1: ny - 22, x2: nx - 50, y2: ny - 22, stroke: ink, "stroke-width": "3.2" }));
+      // black line from the V circle to the target chord
+      const dx = t.pos[0] - c2[0], dy = t.pos[1] - c2[1], dd = Math.hypot(dx, dy) || 1, ux = dx / dd, uy = dy / dd;
+      const e = edgeDist(t, ux, uy) + 8;
+      if (dd - 72 - e > 14) svg.appendChild(el("line", { x1: c2[0] + ux * 72, y1: c2[1] + uy * 72, x2: t.pos[0] - ux * e, y2: t.pos[1] - uy * e, stroke: ink, "stroke-width": "2.6" }));
+      // solid arrow V7/X -> X
+      if (V) { const apd = arrowPath(V, t, 0.2); if (apd) svg.appendChild(el("path", { d: apd, fill: "none", stroke: brown, "stroke-width": "3.4", "marker-end": "url(#ah1)" })); }
       if (level === 3) {
-        const y = hy + 138, x1 = hx - 335, x2 = hx - 98;
-        svg.appendChild(el("path", { d: `M${x1} ${y - 12} L${x1} ${y} L${x2} ${y} L${x2} ${y - 12}`, fill: "none", stroke: brown, "stroke-width": "3", opacity: "0.8" }));
-        const dash = el("path", { d: `M${x2 - 10} ${y} Q${(x2 + t.pos[0]) / 2 + 40} ${y + 30} ${t.pos[0] - (t.pos[0] > x2 ? 70 : -70)} ${t.pos[1] + 60}`, fill: "none", stroke: brown, "stroke-width": "3", "stroke-dasharray": "13 9", opacity: "0.6", "marker-end": "url(#ah1)" });
-        svg.appendChild(dash);
+        // lines to the cadential 6/4 and sus4 chords, with the small arcs beside them
+        if (V) ["I64", "V7sus4", "i64"].forEach((role) => { const m = byId.get(c.t + "/" + role); if (m) svg.appendChild(el("line", { x1: V.pos[0] + 8, y1: V.pos[1] - 22, x2: m.pos[0] - 6, y2: m.pos[1] + 22, stroke: tan, "stroke-width": "2" })); });
+        ["I64", "V7sus4"].forEach((role) => { const m = byId.get(c.t + "/" + role); if (!m) return; const [w] = boxOf(m), x = Math.min(m.pos[0] + w / 2 + 4, 1990); svg.appendChild(el("path", { d: `M${x} ${m.pos[1] - 24} Q${x + 22} ${m.pos[1]} ${x} ${m.pos[1] + 24}`, fill: "none", stroke: ink, "stroke-width": "2.4" })); });
+        // dashed elbow from the ii circle down to the substitute V, solid bracket under the two substitutes, dashed arrow into the target
+        svg.appendChild(el("path", { d: `M${nx - 102} ${ny - 62} L${nx - 88} ${ny - 62} L${nx - 52} ${ny + 28} L${nx - 38} ${ny + 28}`, fill: "none", stroke: brown, "stroke-width": "2.6", "stroke-dasharray": "8 6" }));
+        const by = ny + 80, bx1 = nx - 190, bx2 = nx + 40;
+        svg.appendChild(el("path", { d: `M${bx1} ${by - 14} L${bx1} ${by} L${bx2} ${by} L${bx2} ${by - 14}`, fill: "none", stroke: brown, "stroke-width": "3.2" }));
+        const end = edgePt([bx2, by], t, t.pos), mx = (bx2 + end[0]) / 2, my = (by + end[1]) / 2, bd = 0.22;
+        svg.appendChild(el("path", { d: `M${bx2} ${by} Q${mx - (end[1] - by) * bd} ${my + (end[0] - bx2) * bd} ${end[0]} ${end[1]}`, fill: "none", stroke: brown, "stroke-width": "3", "stroke-dasharray": "13 9", opacity: "0.85", "marker-end": "url(#ah1)" }));
       }
     });
     // dark discs
     Object.entries(DISC).forEach(([, d]) => svg.appendChild(el("circle", { cx: d.c[0], cy: d.c[1], r: d.r, fill: "#232220", stroke: "#8a6a4e", "stroke-width": "4" })));
-    // decorative arrows
-    STATIC.forEach(([a, b, style]) => {
-      if (!byId.has(a) || !byId.has(b)) return;
-      const pd = arrowPath(byId.get(a), byId.get(b), style === "solid" ? 0.1 : 0.15); if (!pd) return;
-      const p = el("path", { d: pd, fill: "none", stroke: "#9a6a4a", "stroke-width": "3", opacity: "0.38", "marker-end": "url(#ah1)" });
-      if (style === "dash") p.setAttribute("stroke-dasharray", "14 9"); else if (style === "dot") p.setAttribute("stroke-dasharray", "2 8");
-      svg.appendChild(p);
-    });
+    // the main map's own brackets and arrows, as drawn on the original (basic and advanced share them)
+    const brownL = "#9a6a4a", dec = (d, style, head) => { const p = el("path", { d, fill: "none", stroke: brownL, "stroke-width": "3.6", opacity: "0.85" }); if (style === "dash") p.setAttribute("stroke-dasharray", "15 10"); if (style === "dot") { p.setAttribute("stroke-dasharray", "2 9"); p.setAttribute("stroke-linecap", "round"); } if (head) p.setAttribute("marker-end", "url(#ah1)"); svg.appendChild(p); };
+    dec("M640 680 L640 695 L1610 695 L1610 680", "solid", false);                        // solid bracket: ii (subdominant) - V7 (dominant)
+    dec("M712 655 C735 705 880 728 944 738", "solid", true);                            // from the subdominant circle round to I
+    dec("M1708 352 C1590 330 1470 410 1345 530 L1062 746", "solid", true);              // V7 -> I
+    dec("M1722 372 C1600 352 1480 440 1392 640 C1330 790 1282 860 1220 896", "dot", true);   // V7 -> vi (deceptive)
+    if (byId.has("bVI")) dec("M1632 440 C1300 560 900 580 626 560", "dot", true);       // V7 -> bVI (deceptive)
+    dec("M1396 632 C1300 640 1185 700 1086 740", "dash", true);                         // N7 / subV7 -> I
+    dec("M785 400 L1363 598 M785 382 L785 400 M1363 598 L1368 612", "dash", false);     // dashed bracket: ii -> N7 / subV7
+    dec("M1568 548 Q1645 520 1637 466", "solid", true);                                 // N6 -> V7
+    // small arcs beside V7 (")") and the cadential 6/4 and sus4 chords ("(")
+    [["V7", 1], ["I64", -1], ["V7sus4", -1]].forEach(([id, side]) => { const n = byId.get(id); if (!n) return; const [w] = boxOf(n), x = n.pos[0] + side * (w / 2 + 6), y = n.pos[1]; svg.appendChild(el("path", { d: `M${x} ${y - 26} Q${x + side * 24} ${y} ${x} ${y + 26}`, fill: "none", stroke: "#26231e", "stroke-width": "2.4" })); });
+    if (byId.has("V7")) [["I64", 1], ["V7sus4", 1], ["i64", 1]].forEach(([id]) => { const m = byId.get(id); if (m) svg.appendChild(el("line", { x1: 1790, y1: 385, x2: m.pos[0] - 40, y2: m.pos[1], stroke: "#a99a76", "stroke-width": "2" })); });
 
     const fol = current && byId.has(current) ? followers(current) : new Map();
     if (current && byId.has(current)) {
