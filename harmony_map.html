@@ -77,7 +77,7 @@ details.diff th { color: var(--bark); font-weight: 600; }
   </div>
   <div class="controls">
     <span class="seg" role="group" aria-label="Map style"><button type="button" id="m-trad" aria-pressed="true">Traditional</button><button type="button" id="m-jazz" aria-pressed="false">Jazz</button></span>
-    <span class="seg" role="group" aria-label="Map level"><button type="button" id="l-basic" aria-pressed="true">Basic</button><button type="button" id="l-adv" aria-pressed="false">Advanced</button></span>
+    <span class="seg" role="group" aria-label="Map level"><button type="button" id="l-basic" aria-pressed="true">Basic</button><button type="button" id="l-med" aria-pressed="false">Medium</button><button type="button" id="l-adv" aria-pressed="false">Advanced</button></span>
     <label>Speed <select id="speed"><option value="2.0">Slow</option><option value="1.4" selected>Medium</option><option value="0.9">Fast</option></select></label>
   </div>
 </header>
@@ -99,7 +99,7 @@ details.diff th { color: var(--bark); font-weight: 600; }
     <span><kbd>Space</kbd> play progression</span>
     <span><kbd>Backspace</kbd> remove last chord</span>
     <span><kbd>Esc</kbd> clear</span>
-    <span><kbd>↑</kbd> <kbd>↓</kbd> basic / advanced</span>
+    <span><kbd>↑</kbd> <kbd>↓</kbd> basic / medium / advanced</span>
     <span><kbd>M</kbd> traditional / jazz</span>
     <span>click a chord to hear it and add it (plays in C)</span>
   </p>
@@ -111,10 +111,10 @@ details.diff th { color: var(--bark); font-weight: 600; }
       <tr><td>Subdominant</td><td>IV · ii · iv · ii° · ♭VI</td><td>IV△ · ii7 · iv7 · ii7♭5 · ♭VI△</td></tr>
       <tr><td>Dominant</td><td>♭VII · vii°</td><td>♭VII7 · vii7♭5</td></tr>
       <tr><td>Half-step-above dominant</td><td>N⁷ (Neapolitan 7th)</td><td>subV7</td></tr>
-      <tr><td>Advanced only: II</td><td>II</td><td>II7♭5</td></tr>
-      <tr><td>Advanced only: ♭II</td><td>♭II</td><td>♭II△</td></tr>
-      <tr><td>Advanced only: chord a fifth below subV7</td><td>♭vi7</td><td>subii7</td></tr>
-      <tr><td>Approach to V, in the V cluster</td><td>Gr+⁶ (It+⁶ / Fr+⁶ sit in the same place)</td><td>subV7/V</td></tr>
+      <tr><td>Medium and up: II</td><td>II</td><td>II7♭5</td></tr>
+      <tr><td>Medium and up: ♭II</td><td>♭II</td><td>♭II△</td></tr>
+      <tr><td>Medium and up: chord a fifth below subV7</td><td>♭vi7</td><td>subii7</td></tr>
+      <tr><td>Advanced: approach to V, in the V cluster</td><td>Gr+⁶ (It+⁶ / Fr+⁶ sit in the same place)</td><td>subV7/V</td></tr>
       <tr><td>Same in both</td><td colspan="2">V7 · N⁶ · vii°7 · I⁶₄ · i⁶₄ · V7sus4 · V · ♭III°7 and the ii7 / ii7♭5 / V7 / vii°7 / N⁶ approach chords</td></tr>
     </table>
   </details>
@@ -172,7 +172,7 @@ details.diff th { color: var(--bark); font-weight: 600; }
   ];
   // Approach clusters (advanced map): the chords that lead into a target. hub = V7-of-target inner position; arcs = the two top-right arcs.
   const CLUSTERS = [
-    { t: "IV", suf: "IV", hub: [345, 352], i64: [295, 258], sus: [310, 172], inner: true, i64in: [420, 160] },
+    { t: "IV", suf: "IV", hub: [345, 352], i64: [295, 258], sus: [310, 172], minor: true, inner: true, i64in: [420, 160] },
     { t: "ii", suf: "II", hub: [825, 172], i64: [925, 130], sus: [958, 52], minor: true },
     { t: "V7", suf: "V", hub: [1782, 172], i64: [1925, 45], sus: [1945, 128], inner: true, minor: true, gr: true },
     { t: "bVII", suf: "♭VII", hub: [1350, 375], i64: [1300, 255], sus: [1340, 172] },
@@ -197,7 +197,7 @@ details.diff th { color: var(--bark); font-weight: 600; }
   let mapType = "trad", level = 1, prog = [], current = null, playingTimers = [], audioCtx = null, oscs = [], lastMean = 62;
   try {
     const s = JSON.parse(localStorage.getItem("fretline-harmony2") || "null");
-    if (s) { mapType = s.mapType === "jazz" ? "jazz" : "trad"; level = s.level === 2 ? 2 : 1; }
+    if (s) { mapType = s.mapType === "jazz" ? "jazz" : "trad"; level = [1, 2, 3].includes(s.level) ? s.level : 1; }
   } catch (e) {}
   const save = () => { try { localStorage.setItem("fretline-harmony2", JSON.stringify({ mapType, level })); } catch (e) {} };
   const jazz = () => mapType === "jazz";
@@ -207,17 +207,19 @@ details.diff th { color: var(--bark); font-weight: 600; }
   function buildNodes() {
     byId.clear();
     const T = jazz() ? "jz" : "tr";
-    MAIN.filter((m) => !m.adv || level === 2).forEach((m) => {
+    MAIN.filter((m) => (m.adv ? 2 : 1) <= level).forEach((m) => {
       byId.set(m.id, { id: m.id, kind: "main", region: m.region, ring: m.ring, off: m.off, bass: m.bass, q: m[T][1], label: m[T][0], prog: m[T][0], pos: m.at, col: m.col || "", circle: m.circle || 0 });
     });
-    if (level !== 2) return;
-    CLUSTERS.forEach((c) => {
+    if (level < 2) return;
+    // medium: the five diatonic targets with the ii–V pair only; advanced: all eight targets with every approach chord
+    CLUSTERS.filter((c) => level === 3 || ["IV", "ii", "V7", "vi", "iii"].includes(c.t)).forEach((c) => {
       const tgt = byId.get(c.t), tOff = tgt.off;
       const sufName = c.suf;
       const put = (role, lab, off, q, pos, col, circle, bass) => {
         byId.set(c.t + "/" + role, { id: c.t + "/" + role, kind: "member", role, target: c.t, region: tgt.region, ring: circle ? "in" : "out", off: mod(tOff + off), bass, q, label: lab + "/" + sufName, prog: lab + "/" + sufName, pos, col, circle });
       };
       MEMBERS.forEach((m) => {
+        if (level === 2 && !["ii", "iio", "V7", "V7in"].includes(m.role)) return;
         if (m.needs === "minor" && !c.minor) return;
         if (m.needs === "inner" && !c.inner) return;
         let lab = m.lab;
@@ -225,9 +227,11 @@ details.diff th { color: var(--bark); font-weight: 600; }
         if (m.role === "N7") lab = jazz() ? "subV7" : (c.gr ? "Gr+⁶" : "N⁷");
         put(m.role, lab, m.off, m.q, [c.hub[0] + m.d[0], c.hub[1] + m.d[1]], m.col, m.circle || 0, m.bass);
       });
-      put("I64", "I⁶₄", 0, "maj", c.i64, "", 0, 7);
-      put("V7sus4", "V7sus4", 7, "sus7", c.sus, "", 0, undefined);
-      if (c.i64in) put("i64", "i⁶₄", 0, "min", c.i64in, "", 40, 7);
+      if (level === 3) {
+        put("I64", "I⁶₄", 0, "maj", c.i64, "", 0, 7);
+        put("V7sus4", "V7sus4", 7, "sus7", c.sus, "", 0, undefined);
+        if (c.i64in) put("i64", "i⁶₄", 0, "min", c.i64in, "", 44, 7);
+      }
     });
   }
 
@@ -267,10 +271,18 @@ details.diff th { color: var(--bark); font-weight: 600; }
 
   // faint decorative arrows from the original map (drawn only where both ends are visible)
   const STATIC = [["V7", "I", "solid"], ["N7", "I", "dash"], ["V7", "vi", "dot"], ["V7in", "bVI", "dot"], ["ii", "N7", "dash"], ["bII", "I", "solid"], ["bVI", "I", "solid"], ["N6", "V7in", "solid"]];
-  function arrowPath(a, b, bend) {
-    const dx = b[0] - a[0], dy = b[1] - a[1], d = Math.hypot(dx, dy) || 1, ux = dx / d, uy = dy / d;
-    const s = [a[0] + ux * 55, a[1] + uy * 36], e = [b[0] - ux * 62, b[1] - uy * 40];
-    const cx = (s[0] + e[0]) / 2 - uy * d * bend, cy = (s[1] + e[1]) / 2 + ux * d * bend;
+  function edgeDist(n, ux, uy) {   // distance from a node's centre to the edge of its label box (or circle) along the unit vector
+    const [w, h] = boxOf(n), hw = Math.max(w / 2, n.circle || 0) + 4, hh = Math.max(h / 2, n.circle || 0) + 4;
+    return Math.min(Math.abs(ux) < 1e-6 ? Infinity : hw / Math.abs(ux), Math.abs(uy) < 1e-6 ? Infinity : hh / Math.abs(uy));
+  }
+  function arrowPath(na, nb, bend) {
+    const a = na.pos, b = nb.pos, dx = b[0] - a[0], dy = b[1] - a[1], d = Math.hypot(dx, dy) || 1, ux = dx / d, uy = dy / d;
+    const ta = edgeDist(na, ux, uy), tb = edgeDist(nb, ux, uy);
+    if (d - ta - tb < 36) return null;   // labels are practically touching: the outline alone shows the link, an arrow would point the wrong way
+    const gap = Math.min(22, (d - ta - tb) * 0.3);
+    const s = [a[0] + ux * (ta + gap), a[1] + uy * (ta + gap)], e = [b[0] - ux * (tb + gap), b[1] - uy * (tb + gap)];
+    const len = Math.hypot(e[0] - s[0], e[1] - s[1]), bd = d > 160 ? bend : bend * 0.4;
+    const cx = (s[0] + e[0]) / 2 - uy * len * bd, cy = (s[1] + e[1]) / 2 + ux * len * bd;
     return `M${s[0]} ${s[1]} Q${cx} ${cy} ${e[0]} ${e[1]}`;
   }
 
@@ -294,17 +306,30 @@ details.diff th { color: var(--bark); font-weight: 600; }
       if (t === "DOMINANT") { x = 1960; y = 810; }
       svg.appendChild(el("text", { x, y, "text-anchor": a || "start", "font-size": "26", fill: "#8a8576", opacity: "0.7", "letter-spacing": "6", "font-family": "Helvetica,Arial,sans-serif" }, t));
     });
-    // cluster leader lines
-    if (level === 2) CLUSTERS.forEach((c) => {
-      const t = byId.get(c.t);
-      svg.appendChild(el("line", { x1: c.hub[0], y1: c.hub[1], x2: t.pos[0], y2: t.pos[1], stroke: "#bdb28f", "stroke-width": "2.4", "stroke-dasharray": "3 9" }));
+    // approach clusters: sub-circles (ii circle + V circle), connector, tree lines, bracket and arrows into the target
+    if (level >= 2) CLUSTERS.forEach((c) => {
+      const t = byId.get(c.t), V = byId.get(c.t + "/V7"); if (!t || !V) return;
+      const [hx, hy] = c.hub, tan = "#a99a76", brown = "#9a6a4a";
+      svg.appendChild(el("circle", { cx: hx - 200, cy: hy + 10, r: 88, fill: "none", stroke: tan, "stroke-width": "2.4" }));
+      svg.appendChild(el("circle", { cx: hx - 22, cy: hy + 30, r: 84, fill: "none", stroke: tan, "stroke-width": "2.4" }));
+      svg.appendChild(el("line", { x1: hx - 112, y1: hy + 14, x2: hx - 106, y2: hy + 14, stroke: "#26231e", "stroke-width": "3" }));
+      svg.appendChild(el("line", { x1: hx - 116, y1: hy + 14, x2: hx - 100, y2: hy + 14, stroke: "#26231e", "stroke-width": "3" }));
+      [c.t + "/I64", c.t + "/V7sus4", c.t + "/i64"].forEach((id) => { const m = byId.get(id); if (m) svg.appendChild(el("line", { x1: V.pos[0], y1: V.pos[1] - 18, x2: m.pos[0], y2: m.pos[1] + 14, stroke: tan, "stroke-width": "2" })); });
+      const apd = arrowPath(V, t, 0.18); if (apd) svg.appendChild(el("path", { d: apd, fill: "none", stroke: brown, "stroke-width": "3.2", opacity: "0.75", "marker-end": "url(#ah1)" }));
+      if (level === 3) {
+        const y = hy + 138, x1 = hx - 335, x2 = hx - 98;
+        svg.appendChild(el("path", { d: `M${x1} ${y - 12} L${x1} ${y} L${x2} ${y} L${x2} ${y - 12}`, fill: "none", stroke: brown, "stroke-width": "3", opacity: "0.8" }));
+        const dash = el("path", { d: `M${x2 - 10} ${y} Q${(x2 + t.pos[0]) / 2 + 40} ${y + 30} ${t.pos[0] - (t.pos[0] > x2 ? 70 : -70)} ${t.pos[1] + 60}`, fill: "none", stroke: brown, "stroke-width": "3", "stroke-dasharray": "13 9", opacity: "0.6", "marker-end": "url(#ah1)" });
+        svg.appendChild(dash);
+      }
     });
     // dark discs
     Object.entries(DISC).forEach(([, d]) => svg.appendChild(el("circle", { cx: d.c[0], cy: d.c[1], r: d.r, fill: "#232220", stroke: "#8a6a4e", "stroke-width": "4" })));
     // decorative arrows
     STATIC.forEach(([a, b, style]) => {
       if (!byId.has(a) || !byId.has(b)) return;
-      const p = el("path", { d: arrowPath(byId.get(a).pos, byId.get(b).pos, style === "solid" ? 0.1 : 0.15), fill: "none", stroke: "#9a6a4a", "stroke-width": "3", opacity: "0.38", "marker-end": "url(#ah1)" });
+      const pd = arrowPath(byId.get(a), byId.get(b), style === "solid" ? 0.1 : 0.15); if (!pd) return;
+      const p = el("path", { d: pd, fill: "none", stroke: "#9a6a4a", "stroke-width": "3", opacity: "0.38", "marker-end": "url(#ah1)" });
       if (style === "dash") p.setAttribute("stroke-dasharray", "14 9"); else if (style === "dot") p.setAttribute("stroke-dasharray", "2 8");
       svg.appendChild(p);
     });
@@ -314,7 +339,8 @@ details.diff th { color: var(--bark); font-weight: 600; }
       const a = byId.get(current).pos;
       fol.forEach((kind, tid) => {
         if (kind !== "strong" && kind !== "alt") return;
-        const p = el("path", { d: arrowPath(a, byId.get(tid).pos, 0.14), fill: "none", stroke: "#4f7a45", "stroke-width": "5", "marker-end": "url(#ah0)", opacity: "0.92" });
+        const pd = arrowPath(byId.get(current), byId.get(tid), 0.14); if (!pd) return;
+        const p = el("path", { d: pd, fill: "none", stroke: "#4f7a45", "stroke-width": "5", "marker-end": "url(#ah0)", opacity: "0.92" });
         if (kind === "alt") p.setAttribute("stroke-dasharray", "16 10");
         svg.appendChild(p);
       });
@@ -346,7 +372,7 @@ details.diff th { color: var(--bark); font-weight: 600; }
     });
     renderProg(); renderInfo(fol);
     $("m-trad").setAttribute("aria-pressed", String(!jazz())); $("m-jazz").setAttribute("aria-pressed", String(jazz()));
-    $("l-basic").setAttribute("aria-pressed", String(level === 1)); $("l-adv").setAttribute("aria-pressed", String(level === 2));
+    $("l-basic").setAttribute("aria-pressed", String(level === 1)); $("l-med").setAttribute("aria-pressed", String(level === 2)); $("l-adv").setAttribute("aria-pressed", String(level === 3));
   }
 
   const REGION_NAME = { T: "tonic", S: "subdominant", D: "dominant" };
@@ -435,7 +461,8 @@ details.diff th { color: var(--bark); font-weight: 600; }
   $("m-trad").addEventListener("click", () => { mapType = "trad"; relevel(); });
   $("m-jazz").addEventListener("click", () => { mapType = "jazz"; relevel(); });
   $("l-basic").addEventListener("click", () => { level = 1; relevel(); });
-  $("l-adv").addEventListener("click", () => { level = 2; relevel(); });
+  $("l-med").addEventListener("click", () => { level = 2; relevel(); });
+  $("l-adv").addEventListener("click", () => { level = 3; relevel(); });
   document.addEventListener("keydown", (e) => {
     if (e.ctrlKey || e.metaKey || e.altKey) return;
     const tag = e.target && e.target.tagName;
@@ -444,8 +471,8 @@ details.diff th { color: var(--bark); font-weight: 600; }
     if (k === " " || k === "Spacebar") { if (tag === "BUTTON") return; e.preventDefault(); playProg(); }
     else if (k === "Backspace") { e.preventDefault(); undo(); }
     else if (k === "Escape") clearProg();
-    else if (k === "ArrowUp") { e.preventDefault(); level = 2; relevel(); }
-    else if (k === "ArrowDown") { e.preventDefault(); level = 1; relevel(); }
+    else if (k === "ArrowUp") { e.preventDefault(); level = Math.min(3, level + 1); relevel(); }
+    else if (k === "ArrowDown") { e.preventDefault(); level = Math.max(1, level - 1); relevel(); }
     else if (k.toLowerCase() === "m") { mapType = jazz() ? "trad" : "jazz"; relevel(); }
   });
   window.__harmony = { byId, followers, voicing, Q, MAIN, CLUSTERS, boxOf, get state() { return { mapType, level, prog, current }; }, set(t, l) { mapType = t; level = l; relevel(); } };
