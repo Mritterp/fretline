@@ -481,6 +481,11 @@ details.diff th { color: var(--bark); font-weight: 600; }
     const nodes = {}, L = {};
     keys.forEach((k) => { nodes[k] = byId.get(idOf(k)); L[k] = nodes[k].pos; });
     const disc = byId.get(idOf("i64")), rad = (a) => (a * Math.PI) / 180;
+    const extra = [], pre = String(idOf("V7")).split("/")[0], gx = String(idOf("V7")).includes("/") ? GEO[pre] : null, tgt = gx ? byId.get(pre) : null;
+    if (gx && tgt) {   // the line from the V ring to the target chord
+      const dx = tgt.pos[0] - gx.P[0], dy = tgt.pos[1] - gx.P[1], dd = Math.hypot(dx, dy) || 1, ux = dx / dd, uy = dy / dd, e = edgeDist(tgt, ux, uy) + 8;
+      if (dd - 76 - e > 14) { const x1 = gx.P[0] + ux * 76, y1 = gx.P[1] + uy * 76, x2 = tgt.pos[0] - ux * e, y2 = tgt.pos[1] - uy * e, n = Math.max(2, Math.round(Math.hypot(x2 - x1, y2 - y1) / 3)); for (let i = 0; i <= n; i++) extra.push([x1 + ((x2 - x1) * i) / n, y1 + ((y2 - y1) * i) / n]); }
+    }
     const axisOf = (dx, dy) => (Math.abs(dx) >= Math.abs(dy) ? (dx >= 0 ? 0 : 180) : dy >= 0 ? 90 : 270);
     const face = {};
     if (L.V7) {
@@ -506,6 +511,11 @@ details.diff th { color: var(--bark); font-weight: 600; }
     const samp = (k) => { const out = []; for (let ang = T[k][2]; ang <= T[k][3]; ang += 3) out.push([ang, polar([T[k][0], T[k][1]], R, ang)]); return out; };
     for (let it = 0; it < 48; it++) {   // no arc may touch another: shorten the ends that meet
       let changed = false;
+        keys.forEach((k) => {   // ...or the line to the target
+          if (!extra.length) return;
+          let hit = null; samp(k).forEach(([an, p]) => { for (const q of extra) { const d = Math.hypot(p[0] - q[0], p[1] - q[1]); if (d < 9 && (!hit || d < hit[0])) hit = [d, an]; } });
+          if (hit) { const t = T[k]; if (t[3] - t[2] > 40) { if (hit[1] - t[2] < t[3] - hit[1]) t[2] += 4; else t[3] -= 4; changed = true; } }
+        });
       for (let i = 0; i < keys.length; i++) for (let j = i + 1; j < keys.length; j++) {
         const si = samp(keys[i]), sj = samp(keys[j]); let best = null;
         si.forEach(([ai, p]) => sj.forEach(([aj, q]) => { const d = Math.hypot(p[0] - q[0], p[1] - q[1]); if (!best || d < best[0]) best = [d, ai, aj]; }));
@@ -528,7 +538,12 @@ details.diff th { color: var(--bark); font-weight: 600; }
     keys.forEach((k) => arcs.push([ctr(k), R, T[k][2], T[k][3]]));
     ["I64", "V7sus4"].forEach((k) => {
       if (!T[k] || !T.V7) return;
-      const m = polar(ctr(k), R, (T[k][2] + T[k][3]) / 2), a = onArc("V7", m); segs.push([a[0], a[1], m[0], m[1]]);
+      let best = null;
+      for (let a1 = T.V7[2]; a1 <= T.V7[3]; a1 += 2) for (let a2 = T[k][2]; a2 <= T[k][3]; a2 += 2) {
+        const p = polar(ctr("V7"), R, a1), q = polar(ctr(k), R, a2), d = Math.hypot(p[0] - q[0], p[1] - q[1]);
+        if (!best || d < best[0]) best = [d, p, q];
+      }
+      segs.push([best[1][0], best[1][1], best[2][0], best[2][1]]);
     });
     if (disc && disc.circle && T.V7) {
       const a = onArc("V7", disc.pos), dx = disc.pos[0] - a[0], dy = disc.pos[1] - a[1], d = Math.hypot(dx, dy) || 1;
@@ -536,6 +551,7 @@ details.diff th { color: var(--bark); font-weight: 600; }
     }
     return { arcs, segs, T };
   }
+  const boxHitsDisc = (x, y, tw, th) => Object.values(DISC).some((d) => Math.hypot(Math.max(x - tw, Math.min(d.c[0], x + tw)) - d.c[0], Math.max(y - th, Math.min(d.c[1], y + th)) - d.c[1]) < d.r + 5);
   function spaceTrees(A, idOf) {   // when V7sus4 / I64 sit too close to V7 for full arcs, slide them away from V7 (squeezing the lettering at the map edge)
     const keys = ["I64", "V7sus4"].filter((k) => A[k] && byId.has(idOf(k))); if (!A.V7 || !byId.has(idOf("V7")) || !keys.length) return;
     const V = byId.get(idOf("V7")).pos, base = {}, dir = {};
@@ -544,21 +560,27 @@ details.diff th { color: var(--bark); font-weight: 600; }
       const dx = V[0] - n.pos[0], dy = V[1] - n.pos[1];
       dir[k] = Math.abs(dx) >= 0.35 * Math.abs(dy) ? [Math.sign(dx) || 1, 0] : [0, Math.sign(dy) || 1];
     });
-    const apply = (push) => keys.forEach((k) => {
-      const n = byId.get(idOf(k)); n.pos = [base[k][0] - dir[k][0] * push, base[k][1] - dir[k][1] * push]; n.wd = base[k][2];
+    const P = {}; keys.forEach((k) => { P[k] = 0; });
+    const apply = () => keys.forEach((k) => {
+      const push = P[k], n = byId.get(idOf(k)); n.pos = [base[k][0] - dir[k][0] * push, base[k][1] - dir[k][1] * push]; n.wd = base[k][2];
       if (dir[k][0]) {   // keep the lettering inside the map
         const nat = textW(n.label, fontOf(n)), w = n.wd ? Math.min(n.wd, nat) : nat, half = w / 2 + 3, left = n.pos[0] - half, right = n.pos[0] + half;
         if (right > 1990 || left < 8) { const nl2 = Math.max(left, 8), nr = Math.min(right, 1990), w2 = Math.max(nat * 0.62, nr - nl2 - 6); n.wd = Math.round(w2); n.pos = [(nl2 + nr) / 2, n.pos[1]]; }
       }
     });
-    let best = null;
-    for (let push = 0; push <= 48; push += 4) {
-      apply(push);
-      const tp = treeParts(A, idOf), span = Math.min(...Object.values(tp.T).map((t) => t[3] - t[2]));
-      if (!best || span > best[0]) best = [span, push];
-      if (span >= 90) break;
-    }
-    apply(best[1]);
+    const onDisc = (k) => { const n = byId.get(idOf(k)), nat = textW(n.label, fontOf(n)), w = n.wd ? Math.min(n.wd, nat) : nat; return boxHitsDisc(n.pos[0], n.pos[1], w / 2 + 3, fontOf(n) * 0.45 + 2); };
+    const stemOf = (tp, k) => { const g = tp.segs[keys.indexOf(k)]; return g ? Math.hypot(g[2] - g[0], g[3] - g[1]) : 99; };
+    for (let round = 0; round < 2; round++) keys.forEach((k) => {   // each label slides only as far as its own arc and stem need
+      let bestPush = P[k], bestScore = -1;
+      for (let push = 0; push <= 48; push += 4) {
+        P[k] = push; apply();
+        if (onDisc(k)) break;   // never slide a label onto a disc
+        const tp = treeParts(A, idOf), span = tp.T[k][3] - tp.T[k][2], score = Math.min(span, 90) + Math.min(stemOf(tp, k), 24) * 3;
+        if (score > bestScore) { bestScore = score; bestPush = push; }
+        if (span >= 90 && stemOf(tp, k) >= 24) break;
+      }
+      P[k] = bestPush; apply();
+    });
   }
 
   function spaceLabels() {
@@ -583,22 +605,23 @@ details.diff th { color: var(--bark); font-weight: 600; }
       const g = GEO[c.t]; if (!g || !byId.has(c.t)) return;
       addPath(cubicPts(...g.d), [c.t + "/N7", c.t]);
       addPath([[g.z[0] - 38, g.z[1] - 72], [g.z[0] - 19, g.z[1] - 36], g.z], [c.t + "/ii", c.t + "/iio", c.t + "/N7"]);
-      const [bx1, bx2, by] = g.br; for (let x = bx1; x <= bx2; x += 6) exempt.push([x, by, new Set([c.t + "/subii", c.t + "/N7"])]);
+      const [bx1, bx2, by] = g.br, none = new Set(); for (let x = bx1; x <= bx2; x += 5) exempt.push([x, by, none]); for (let y = by - 15; y < by; y += 4) { exempt.push([bx1, y, none]); exempt.push([bx2, y, none]); }   // the bracket and its two ticks
     });
     const placed = [], offs = [];
     for (let dx = -84; dx <= 84; dx += 2) for (let dy = -46; dy <= 46; dy += 2) offs.push([dx, dy, dx * dx + 3 * dy * dy]);
     offs.sort((a, b) => a[2] - b[2]);
-    const dims = (n, k) => { const nat = textW(n.label, fontOf(n)), w = n.wd ? Math.min(n.wd, nat) : nat; return [(w * k) / 2 + 3, fontOf(n) * 0.45 + 2]; };
+    const dims = (n, k) => { const nat = textW(n.label, fontOf(n)), w = n.wd ? Math.min(n.wd, nat) : nat; return [(w * k) / 2 + 5, fontOf(n) * 0.45 + 5]; };
     let L = { pts, exempt, placed };   // the obstacles near the label being placed
     const near = (n) => { const px = n.pos[0], py = n.pos[1], close = (a) => Math.abs(a[0] - px) < 190 && Math.abs(a[1] - py) < 130; L = { pts: pts.filter(close), exempt: exempt.filter(close), placed: placed.filter(close) }; };
-    const clash = (x, y, tw, th, id) => L.exempt.some((p) => Math.abs(p[0] - x) < tw && Math.abs(p[1] - y) < th && !p[2].has(id)) || L.pts.some((p) => Math.abs(p[0] - x) < tw && Math.abs(p[1] - y) < th) || L.placed.some((q) => Math.abs(q[0] - x) < tw + q[2] + 2 && Math.abs(q[1] - y) < th + q[3] + 1) || x + tw > 1992 || x - tw < 4 || y - th < 8 || y + th > 1392;
+    const clash = (x, y, tw, th, id) => { const nn = byId.get(id); return !!(nn && !(nn.kind === "main" && nn.ring === "in") && boxHitsDisc(x, y, tw, th)); }, clash0 = (x, y, tw, th, id) => L.exempt.some((p) => Math.abs(p[0] - x) < tw && Math.abs(p[1] - y) < th && !p[2].has(id)) || L.pts.some((p) => Math.abs(p[0] - x) < tw && Math.abs(p[1] - y) < th) || L.placed.some((q) => Math.abs(q[0] - x) < tw + q[2] + 2 && Math.abs(q[1] - y) < th + q[3] + 1) || x + tw > 1992 || x - tw < 4 || y - th < 8 || y + th > 1392;
+    const clashAll = (x, y, tw, th, id) => clash(x, y, tw, th, id) || clash0(x, y, tw, th, id);
     const settle = (n) => {
       near(n);
       const [tw0, th] = dims(n, 1);
-      if (!clash(n.pos[0], n.pos[1], tw0, th, n.id)) { placed.push([n.pos[0], n.pos[1], tw0, th]); return; }
+      if (!clashAll(n.pos[0], n.pos[1], tw0, th, n.id)) { placed.push([n.pos[0], n.pos[1], tw0, th]); return; }
       for (const k of [1, 0.9, 0.8]) {
         const [tw] = dims(n, k);
-        for (const [dx, dy] of offs) { const x = n.pos[0] + dx, y = n.pos[1] + dy; if (clash(x, y, tw, th, n.id)) continue; n.pos = [x, y]; if (k < 1) n.wd = Math.round((n.wd ? Math.min(n.wd, textW(n.label, fontOf(n))) : textW(n.label, fontOf(n))) * k); placed.push([x, y, tw, th]); return; }
+        for (const [dx, dy] of offs) { const x = n.pos[0] + dx, y = n.pos[1] + dy; if (clashAll(x, y, tw, th, n.id)) continue; n.pos = [x, y]; if (k < 1) n.wd = Math.round((n.wd ? Math.min(n.wd, textW(n.label, fontOf(n))) : textW(n.label, fontOf(n))) * k); placed.push([x, y, tw, th]); return; }
       }
       placed.push([n.pos[0], n.pos[1], tw0, th]);   // no clear spot within reach: left where it is
     };
@@ -694,8 +717,23 @@ details.diff th { color: var(--bark); font-weight: 600; }
       const Q = g.Q, P = g.P, R = 76;
       // the ii ring is open at the lower left (where the substitute label sits); the V ring is open at the top right and lower right
       if (level === 3) svg.appendChild(el("path", { d: arcD(Q, R, 148, 477), fill: "none", stroke: tan, "stroke-width": "2.4" }));
-      svg.appendChild(el("path", { d: arcD(P, R, 86, 288), fill: "none", stroke: tan, "stroke-width": "2.4" }));
-      svg.appendChild(el("path", { d: arcD(P, R, 336, 388), fill: "none", stroke: tan, "stroke-width": "2.4" }));
+      // the V ring is drawn in pieces that stop short of the tree's arcs, stems and labels, so no black stroke ever crosses it
+      const obsPts = [], obsBoxes = [], tpc = level === 3 ? treeParts(g.arcs, (k) => c.t + "/" + k) : null;
+      if (tpc) {
+        tpc.arcs.forEach(([cc, r, a0, a1]) => { for (let an = a0; an <= a1; an += 3) obsPts.push(ptOn(cc, r, an)); });
+        tpc.segs.forEach(([x1, y1, x2, y2]) => { const n = Math.max(2, Math.round(Math.hypot(x2 - x1, y2 - y1) / 4)); for (let i = 0; i <= n; i++) obsPts.push([x1 + ((x2 - x1) * i) / n, y1 + ((y2 - y1) * i) / n]); });
+      }
+      ["V7", "I64", "V7sus4"].forEach((k) => { const nn = byId.get(c.t + "/" + k); if (nn && !nn.circle) { const [tw, th] = tight(nn); obsBoxes.push([nn.pos[0], nn.pos[1], tw + 5, th + 4]); } });
+      const ringRuns = (ctr, a0, a1) => {
+        const runs = []; let cur = null;
+        for (let an = a0; an <= a1; an += 2) {
+          const p = ptOn(ctr, R, an), blocked = obsPts.some((q) => Math.hypot(q[0] - p[0], q[1] - p[1]) < 8) || obsBoxes.some((b) => Math.abs(p[0] - b[0]) < b[2] && Math.abs(p[1] - b[1]) < b[3]);
+          if (blocked) { if (cur) runs.push(cur); cur = null; } else if (cur) cur[1] = an; else cur = [an, an];
+        }
+        if (cur) runs.push(cur);
+        return runs.filter((r) => r[1] - r[0] >= 6);
+      };
+      [[86, 288], [336, 388]].forEach(([a0, a1]) => ringRuns(P, a0, a1).forEach(([b0, b1]) => svg.appendChild(el("path", { d: arcD(P, R, b0, b1), fill: "none", stroke: tan, "stroke-width": "2.4" }))));
       if (level === 3) svg.appendChild(el("line", { x1: Q[0] + R, y1: Q[1] - 1, x2: P[0] - R, y2: Q[1] - 1, stroke: ink, "stroke-width": "3.4" }));
       // black line from the V ring to the target chord
       const dx = t.pos[0] - P[0], dy = t.pos[1] - P[1], dd = Math.hypot(dx, dy) || 1, ux = dx / dd, uy = dy / dd;
