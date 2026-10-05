@@ -131,7 +131,7 @@ details.diff th { color: var(--bark); font-weight: 600; }
     <span><kbd>Esc</kbd> clear</span>
     <span><kbd>↑</kbd> <kbd>↓</kbd> basic / medium / advanced</span>
     <span><kbd>M</kbd> traditional / jazz</span>
-    <span>click a chord to hear it and add it (plays in C)</span>
+    <span>click a chord to hear it and add it (plays based on a root key of C)</span>
   </p>
   <details class="cof" open>
     <summary>Key: the circle of fifths</summary>
@@ -218,7 +218,7 @@ details.diff th { color: var(--bark); font-weight: 600; }
     { t: "ii", suf: "II", circles: ["iio", "N6"], pos: { ii: [680, 140], iio: [622, 187], V7: [840, 148], N6: [772, 235], vii07: [880, 265], subii: [535, 272], N7: [697, 282], I64: [925, 130], V7sus4: [958, 52] } },
     { t: "V7", suf: "V", gr: true, circles: ["iio", "V7in", "N6"], pos: { ii: [1625, 125], iio: [1580, 182], V7: [1835, 118], V7in: [1782, 172], N6: [1730, 230], vii07: [1820, 258], subii: [1470, 265], N7: [1650, 278], I64: [1925, 45], V7sus4: [1945, 128] } },
     { t: "bVII", suf: "♭VII", circles: ["N6"], pos: { ii: [1200, 355], V7: [1400, 340], N6: [1298, 430], vii07: [1376, 458], subii: [1070, 460], N7: [1215, 478], I64: [1300, 255], V7sus4: [1340, 172] } },
-    { t: "bVI", suf: "♭VI", circles: ["N6"], pos: { ii: [265, 730], V7: [455, 718], N6: [360, 805], vii07: [440, 840], subii: [115, 848], N7: [295, 850], I64: [590, 732], V7sus4: [540, 798] } },
+    { t: "bVI", suf: "♭VI", circles: ["N6"], pos: { ii: [215, 730], V7: [405, 718], N6: [310, 805], vii07: [390, 840], subii: [65, 848], N7: [245, 850], I64: [540, 732], V7sus4: [490, 798] } },
     { t: "bIII", suf: "♭III", circles: ["N6"], pos: { ii: [580, 953], V7: [780, 935], N6: [680, 1022], vii07: [760, 1052], subii: [445, 1067], N7: [610, 1077], I64: [655, 846], V7sus4: [822, 852] } },
     { t: "vi", suf: "VI", circles: ["iio", "N6"], pos: { ii: [1228, 1095], iio: [1170, 1150], V7: [1430, 1095], N6: [1320, 1195], vii07: [1410, 1225], subii: [1075, 1230], N7: [1260, 1243], I64: [1335, 985], V7sus4: [1450, 998] } },
     { t: "iii", suf: "III", circles: ["N6"], pos: { iio: [1640, 935], V7: [1830, 915], N6: [1752, 1005], vii07: [1840, 1040], subii: [1525, 1040], N7: [1690, 1065], I64: [1965, 870], V7sus4: [1945, 960] } },
@@ -229,7 +229,7 @@ details.diff th { color: var(--bark); font-weight: 600; }
     ii: { Q: [593, 207], P: [803, 200], br: [584, 815, 313], dash: 0.5, z: [712, 242], d: [[702, 300], [712, 318], [722, 330], [728, 350]], arcs: { V7: [848, 145, 289, 409], V7sus4: [942, 40, 64, 190], I64: [943, 132, 132, 240] } },
     V7: { Q: [1550, 204], P: [1758, 197], br: [1534, 1765, 313], dash: 0.74, z: [1664, 233], d: [[1650, 311], [1672, 328], [1685, 345], [1698, 365]], arcs: { V7: [1836, 115, 283, 415], I64: [1921, 42, 90, 198], V7sus4: [1938, 134, 123, 249] } },
     bVII: { Q: [1116, 403], P: [1325, 396], br: [1109, 1340, 505], dash: 0.74, z: [1239, 454], d: [[1283, 496], [1340, 503], [1420, 490], [1470, 464]], arcs: { V7: [1387, 330, 192, 318], V7sus4: [1365, 164, -9, 117], I64: [1300, 252, -57, 75] } },
-    bVI: { Q: [180, 782], P: [389, 775], br: [159, 390, 899], dash: 0.74, z: [292, 811], d: [[292, 812], [270, 700], [360, 620], [473, 585]], arcs: { V7: [459, 709, -36, 96], I64: [535, 734, 100, 200], V7sus4: [530, 807, 189, 309] } },
+    bVI: { Q: [130, 782], P: [339, 775], br: [109, 340, 899], dash: 0.74, z: [242, 811], d: [[242, 812], [220, 700], [310, 620], [473, 585]], arcs: { maxPush: 12, V7: [409, 709, -36, 96], I64: [485, 734, 100, 200], V7sus4: [480, 807, 189, 309] } },
     bIII: { Q: [499, 1000], P: [709, 992], br: [482, 714, 1121], dash: 0.74, z: [636, 1052], d: [[661, 1098], [740, 1108], [880, 1085], [916, 969]], arcs: { V7: [777, 930, 210, 312], I64: [690, 848, 0, 96], V7sus4: [790, 839, 78, 186] } },
     vi: { Q: [1139, 1168], P: [1349, 1161], br: [1129, 1361, 1263], dash: 0.74, z: [1262, 1205], d: [[1262, 1205], [1272, 1130], [1268, 1070], [1246, 1010]], arcs: { V7: [1417, 1099, 186, 282], I64: [1342, 981, -27, 99], V7sus4: [1445, 991, 99, 207] } },
     iii: { Q: [1572, 980], P: [1780, 974], br: [1574, 1805, 1081], dash: 0.74, z: [1703, 1040], d: [[1703, 1040], [1700, 950], [1680, 885], [1612, 865]], arcs: { V7: [1847, 906, -33, 87], I64: [1965, 870, 110, 206], V7sus4: [1926, 957, 150, 270] } },
@@ -504,7 +504,7 @@ details.diff th { color: var(--bark); font-weight: 600; }
       return T;
     };
     let T = build(0);
-    for (const push of [0, 6, 12, 18, 24, 30]) { T = build(push); if (keys.every((k) => T[k][3] - T[k][2] >= 76)) break; }
+    for (const push of [0, 6, 12, 18, 24, 30].filter((p) => p <= (A.maxPush === undefined ? 30 : A.maxPush))) { T = build(push); if (keys.every((k) => T[k][3] - T[k][2] >= 76)) break; }
     const arcs = [], segs = [], ctr = (k) => [T[k][0], T[k][1]], onArc = (k, toward) => {
       const a = (Math.atan2(toward[1] - T[k][1], toward[0] - T[k][0]) * 180) / Math.PI, mid = (T[k][2] + T[k][3]) / 2;
       let d = ((a - mid + 540) % 360) - 180; d = Math.max(T[k][2] - mid, Math.min(T[k][3] - mid, d));
@@ -528,6 +528,7 @@ details.diff th { color: var(--bark); font-weight: 600; }
     const addPath = (ps, ids) => { const set = new Set(ids); ps.forEach((p) => exempt.push([p[0], p[1], set])); };
     const addSeg = (x1, y1, x2, y2) => { const n = Math.max(2, Math.round(Math.hypot(x2 - x1, y2 - y1) / 4)); for (let i = 0; i <= n; i++) pts.push([x1 + ((x2 - x1) * i) / n, y1 + ((y2 - y1) * i) / n]); };
     Object.values(DISC).forEach((d) => addArc(d.c, d.r, 0, 360));
+    [[1015, 0, 1015, 588], [1015, 588, 515, 878], [515, 878, 0, 878], [1015, 588, 1445, 800], [1445, 800, 1545, 838], [1545, 838, 2000, 838]].forEach((g) => { addSeg(...g); const L = Math.hypot(g[2] - g[0], g[3] - g[1]), nx = -(g[3] - g[1]) / L * 9, ny = (g[2] - g[0]) / L * 9; addSeg(g[0] + nx, g[1] + ny, g[2] + nx, g[3] + ny); addSeg(g[0] - nx, g[1] - ny, g[2] - nx, g[3] - ny); });   // region borders, with a 9 px margin either side
     byId.forEach((n) => { if (n.circle) addArc(n.pos, n.circle, 0, 360); });
     const treeSet = (A, idOf) => { const tp = treeParts(A, idOf); tp.arcs.forEach((a) => addArc(...a)); tp.segs.forEach((g) => addSeg(...g)); };
     treeSet(MAIN_TREE, (k) => k);
@@ -549,14 +550,17 @@ details.diff th { color: var(--bark); font-weight: 600; }
         const n = byId.get(idOf(k)); if (!n || n.circle) return;
         // the label sits level with its arc's centre, on the side away from the arc's face, with its near edge 7 px behind the arc
         const t = tp.T[k], mid = (t[2] + t[3]) / 2, dx = Math.cos((mid * Math.PI) / 180), dy = Math.sin((mid * Math.PI) / 180);
-        const horiz = Math.abs(dx) >= Math.abs(dy), u = horiz ? [Math.sign(dx) || 1, 0] : [0, Math.sign(dy) || 1], v = [-u[1], u[0]];
         const nat = textW(n.label, fontOf(n)), w = n.wd ? Math.min(n.wd, nat) : nat, tw = w / 2 + 3, th = fontOf(n) * 0.45 + 2;
-        const e = horiz ? tw : th, band = (horiz ? th : tw) + 4;
-        let depth = Infinity;
-        for (let ang = t[2]; ang <= t[3]; ang += 2) { const rx = 42 * Math.cos((ang * Math.PI) / 180), ry = 42 * Math.sin((ang * Math.PI) / 180); if (Math.abs(rx * v[0] + ry * v[1]) < band) depth = Math.min(depth, rx * u[0] + ry * u[1]); }
-        if (!isFinite(depth)) depth = 42 * Math.cos((Math.min(75, (t[3] - t[2]) / 2) * Math.PI) / 180);
-        const off = depth - 7 - e;
-        n.pos = [t[0] + u[0] * off, t[1] + u[1] * off];
+        const place = (horiz) => {
+          const u = horiz ? [Math.sign(dx) || 1, 0] : [0, Math.sign(dy) || 1], v = [-u[1], u[0]], e = horiz ? tw : th, band = (horiz ? th : tw) + 4;
+          let depth = Infinity;
+          for (let ang = t[2]; ang <= t[3]; ang += 2) { const rx = 42 * Math.cos((ang * Math.PI) / 180), ry = 42 * Math.sin((ang * Math.PI) / 180); if (Math.abs(rx * v[0] + ry * v[1]) < band) depth = Math.min(depth, rx * u[0] + ry * u[1]); }
+          if (!isFinite(depth)) depth = 42 * Math.cos((Math.min(75, (t[3] - t[2]) / 2) * Math.PI) / 180);
+          const off = depth - 7 - e; return [t[0] + u[0] * off, t[1] + u[1] * off];
+        };
+        const inMap = (p) => p[1] - th > 8 && p[1] + th < 1392 && p[0] - tw > 6 && p[0] + tw < 1994;
+        const first = Math.abs(dx) >= Math.abs(dy), a = place(first), b = place(!first);
+        n.pos = inMap(a) || !inMap(b) ? a : b;
       });
     };
     snugTree(MAIN_TREE, (k) => k);
@@ -567,7 +571,7 @@ details.diff th { color: var(--bark); font-weight: 600; }
     const dims = (n, k) => { const nat = textW(n.label, fontOf(n)), w = n.wd ? Math.min(n.wd, nat) : nat; return [(w * k) / 2 + 3, fontOf(n) * 0.45 + 2]; };
     let L = { pts, exempt, placed };   // the obstacles near the label being placed
     const near = (n) => { const px = n.pos[0], py = n.pos[1], close = (a) => Math.abs(a[0] - px) < 190 && Math.abs(a[1] - py) < 130; L = { pts: pts.filter(close), exempt: exempt.filter(close), placed: placed.filter(close) }; };
-    const clash = (x, y, tw, th, id) => L.exempt.some((p) => Math.abs(p[0] - x) < tw && Math.abs(p[1] - y) < th && !p[2].has(id)) || L.pts.some((p) => Math.abs(p[0] - x) < tw && Math.abs(p[1] - y) < th) || L.placed.some((q) => Math.abs(q[0] - x) < tw + q[2] + 2 && Math.abs(q[1] - y) < th + q[3] + 1) || x + tw > 1992 || x - tw < 4;
+    const clash = (x, y, tw, th, id) => L.exempt.some((p) => Math.abs(p[0] - x) < tw && Math.abs(p[1] - y) < th && !p[2].has(id)) || L.pts.some((p) => Math.abs(p[0] - x) < tw && Math.abs(p[1] - y) < th) || L.placed.some((q) => Math.abs(q[0] - x) < tw + q[2] + 2 && Math.abs(q[1] - y) < th + q[3] + 1) || x + tw > 1992 || x - tw < 4 || y - th < 8 || y + th > 1392;
     const settle = (n) => {
       near(n);
       const [tw0, th] = dims(n, 1);
