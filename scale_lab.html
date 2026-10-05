@@ -182,13 +182,15 @@ main { padding: 14px 24px 50px; max-width: 1500px; margin: 0 auto; }
       if (row.mode) { first.type = "button"; first.className = "pk-mode"; first.textContent = row.mode[0]; first.dataset.scale = row.mode[1]; }
       else { first.className = "pk-label"; first.textContent = row.label; }
       const vars = document.createElement("div"); vars.className = "pk-vars";
-      row.vars.forEach(([label, name]) => { const b = document.createElement("button"); b.type = "button"; b.className = "pk-chip"; b.textContent = label; b.dataset.scale = name; vars.appendChild(b); });
+      row.vars.forEach(([label, name]) => { const b = document.createElement("button"); b.type = "button"; b.className = "pk-chip"; b.textContent = label; b.dataset.scale = name; if (row.mode) b.dataset.base = row.mode[1]; vars.appendChild(b); });
       wrap.appendChild(first); wrap.appendChild(vars); host.appendChild(wrap);
     });
     host.addEventListener("click", (e) => {
       const b = e.target.closest && e.target.closest("[data-scale]");
       if (!b) return;
-      $("scale").value = String(scaleIndex(b.dataset.scale));
+      // a variation toggles: click it to switch to it, click it again to fall back to its mode (the first-column scale)
+      const target = b.dataset.base && b.getAttribute("aria-pressed") === "true" ? b.dataset.base : b.dataset.scale;
+      $("scale").value = String(scaleIndex(target));
       $("scale").dispatchEvent(new Event("change"));
     });
   })();
