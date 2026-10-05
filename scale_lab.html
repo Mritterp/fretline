@@ -102,9 +102,7 @@ main { padding: 14px 24px 50px; max-width: 1500px; margin: 0 auto; }
     <span><kbd>Space</kbd> play / stop</span>
     <span><kbd>S</kbd> Segovia scale</span>
     <span><kbd>K</kbd> key: intervals / notes</span>
-    <span><kbd>←</kbd> <kbd>→</kbd> root</span>
     <span><kbd>↑</kbd> <kbd>↓</kbd> scale</span>
-    <span><kbd>D</kbd> direction</span>
     <span>click a note to hear it</span>
   </p>
   <div class="legend"><span><i style="background:var(--root)"></i>root</span><span><i style="background:var(--moss)"></i>other scale notes</span><span id="hint">Click any note to hear it.</span></div>
@@ -336,7 +334,6 @@ main { padding: 14px 24px 50px; max-width: 1500px; margin: 0 auto; }
   ["root", "scale", "frets"].forEach((id) => $(id).addEventListener("change", render));
   const setShow = (notes) => { showNotes = notes; try { localStorage.setItem("fretline-scale-show", notes ? "notes" : "intervals"); } catch (e) {} render(); };
   // ---- keyboard shortcuts ----
-  const stepSelect = (el, delta) => { const n = el.options.length; el.selectedIndex = (el.selectedIndex + delta + n) % n; el.dispatchEvent(new Event("change")); };
   document.addEventListener("keydown", (e) => {
     if (e.ctrlKey || e.metaKey || e.altKey) return;
     const t = e.target, tag = t && t.tagName;
@@ -346,9 +343,6 @@ main { padding: 14px 24px 50px; max-width: 1500px; margin: 0 auto; }
     const key = k.length === 1 ? k.toLowerCase() : k;
     if (key === "s") { if (!$("seg").disabled) $("seg").click(); }
     else if (key === "k") setShow(!showNotes);   // K = key: flip between intervals and note names
-    else if (key === "d") stepSelect($("dir"), 1);
-    else if (key === "ArrowRight") { e.preventDefault(); stepSelect($("root"), 1); }
-    else if (key === "ArrowLeft") { e.preventDefault(); stepSelect($("root"), -1); }
     else if (key === "ArrowDown" || key === "ArrowUp") {
       e.preventDefault();
       const i = PICK_ORDER.indexOf(SCALES[+$("scale").value].name), n = PICK_ORDER.length;
