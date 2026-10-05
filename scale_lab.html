@@ -193,17 +193,17 @@ main { padding: 14px 24px 50px; max-width: 1500px; margin: 0 auto; }
   function playScale() {
     if (playing) { stopScale(); return; }
     ensureAudio();
-    const rootPc = +$("root").value, sc = SCALES[+$("scale").value], base = 48 + rootPc;      // roots sit in C3..B3
+    const rootPc = +$("root").value, sc = SCALES[+$("scale").value], base = 40 + mod(rootPc - 40);   // the lowest full octave on the guitar: root at its lowest spot at or above the low E (E2)
     const up = sc.semis.map((x) => base + x).concat([base + 12]), down = up.slice().reverse();
     const dir = $("dir").value, seq = dir === "up" ? up : dir === "down" ? down : up.concat(down.slice(1));
     const step = 0.42, t0 = audioCtx.currentTime + 0.08;
     setPlaying(true);
     seq.forEach((m, k) => {
       tone(m, t0 + k * step, step * 1.5);
-      const on = (k * step + 0.08) * 1000, pc = mod(m);
+      const on = (k * step + 0.08) * 1000;
       timers.push(setTimeout(() => {
         document.querySelectorAll(".dot.playing").forEach((d) => d.classList.remove("playing"));
-        document.querySelectorAll('.dot[data-pc="' + pc + '"]').forEach((d) => d.classList.add("playing"));
+        document.querySelectorAll('.dot[data-midi="' + m + '"]').forEach((d) => d.classList.add("playing"));   // only the exact pitch sounding, not every octave of that scale degree
       }, on));
     });
     timers.push(setTimeout(stopScale, (seq.length * step + 0.5) * 1000));
