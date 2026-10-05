@@ -32,6 +32,8 @@ h1 { margin: 0; font-family: var(--font-display); font-weight: 400; font-size: 3
 .board.segmode .dot:not(.seg):not(.ghost) { opacity: 0.2; }
 .dot.ghost circle { fill: #f9f5ee; stroke: var(--clay); stroke-width: 2; stroke-dasharray: 3 2.5; }
 .dot.ghost text { fill: var(--clay); }
+.keys { display: flex; flex-wrap: wrap; gap: 6px 22px; margin: 14px 0 0; font-size: 11px; color: var(--moss); }
+.keys kbd { font: inherit; font-size: 10px; letter-spacing: 0.06em; padding: 2px 6px; border: 1px solid var(--wheat); border-bottom-width: 2px; border-radius: 3px; background: #fff; color: var(--bark); }
 .segnote { font-size: 11px; color: var(--moss); margin-top: 8px; max-width: 900px; line-height: 1.5; }
 .player { display: inline-flex; align-items: center; gap: 12px; }
 .btn { font: inherit; font-size: 11px; letter-spacing: 0.16em; text-transform: uppercase; padding: 8px 16px; border: 1px solid var(--bark); background: var(--bark); color: var(--parchment); cursor: pointer; }
@@ -83,6 +85,16 @@ main { padding: 14px 24px 50px; max-width: 1500px; margin: 0 auto; }
   <div class="title-row"><h2 id="title"></h2><div class="facts" id="facts"></div></div>
   <div class="board" id="board"></div>
   <div class="segnote" id="segnote" hidden></div>
+  <p class="keys" aria-label="Keyboard shortcuts">
+    <span><kbd>Space</kbd> play / stop</span>
+    <span><kbd>S</kbd> Segovia scale</span>
+    <span><kbd>I</kbd> intervals <kbd>N</kbd> notes</span>
+    <span><kbd>←</kbd> <kbd>→</kbd> root</span>
+    <span><kbd>↑</kbd> <kbd>↓</kbd> scale</span>
+    <span><kbd>D</kbd> direction</span>
+    <span><kbd>F</kbd> frets</span>
+    <span>click a note to hear it</span>
+  </p>
   <div class="legend"><span><i style="background:var(--root)"></i>root</span><span><i style="background:var(--moss)"></i>other scale notes</span><span id="hint">Click any note to hear it.</span></div>
 </main>
 
@@ -271,6 +283,25 @@ main { padding: 14px 24px 50px; max-width: 1500px; margin: 0 auto; }
 
   ["root", "scale", "frets"].forEach((id) => $(id).addEventListener("change", render));
   const setShow = (notes) => { showNotes = notes; try { localStorage.setItem("fretline-scale-show", notes ? "notes" : "intervals"); } catch (e) {} render(); };
+  // ---- keyboard shortcuts ----
+  const stepSelect = (el, delta) => { const n = el.options.length; el.selectedIndex = (el.selectedIndex + delta + n) % n; el.dispatchEvent(new Event("change")); };
+  document.addEventListener("keydown", (e) => {
+    if (e.ctrlKey || e.metaKey || e.altKey) return;
+    const t = e.target, tag = t && t.tagName;
+    if (tag === "SELECT" || tag === "INPUT" || tag === "TEXTAREA") return;   // let a focused drop-down use its own keys
+    const k = e.key;
+    if (k === " " || k === "Spacebar") { if (tag === "BUTTON") return; e.preventDefault(); playScale(); return; }
+    const key = k.length === 1 ? k.toLowerCase() : k;
+    if (key === "s") { if (!$("seg").disabled) $("seg").click(); }
+    else if (key === "i") setShow(false);
+    else if (key === "n") setShow(true);
+    else if (key === "d") stepSelect($("dir"), 1);
+    else if (key === "f") stepSelect($("frets"), 1);
+    else if (key === "ArrowRight") { e.preventDefault(); stepSelect($("root"), 1); }
+    else if (key === "ArrowLeft") { e.preventDefault(); stepSelect($("root"), -1); }
+    else if (key === "ArrowDown") { e.preventDefault(); stepSelect($("scale"), 1); }
+    else if (key === "ArrowUp") { e.preventDefault(); stepSelect($("scale"), -1); }
+  });
   $("seg").addEventListener("click", () => { segPref = !segPref; try { localStorage.setItem("fretline-scale-segovia", segPref ? "on" : "off"); } catch (e) {} render(); });
   $("show-int").addEventListener("click", () => setShow(false));
   $("show-note").addEventListener("click", () => setShow(true));
