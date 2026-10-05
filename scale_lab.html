@@ -26,6 +26,10 @@ h1 { margin: 0; font-family: var(--font-display); font-weight: 400; font-size: 3
 .controls { display: flex; flex-wrap: wrap; gap: 12px 22px; align-items: center; }
 .controls label { font-size: 10px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--moss); display: flex; align-items: center; gap: 8px; }
 .controls select { font: inherit; font-size: 13px; letter-spacing: 0; text-transform: none; padding: 5px 8px; background: var(--parchment); border: 1px solid var(--wheat); color: var(--bark); }
+.player { display: inline-flex; align-items: center; gap: 12px; }
+.btn { font: inherit; font-size: 11px; letter-spacing: 0.16em; text-transform: uppercase; padding: 8px 16px; border: 1px solid var(--bark); background: var(--bark); color: var(--parchment); cursor: pointer; }
+.btn:hover { background: var(--moss); border-color: var(--moss); }
+.dot.playing circle { stroke: #e3a53a; stroke-width: 4; }
 .seg { display: inline-flex; }
 .seg button { font: inherit; font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase; padding: 7px 14px; border: 1px solid var(--wheat); background: transparent; color: var(--moss); cursor: pointer; }
 .seg button + button { border-left: 0; }
@@ -62,6 +66,8 @@ main { padding: 14px 24px 50px; max-width: 1500px; margin: 0 auto; }
       <button type="button" id="show-int" aria-pressed="true">Intervals</button><button type="button" id="show-note" aria-pressed="false">Notes</button>
     </span>
     <label>Frets <select id="frets"><option>12</option><option selected>15</option><option>17</option><option>22</option><option>24</option></select></label>
+    <span class="player"><button type="button" class="btn" id="play">Play scale</button>
+      <label>Direction <select id="dir"><option value="updown" selected>up &amp; down</option><option value="up">up</option><option value="down">down</option></select></label></span>
   </div>
 </header>
 
@@ -120,6 +126,7 @@ main { padding: 14px 24px 50px; max-width: 1500px; margin: 0 auto; }
   try { showNotes = localStorage.getItem("fretline-scale-show") === "notes"; } catch (e) {}
 
   function render() {
+    if (typeof stopScale === "function") stopScale();
     const rootPc = +$("root").value, rootName = ROOTS.find((r) => r[1] === rootPc)[0], sc = SCALES[+$("scale").value], maxFret = +$("frets").value;
     const byPc = new Map();   // pitch class -> {interval, note, root}
     sc.semis.forEach((semi, i) => byPc.set(mod(rootPc + semi), { interval: sc.deg[i], note: spell(rootName, rootPc, semi, sc.deg[i]), root: i === 0 }));
@@ -153,22 +160,55 @@ main { padding: 14px 24px 50px; max-width: 1500px; margin: 0 auto; }
       const m = OPEN[s] + f, info = byPc.get(mod(m));
       if (!info) continue;
       const cx = xOf(f), cy = yOf(s), label = showNotes ? info.note : info.interval, fill = info.root ? "var(--root)" : "var(--moss)";
-      p.push(`<g class="dot" data-midi="${m}"><title>${noteName(m)}${showNotes ? "" : " · " + info.note}</title><circle cx="${cx}" cy="${cy}" r="11.5" fill="${fill}"/><text x="${cx}" y="${cy + 4}" text-anchor="middle" font-size="${label.length > 2 ? 10 : 12}" font-weight="700" fill="#F5F0E8" font-family="Helvetica,Arial,sans-serif">${label}</text></g>`);
+      p.push(`<g class="dot" data-midi="${m}" data-pc="${mod(m)}"><title>${noteName(m)}${showNotes ? "" : " · " + info.note}</title><circle cx="${cx}" cy="${cy}" r="11.5" fill="${fill}"/><text x="${cx}" y="${cy + 4}" text-anchor="middle" font-size="${label.length > 2 ? 10 : 12}" font-weight="700" fill="#F5F0E8" font-family="Helvetica,Arial,sans-serif">${label}</text></g>`);
     }
     $("board").innerHTML = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${rootName} ${sc.name} on the guitar fretboard">${p.join("")}</svg>`;
     $("show-int").setAttribute("aria-pressed", String(!showNotes)); $("show-note").setAttribute("aria-pressed", String(showNotes));
   }
 
   // click a note to hear it (same triangle tone as the other pages)
-  let audioCtx = null;
-  function playMidi(m) {
-    if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-    if (audioCtx.state === "suspended") audioCtx.resume();
-    const t = audioCtx.currentTime + 0.01, dur = 1.4, osc = audioCtx.createOscillator(), gain = audioCtx.createGain();
+  let audioCtx = null, oscs = [];
+  function tone(m, t, dur) {
+    const osc = audioCtx.createOscillator(), gain = audioCtx.createGain();
     osc.type = "triangle"; osc.frequency.value = 440 * Math.pow(2, (m - 69) / 12);
     gain.gain.setValueAtTime(0.0001, t); gain.gain.linearRampToValueAtTime(0.18, t + 0.012); gain.gain.exponentialRampToValueAtTime(0.0001, t + dur);
     osc.connect(gain).connect(audioCtx.destination); osc.start(t); osc.stop(t + dur + 0.02);
+    oscs.push(osc);
   }
+  function ensureAudio() {
+    if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    if (audioCtx.state === "suspended") audioCtx.resume();
+  }
+  function playMidi(m) { ensureAudio(); tone(m, audioCtx.currentTime + 0.01, 1.4); }
+
+  // ---- play the scale: root up an octave and/or back down, lighting each pitch on the board as it sounds ----
+  let timers = [], playing = false;
+  function setPlaying(on) { playing = on; $("play").textContent = on ? "Stop" : "Play scale"; }
+  function stopScale() {
+    timers.forEach(clearTimeout); timers = [];
+    oscs.forEach((o) => { try { o.stop(); } catch (e) {} }); oscs = [];
+    document.querySelectorAll(".dot.playing").forEach((d) => d.classList.remove("playing"));
+    setPlaying(false);
+  }
+  function playScale() {
+    if (playing) { stopScale(); return; }
+    ensureAudio();
+    const rootPc = +$("root").value, sc = SCALES[+$("scale").value], base = 48 + rootPc;      // roots sit in C3..B3
+    const up = sc.semis.map((x) => base + x).concat([base + 12]), down = up.slice().reverse();
+    const dir = $("dir").value, seq = dir === "up" ? up : dir === "down" ? down : up.concat(down.slice(1));
+    const step = 0.42, t0 = audioCtx.currentTime + 0.08;
+    setPlaying(true);
+    seq.forEach((m, k) => {
+      tone(m, t0 + k * step, step * 1.5);
+      const on = (k * step + 0.08) * 1000, pc = mod(m);
+      timers.push(setTimeout(() => {
+        document.querySelectorAll(".dot.playing").forEach((d) => d.classList.remove("playing"));
+        document.querySelectorAll('.dot[data-pc="' + pc + '"]').forEach((d) => d.classList.add("playing"));
+      }, on));
+    });
+    timers.push(setTimeout(stopScale, (seq.length * step + 0.5) * 1000));
+  }
+  $("play").addEventListener("click", playScale);
   $("board").addEventListener("pointerdown", (e) => { const d = e.target.closest && e.target.closest("[data-midi]"); if (d) playMidi(+d.dataset.midi); });
 
   ["root", "scale", "frets"].forEach((id) => $(id).addEventListener("change", render));
