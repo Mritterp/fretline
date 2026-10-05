@@ -37,6 +37,8 @@ main { padding: 8px 24px 60px; }
 .title { font-size: 13px; font-weight: 700; }
 .title .order { font-weight: 400; color: var(--moss); letter-spacing: 0.06em; margin-left: 8px; }
 svg { display: block; }
+.dot { cursor: pointer; }
+.dot:hover circle { stroke: #3d3a30; stroke-width: 1.6; }
 .alt-title { margin: 22px 0 8px; font-family: var(--font-display); font-size: 15px; color: var(--moss); letter-spacing: 0.04em; }
 .repeat-note { margin: 2px 0 4px; font-size: 11px; color: var(--moss); letter-spacing: 0.03em; }
 .note { margin-top: 36px; font-size: 12px; line-height: 1.6; color: var(--moss); max-width: 760px; }
@@ -65,6 +67,8 @@ svg { display: block; }
 
 <script>
 const OPEN = [40, 45, 50, 55, 59, 64];                 // low E .. high e
+const NOTE_NAMES = ["C", "C♯", "D", "E♭", "E", "F", "F♯", "G", "A♭", "A", "B♭", "B"];
+const noteName = (m) => NOTE_NAMES[m % 12] + (Math.floor(m / 12) - 1);
 const STRING_NAME = ["E", "A", "D", "G", "B", "e"];
 const MAX_STRETCH = 4;   // widest fingerable span, in frets (open strings don't count)
 const ROOTS = ["C", "D♭", "D", "E♭", "E", "F", "G♭", "G", "A♭", "A", "B♭", "B"]; // index = pitch class
@@ -325,12 +329,13 @@ function boardFrame(g, maxFret) {
   }
   return p;
 }
+const midiTag = (s, fret, inner) => { const m = OPEN[s] + fret; return `<g class="dot" data-midi="${m}"><title>${noteName(m)}</title>${inner}</g>`; };
 function noteDot(g, n) {
   const k = g.k, cx = g.xOf(n.fret), cy = g.yOf(n.s), c = ROLE_COLOR[n.role], l = degLabel(n.iv);
   if (n.optional) {
-    return `<circle cx="${cx}" cy="${cy}" r="${8.2 * k}" fill="#F9F5EE" stroke="${c}" stroke-width="1.5" stroke-dasharray="2.5 2"/><text x="${cx}" y="${cy + 3 * k}" text-anchor="middle" font-size="${8 * k}" font-weight="700" fill="${c}" font-family="Helvetica,Arial,sans-serif">(${l})</text>`;
+    return midiTag(n.s, n.fret, `<circle cx="${cx}" cy="${cy}" r="${8.2 * k}" fill="#F9F5EE" stroke="${c}" stroke-width="1.5" stroke-dasharray="2.5 2"/><text x="${cx}" y="${cy + 3 * k}" text-anchor="middle" font-size="${8 * k}" font-weight="700" fill="${c}" font-family="Helvetica,Arial,sans-serif">(${l})</text>`);
   }
-  return `<circle cx="${cx}" cy="${cy}" r="${8.2 * k}" fill="${c}"/><text x="${cx}" y="${cy + 3 * k}" text-anchor="middle" font-size="${8.5 * k}" font-weight="700" fill="#F5F0E8" font-family="Helvetica,Arial,sans-serif">${l}</text>`;
+  return midiTag(n.s, n.fret, `<circle cx="${cx}" cy="${cy}" r="${8.2 * k}" fill="${c}"/><text x="${cx}" y="${cy + 3 * k}" text-anchor="middle" font-size="${8.5 * k}" font-weight="700" fill="#F5F0E8" font-family="Helvetica,Arial,sans-serif">${l}</text>`);
 }
 function hullRect(g, place, color, fill) {
   const k = g.k, xs = place.notes.map((n) => g.xOf(n.fret));
@@ -352,7 +357,7 @@ function patternRowSVG(row, scale, rootPc, maxFret) {
     for (let s = 0; s < 6; s++) for (let f = lo; f <= hi; f++) {
       const d = degreeOf((OPEN[s] + f) % 12);
       if (!d || taken.has(s + ":" + f)) continue;
-      p.push(`<circle cx="${g.xOf(f)}" cy="${g.yOf(s)}" r="7" fill="#EFE9D9" stroke="#8A9E7E" stroke-width="0.9"/><text x="${g.xOf(f)}" y="${g.yOf(s) + 2.8}" text-anchor="middle" font-size="7.5" fill="#6F8466" font-family="Helvetica,Arial,sans-serif">${d}</text>`);
+      p.push(midiTag(s, f, `<circle cx="${g.xOf(f)}" cy="${g.yOf(s)}" r="7" fill="#EFE9D9" stroke="#8A9E7E" stroke-width="0.9"/><text x="${g.xOf(f)}" y="${g.yOf(s) + 2.8}" text-anchor="middle" font-size="7.5" fill="#6F8466" font-family="Helvetica,Arial,sans-serif">${d}</text>`));
     }
   });
   for (let s = 0; s < 6; s++) for (let f = 0; f <= maxFret; f++) {
@@ -410,6 +415,25 @@ function renderPatterns() {
   const nPlace = rows.reduce((n, r) => n + r.places.length, 0);
   $("summary").textContent = `${ROOTS[rootPc]}${quality.sym} (${quality.name}) — ${rows.length} pattern row${rows.length === 1 ? "" : "s"}, ${nPlace} placements on frets 0–${opts.maxFret}`;
 }
+
+// ---- click a fretboard note to hear it (same triangle tone and envelope as the Sightreading tab) ----
+let audioCtx = null;
+function playMidi(m) {
+  if (!audioCtx) { audioCtx = new (window.AudioContext || window.webkitAudioContext)(); }
+  if (audioCtx.state === "suspended") audioCtx.resume();
+  const t = audioCtx.currentTime + 0.01, dur = 1.4, osc = audioCtx.createOscillator(), gain = audioCtx.createGain();
+  osc.type = "triangle";
+  osc.frequency.value = 440 * Math.pow(2, (m - 69) / 12);
+  gain.gain.setValueAtTime(0.0001, t);
+  gain.gain.linearRampToValueAtTime(0.22 * 0.8, t + 0.012);
+  gain.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+  osc.connect(gain).connect(audioCtx.destination);
+  osc.start(t); osc.stop(t + dur + 0.02);
+}
+$("out").addEventListener("pointerdown", (e) => {
+  const d = e.target.closest && e.target.closest("[data-midi]");
+  if (d) playMidi(+d.dataset.midi);
+});
 
 ["root", "quality", "frets"].forEach((id) => $(id).addEventListener("change", renderPatterns));
 renderPatterns();
