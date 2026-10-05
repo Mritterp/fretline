@@ -24,6 +24,8 @@ Live app: https://claude.ai/code/artifact/b0f71811-d152-4e1b-a595-7abeb8a99003
 - `shapes_lab.html` — the standalone Chord Shapes Lab used to review and approve chord patterns.
 - `scale_lab.html` — the Scale Lab: any root and scale on the fretboard, toggleable between intervals and note names
   (click a note to hear it). Standalone page, no build step.
+- `harmony_map.html` — the Harmony Map: an interactive Tonal Harmony Map (traditional or jazz, basic or advanced) in Roman
+  numerals. Click chords to hear them, build a progression, and see which chords can follow. Standalone page, no build step.
 - `fretline.html` — the built, publish-ready file. **Generated — don't edit
   directly**, run `node splice.js` after editing `fretline_body.html` instead.
 - `serve.js` — a tiny static file server for local preview (no dependencies).

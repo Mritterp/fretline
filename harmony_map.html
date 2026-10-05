@@ -1,0 +1,456 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Fretline — Harmony Map</title>
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#3D3A30">
+<link rel="icon" href="icons/favicon-32.png" sizes="32x32">
+<style>
+:root {
+  --parchment: #f5f0e8; --linen: #e8e0d0; --wheat: #c4b89a; --sage: #8a9e7e;
+  --moss: #5c6b52; --clay: #b07a5a; --bark: #3d3a30; --good: #4f7a45;
+  --font-display: Georgia, 'Times New Roman', serif;
+  --font-body: Helvetica, Arial, sans-serif;
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--parchment); color: var(--bark); font-family: var(--font-body); }
+header { background: var(--parchment); border-bottom: 1px solid var(--wheat); padding: 14px 24px 12px; }
+.brand { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 8px 22px; margin-bottom: 10px; }
+h1 { margin: 0; font-family: var(--font-display); font-weight: 400; font-size: 30px; }
+.site-tabs { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 4px; }
+.site-tab { font-size: 10px; letter-spacing: 0.18em; text-transform: uppercase; text-decoration: none; padding: 7px 12px; border: 1px solid var(--wheat); color: var(--sage); }
+.site-tab:hover { border-color: var(--sage); color: var(--bark); }
+.site-tab.current { border-color: var(--bark); background: var(--bark); color: var(--parchment); }
+.controls { display: flex; flex-wrap: wrap; gap: 12px 22px; align-items: center; }
+.controls label { font-size: 10px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--moss); display: flex; align-items: center; gap: 8px; }
+.controls select { font: inherit; font-size: 13px; letter-spacing: 0; text-transform: none; padding: 5px 8px; background: var(--parchment); border: 1px solid var(--wheat); color: var(--bark); }
+.seg { display: inline-flex; }
+.seg button { font: inherit; font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; padding: 7px 14px; border: 1px solid var(--wheat); background: transparent; color: var(--moss); cursor: pointer; }
+.seg button + button { border-left: 0; }
+.seg button[aria-pressed="true"] { background: var(--bark); border-color: var(--bark); color: var(--parchment); }
+main { padding: 12px 24px 40px; max-width: 1560px; margin: 0 auto; }
+
+.prog { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 10px; background: #f9f5ee; border: 1px solid #e3dac6; padding: 8px 10px; min-height: 58px; }
+.prog .lead { font-size: 10px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--moss); margin-right: 4px; }
+.prog .empty { font-size: 12px; color: var(--sage); }
+.pchip { display: inline-flex; align-items: center; gap: 6px; border: 1px solid var(--wheat); background: #fff; padding: 4px 6px 4px 12px; border-radius: 16px; cursor: pointer; font-size: 15px; font-family: var(--font-display); font-weight: 700; }
+.pchip .x { border: 0; background: none; color: var(--clay); cursor: pointer; font-size: 15px; line-height: 1; padding: 0 2px; font-family: var(--font-body); font-weight: 400; }
+.pchip.playing { background: var(--clay); border-color: var(--clay); color: var(--parchment); }
+.pchip.playing .x { color: var(--parchment); }
+.btn { font: inherit; font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase; padding: 7px 14px; border: 1px solid var(--bark); background: var(--bark); color: var(--parchment); cursor: pointer; }
+.btn:hover:not(:disabled) { background: var(--moss); border-color: var(--moss); }
+.btn.ghost { background: transparent; color: var(--bark); border-color: var(--wheat); }
+.btn:disabled { opacity: 0.4; cursor: default; }
+.prog .spacer { flex: 1; }
+
+.info { font-size: 12px; color: var(--moss); margin: 8px 2px 6px; min-height: 36px; line-height: 1.5; }
+.info b { color: var(--bark); }
+.mapwrap { background: #fbf8f1; border: 1px solid #e3dac6; overflow-x: auto; }
+.mapwrap svg { display: block; width: 100%; min-width: 1000px; height: auto; }
+.legend { display: flex; flex-wrap: wrap; gap: 6px 22px; margin: 10px 2px 0; font-size: 11px; color: var(--moss); align-items: center; }
+.legend svg { vertical-align: middle; margin-right: 6px; }
+.keys { display: flex; flex-wrap: wrap; gap: 6px 22px; margin: 12px 2px 0; font-size: 11px; color: var(--moss); }
+.keys kbd { font: inherit; font-size: 10px; letter-spacing: 0.06em; padding: 2px 6px; border: 1px solid var(--wheat); border-bottom-width: 2px; border-radius: 3px; background: #fff; color: var(--bark); }
+details.diff { margin: 14px 2px 0; border: 1px solid var(--wheat); padding: 0 14px; font-size: 12px; color: var(--moss); max-width: 980px; }
+details.diff summary { cursor: pointer; padding: 10px 0; font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase; }
+details.diff table { border-collapse: collapse; margin: 0 0 12px; width: 100%; }
+details.diff th, details.diff td { text-align: left; padding: 4px 14px 4px 0; border-bottom: 1px solid #e3dac6; font-weight: 400; }
+details.diff th { color: var(--bark); font-weight: 600; }
+.node { cursor: pointer; }
+.node:hover .halo { stroke: #3d3a30; stroke-opacity: 0.55; stroke-width: 2; }
+@media (max-width: 700px) { header { padding: 12px 14px 10px; } main { padding: 10px 10px 30px; } }
+</style>
+</head>
+<body>
+<header>
+  <div class="brand">
+    <h1>Fretline</h1>
+    <nav class="site-tabs" aria-label="Pages">
+      <a class="site-tab" href="fretline.html">Sightreading</a>
+      <a class="site-tab" href="ear_training.html">Ear Training</a>
+      <a class="site-tab" href="shapes_lab.html">Chord Lab</a>
+      <a class="site-tab" href="scale_lab.html">Scale Lab</a>
+      <a class="site-tab current" href="harmony_map.html" aria-current="page">Harmony Map</a>
+    </nav>
+  </div>
+  <div class="controls">
+    <span class="seg" role="group" aria-label="Map style"><button type="button" id="m-trad" aria-pressed="true">Traditional</button><button type="button" id="m-jazz" aria-pressed="false">Jazz</button></span>
+    <span class="seg" role="group" aria-label="Map level"><button type="button" id="l-basic" aria-pressed="true">Basic</button><button type="button" id="l-adv" aria-pressed="false">Advanced</button></span>
+    <label>Speed <select id="speed"><option value="2.0">Slow</option><option value="1.4" selected>Medium</option><option value="0.9">Fast</option></select></label>
+  </div>
+</header>
+
+<main>
+  <div class="prog" id="prog"></div>
+  <div class="info" id="info"></div>
+  <div class="mapwrap"><svg id="map" viewBox="0 0 2000 1400" role="img" aria-label="Tonal harmony map"></svg></div>
+  <div class="legend">
+    <span><svg width="26" height="10"><line x1="1" y1="5" x2="22" y2="5" stroke="#4f7a45" stroke-width="2.5"/><path d="M22 1 L26 5 L22 9z" fill="#4f7a45"/></svg>strong move</span>
+    <span><svg width="26" height="10"><line x1="1" y1="5" x2="22" y2="5" stroke="#4f7a45" stroke-width="2.5" stroke-dasharray="4 3"/><path d="M22 1 L26 5 L22 9z" fill="#4f7a45"/></svg>alternative / substitute</span>
+    <span><svg width="22" height="14"><rect x="1" y="1" width="20" height="12" rx="4" fill="none" stroke="#8a9e7e" stroke-width="1.6" stroke-dasharray="1.5 2.5"/></svg>also possible (same flow)</span>
+    <span><svg width="22" height="14"><rect x="1" y="1" width="20" height="12" rx="4" fill="none" stroke="#b07a5a" stroke-width="1.6" stroke-dasharray="1.5 2.5"/></svg>approach chord to a possible next chord</span>
+    <span><b style="color:#27408b">blue</b> ii – V family</span>
+    <span><b style="color:#8b2020">red</b> substitutes</span>
+    <span>dark circle = minor-mode chords</span>
+  </div>
+  <p class="keys" aria-label="Keyboard shortcuts">
+    <span><kbd>Space</kbd> play progression</span>
+    <span><kbd>Backspace</kbd> remove last chord</span>
+    <span><kbd>Esc</kbd> clear</span>
+    <span><kbd>↑</kbd> <kbd>↓</kbd> basic / advanced</span>
+    <span><kbd>M</kbd> traditional / jazz</span>
+    <span>click a chord to hear it and add it (plays in C)</span>
+  </p>
+  <details class="diff">
+    <summary>Traditional vs jazz: what changes</summary>
+    <table>
+      <tr><th>Function</th><th>Traditional</th><th>Jazz</th></tr>
+      <tr><td>Tonic family</td><td>I · vi · iii · i° · ♭III · vi°</td><td>I△ · vi7 · iii7 · i°7 · ♭III△ · vi7♭5</td></tr>
+      <tr><td>Subdominant</td><td>IV · ii · iv · ii° · ♭VI</td><td>IV△ · ii7 · iv7 · ii7♭5 · ♭VI△</td></tr>
+      <tr><td>Dominant</td><td>♭VII · vii°</td><td>♭VII7 · vii7♭5</td></tr>
+      <tr><td>Half-step-above dominant</td><td>N⁷ (Neapolitan 7th)</td><td>subV7</td></tr>
+      <tr><td>Advanced only: II</td><td>II</td><td>II7♭5</td></tr>
+      <tr><td>Advanced only: ♭II</td><td>♭II</td><td>♭II△</td></tr>
+      <tr><td>Advanced only: chord a fifth below subV7</td><td>♭vi7</td><td>subii7</td></tr>
+      <tr><td>Approach to V, in the V cluster</td><td>Gr+⁶ (It+⁶ / Fr+⁶ sit in the same place)</td><td>subV7/V</td></tr>
+      <tr><td>Same in both</td><td colspan="2">V7 · N⁶ · vii°7 · I⁶₄ · i⁶₄ · V7sus4 · V · ♭III°7 and the ii7 / ii7♭5 / V7 / vii°7 / N⁶ approach chords</td></tr>
+    </table>
+  </details>
+</main>
+
+<script>
+(function () {
+  "use strict";
+  const $ = (id) => document.getElementById(id);
+  const mod = (n) => ((n % 12) + 12) % 12;
+  const NS = "http://www.w3.org/2000/svg";
+
+  // chord shapes: semitones above the root
+  const Q = {
+    maj7: [0, 4, 7, 11], m7: [0, 3, 7, 10], dom7: [0, 4, 7, 10], m7b5: [0, 3, 6, 10], dim7: [0, 3, 6, 9], dim: [0, 3, 6],
+    maj: [0, 4, 7], min: [0, 3, 7], sus7: [0, 5, 7, 10], dom7b5: [0, 4, 6, 10],
+  };
+
+  // ---------- the maps ----------
+  // Every function sits where it does on the original Tonal Harmony maps (2000 x 1400 frame). Each carries a traditional (tr) and a jazz (jz)
+  // name + chord quality. off = semitones above the tonic; bass = inversion bass (semitones above the chord's root); col = text colour class.
+  // ring "in" = minor-mode chord, drawn inside the dark circle. adv = only on the advanced map.
+  const DISC = { S: { c: [630, 518], r: 143 }, D: { c: [1615, 510], r: 143 }, T: { c: [1025, 932], r: 143 } };
+  const MAIN = [
+    // tonic
+    { id: "I", region: "T", ring: "out", off: 0, at: [1022, 752], tr: ["I", "maj"], jz: ["I△", "maj7"] },
+    { id: "vi", region: "T", ring: "out", off: 9, at: [1212, 935], tr: ["vi", "min"], jz: ["vi7", "m7"] },
+    { id: "iii", region: "T", ring: "out", off: 4, at: [1495, 835], circle: 52, tr: ["iii", "min"], jz: ["iii7", "m7"] },
+    { id: "io", region: "T", ring: "out", off: 0, at: [1022, 1105], tr: ["i°", "dim"], jz: ["i°7", "dim7"] },
+    { id: "i", region: "T", ring: "in", off: 0, at: [1022, 848], tr: ["i", "min"], jz: ["i", "min"] },
+    { id: "bIII", region: "T", ring: "in", off: 3, at: [932, 925], tr: ["♭III", "maj"], jz: ["♭III△", "maj7"] },
+    { id: "vio", region: "T", ring: "in", off: 9, at: [1112, 945], tr: ["vi°", "dim"], jz: ["vi7♭5", "m7b5"] },
+    // subdominant
+    { id: "IV", region: "S", ring: "out", off: 5, at: [500, 383], tr: ["IV", "maj"], jz: ["IV△", "maj7"] },
+    { id: "ii", region: "S", ring: "out", off: 2, at: [735, 378], col: "blue", tr: ["ii", "min"], jz: ["ii7", "m7"] },
+    { id: "iv", region: "S", ring: "in", off: 5, at: [553, 440], tr: ["iv", "min"], jz: ["iv7", "m7"] },
+    { id: "iio", region: "S", ring: "in", off: 2, at: [683, 440], col: "lblue", tr: ["ii°", "dim"], jz: ["ii7♭5", "m7b5"] },
+    { id: "bVI", region: "S", ring: "in", off: 8, at: [562, 574], tr: ["♭VI", "maj"], jz: ["♭VI△", "maj7"] },
+    { id: "bII", region: "S", ring: "in", off: 1, at: [655, 622], adv: 1, tr: ["♭II", "maj"], jz: ["♭II△", "maj7"] },
+    { id: "II", region: "S", ring: "out", off: 2, at: [818, 464], adv: 1, tr: ["II", "maj"], jz: ["II7♭5", "dom7b5"] },
+    { id: "subii", region: "S", ring: "out", off: 8, at: [420, 566], adv: 1, col: "red", tr: ["♭vi7", "m7"], jz: ["subii7", "m7"] },
+    { id: "bIII07", region: "S", ring: "out", off: 3, at: [872, 347], circle: 46, adv: 1, tr: ["♭III°7", "dim7"], jz: ["♭III°7", "dim7"] },
+    // dominant
+    { id: "V7", region: "D", ring: "out", off: 7, at: [1750, 385], col: "blue", tr: ["V7", "dom7"], jz: ["V7", "dom7"] },
+    { id: "V7in", region: "D", ring: "in", off: 7, at: [1668, 430], col: "lblue", tr: ["V7", "dom7"], jz: ["V7", "dom7"] },
+    { id: "bVII", region: "D", ring: "in", off: 10, at: [1545, 440], tr: ["♭VII", "maj"], jz: ["♭VII7", "dom7"] },
+    { id: "V", region: "D", ring: "in", off: 7, at: [1717, 517], adv: 1, tr: ["V", "maj"], jz: ["V", "maj"] },
+    { id: "N6", region: "D", ring: "in", off: 1, bass: 4, at: [1525, 572], tr: ["N⁶", "maj"], jz: ["N⁶", "maj"] },
+    { id: "vii07", region: "D", ring: "in", off: 11, at: [1625, 618], tr: ["vii°7", "dim7"], jz: ["vii°7", "dim7"] },
+    { id: "viio", region: "D", ring: "out", off: 11, at: [1730, 668], tr: ["vii°", "dim"], jz: ["vii7♭5", "m7b5"] },
+    { id: "N7", region: "D", ring: "out", off: 1, at: [1435, 630], col: "red", tr: ["N⁷", "dom7"], jz: ["subV7", "dom7"] },
+    { id: "I64", region: "D", ring: "out", off: 0, bass: 7, at: [1875, 325], tr: ["I⁶₄", "maj"], jz: ["I⁶₄", "maj"] },
+    { id: "V7sus4", region: "D", ring: "out", off: 7, at: [1862, 415], tr: ["V7sus4", "sus7"], jz: ["V7sus4", "sus7"] },
+    { id: "i64", region: "D", ring: "in", circle: 44, off: 0, bass: 7, at: [1865, 510], tr: ["i⁶₄", "min"], jz: ["i⁶₄", "min"] },
+  ];
+  // Approach clusters (advanced map): the chords that lead into a target. hub = V7-of-target inner position; arcs = the two top-right arcs.
+  const CLUSTERS = [
+    { t: "IV", suf: "IV", hub: [345, 352], i64: [295, 258], sus: [310, 172], inner: true, i64in: [420, 160] },
+    { t: "ii", suf: "II", hub: [825, 172], i64: [925, 130], sus: [958, 52], minor: true },
+    { t: "V7", suf: "V", hub: [1782, 172], i64: [1925, 45], sus: [1945, 128], inner: true, minor: true, gr: true },
+    { t: "bVII", suf: "♭VII", hub: [1350, 375], i64: [1300, 255], sus: [1340, 172] },
+    { t: "bVI", suf: "♭VI", hub: [415, 745], i64: [590, 732], sus: [540, 798] },
+    { t: "bIII", suf: "♭III", hub: [735, 964], i64: [650, 846], sus: [820, 846] },
+    { t: "vi", suf: "VI", hub: [1380, 1135], i64: [1335, 985], sus: [1450, 998], minor: true },
+    { t: "iii", suf: "III", hub: [1807, 947], i64: [1965, 870], sus: [1945, 960], minor: true },
+  ];
+  // member templates, relative to the cluster hub
+  const MEMBERS = [
+    { role: "ii", off: 2, q: "m7", d: [-160, -39], col: "blue", lab: "ii7" },
+    { role: "iio", off: 2, q: "m7b5", d: [-205, 18], col: "lblue", lab: "ii7♭5", circle: 44, needs: "minor" },
+    { role: "V7", off: 7, q: "dom7", d: [45, -59], col: "blue", lab: "V7" },
+    { role: "V7in", off: 7, q: "dom7", d: [0, 0], col: "lblue", lab: "V7", circle: 44, needs: "inner" },
+    { role: "N6", off: 1, bass: 4, q: "maj", d: [-55, 58], lab: "N⁶", circle: 44 },
+    { role: "vii07", off: 11, q: "dim7", d: [30, 93], lab: "vii°7" },
+    { role: "subii", off: 8, q: "m7", d: [-310, 103], col: "red", lab: null },
+    { role: "N7", off: 1, q: "dom7", d: [-123, 108], col: "red", lab: null },
+  ];
+
+  // ---------- state ----------
+  let mapType = "trad", level = 1, prog = [], current = null, playingTimers = [], audioCtx = null, oscs = [], lastMean = 62;
+  try {
+    const s = JSON.parse(localStorage.getItem("fretline-harmony2") || "null");
+    if (s) { mapType = s.mapType === "jazz" ? "jazz" : "trad"; level = s.level === 2 ? 2 : 1; }
+  } catch (e) {}
+  const save = () => { try { localStorage.setItem("fretline-harmony2", JSON.stringify({ mapType, level })); } catch (e) {} };
+  const jazz = () => mapType === "jazz";
+
+  // ---------- node table ----------
+  const byId = new Map();
+  function buildNodes() {
+    byId.clear();
+    const T = jazz() ? "jz" : "tr";
+    MAIN.filter((m) => !m.adv || level === 2).forEach((m) => {
+      byId.set(m.id, { id: m.id, kind: "main", region: m.region, ring: m.ring, off: m.off, bass: m.bass, q: m[T][1], label: m[T][0], prog: m[T][0], pos: m.at, col: m.col || "", circle: m.circle || 0 });
+    });
+    if (level !== 2) return;
+    CLUSTERS.forEach((c) => {
+      const tgt = byId.get(c.t), tOff = tgt.off;
+      const sufName = c.suf;
+      const put = (role, lab, off, q, pos, col, circle, bass) => {
+        byId.set(c.t + "/" + role, { id: c.t + "/" + role, kind: "member", role, target: c.t, region: tgt.region, ring: circle ? "in" : "out", off: mod(tOff + off), bass, q, label: lab + "/" + sufName, prog: lab + "/" + sufName, pos, col, circle });
+      };
+      MEMBERS.forEach((m) => {
+        if (m.needs === "minor" && !c.minor) return;
+        if (m.needs === "inner" && !c.inner) return;
+        let lab = m.lab;
+        if (m.role === "subii") lab = jazz() ? "subii7" : "♭vi7";
+        if (m.role === "N7") lab = jazz() ? "subV7" : (c.gr ? "Gr+⁶" : "N⁷");
+        put(m.role, lab, m.off, m.q, [c.hub[0] + m.d[0], c.hub[1] + m.d[1]], m.col, m.circle || 0, m.bass);
+      });
+      put("I64", "I⁶₄", 0, "maj", c.i64, "", 0, 7);
+      put("V7sus4", "V7sus4", 7, "sus7", c.sus, "", 0, undefined);
+      if (c.i64in) put("i64", "i⁶₄", 0, "min", c.i64in, "", 40, 7);
+    });
+  }
+
+  // ---------- what can follow ----------
+  const STRONG = {
+    I: ["IV", "ii", "vi"], vi: ["ii", "IV"], iii: ["vi", "IV"], io: ["ii", "iii"], i: ["iv", "iio", "bVI"], bIII: ["iv", "bVI"], vio: ["iv", "V7in"],
+    IV: ["V7", "I"], ii: ["V7"], iv: ["V7in", "I", "i"], iio: ["V7in", "V"], bVI: ["bVII", "V7in"], bII: ["V7", "I", "i"], II: ["V7"], subii: ["N7"], bIII07: ["iii", "ii"],
+    V7: ["I", "i"], V7in: ["i", "I"], bVII: ["I", "i"], V: ["i", "I"], N6: ["V7"], vii07: ["I", "i"], viio: ["I", "iii"], N7: ["I", "i"], I64: ["V7"], i64: ["V7in"], V7sus4: ["V7"],
+  };
+  const ALT = { V7: ["vi", "bVI"], V7in: ["bVI", "vi"], ii: ["N7"], iio: ["N7"], bVII: ["bIII"], I: ["iii"], IV: ["iv"], iv: ["IV"] };
+  const REGION_FLOW = { T: ["S", "D"], S: ["D", "T"], D: ["T"] };
+  const MEMBER_STRONG = { ii: ["V7"], iio: ["V7in"], subii: ["N7"], V7sus4: ["V7"], I64: ["V7"], i64: ["V7in"], N6: ["V7"], V7: ["@t"], V7in: ["@t"], vii07: ["@t"] };
+  const MEMBER_ALT = { ii: ["N7"], iio: ["N7"], N7: ["@t"] };
+
+  function followers(id) {
+    const out = new Map(), node = byId.get(id);
+    if (!node) return out;
+    const add = (tid, kind) => { if (tid !== id && byId.has(tid) && !out.has(tid)) out.set(tid, kind); };
+    if (node.kind === "member") {
+      const own = (r) => (r === "@t" ? node.target : node.target + "/" + r);
+      (MEMBER_STRONG[node.role] || []).forEach((r) => add(own(r), "strong"));
+      (MEMBER_ALT[node.role] || []).forEach((r) => add(own(r), "alt"));
+      return out;
+    }
+    (STRONG[id] || []).forEach((t) => add(t, "strong"));
+    (ALT[id] || []).forEach((t) => add(t, "alt"));
+    (REGION_FLOW[node.region] || []).forEach((rg) => byId.forEach((n) => { if (n.kind === "main" && n.region === rg) add(n.id, "flow"); }));
+    [...out.entries()].filter(([, kd]) => kd !== "flow").forEach(([tid]) => { byId.forEach((n) => { if (n.kind === "member" && n.target === tid) add(n.id, "approach"); }); });
+    return out;
+  }
+
+  // ---------- drawing ----------
+  const el = (tag, attrs, text) => { const e = document.createElementNS(NS, tag); Object.entries(attrs || {}).forEach(([a, v]) => e.setAttribute(a, v)); if (text !== undefined) e.textContent = text; return e; };
+  const COLORS = { "": "#26231e", blue: "#27408b", lblue: "#2aa3d4", red: "#8b2020" };
+  const fontOf = (n) => (n.kind === "member" ? 24 : 34);
+  function boxOf(n) { const f = fontOf(n), w = Math.max(60, [...n.label].length * f * 0.58 + 22); return [w, f + 16]; }
+
+  // faint decorative arrows from the original map (drawn only where both ends are visible)
+  const STATIC = [["V7", "I", "solid"], ["N7", "I", "dash"], ["V7", "vi", "dot"], ["V7in", "bVI", "dot"], ["ii", "N7", "dash"], ["bII", "I", "solid"], ["bVI", "I", "solid"], ["N6", "V7in", "solid"]];
+  function arrowPath(a, b, bend) {
+    const dx = b[0] - a[0], dy = b[1] - a[1], d = Math.hypot(dx, dy) || 1, ux = dx / d, uy = dy / d;
+    const s = [a[0] + ux * 55, a[1] + uy * 36], e = [b[0] - ux * 62, b[1] - uy * 40];
+    const cx = (s[0] + e[0]) / 2 - uy * d * bend, cy = (s[1] + e[1]) / 2 + ux * d * bend;
+    return `M${s[0]} ${s[1]} Q${cx} ${cy} ${e[0]} ${e[1]}`;
+  }
+
+  function render() {
+    buildNodes();
+    const svg = $("map"); svg.innerHTML = "";
+    const defs = el("defs");
+    [["ah0", "#4f7a45"], ["ah1", "#9a6a4a"]].forEach(([id, c]) => {
+      const m = el("marker", { id, viewBox: "0 0 10 10", refX: "9", refY: "5", markerWidth: "7", markerHeight: "7", orient: "auto-start-reverse" });
+      m.appendChild(el("path", { d: "M0 1 L10 5 L0 9z", fill: c })); defs.appendChild(m);
+    });
+    svg.appendChild(defs);
+
+    // region backgrounds (as on the original map)
+    svg.appendChild(el("rect", { x: 0, y: 0, width: 2000, height: 1400, fill: "#fbf8f1" }));
+    svg.appendChild(el("polygon", { points: "0,0 1015,0 1015,588 515,878 0,878", fill: "#ebe7dd" }));
+    svg.appendChild(el("polygon", { points: "1015,0 2000,0 2000,838 1545,838 1445,800 1015,588", fill: "#f4f0e6" }));
+    svg.appendChild(el("polyline", { points: "0,878 515,878 1015,588 1015,0", fill: "none", stroke: "#8a8576", "stroke-width": "2" }));
+    svg.appendChild(el("polyline", { points: "1015,588 1445,800 1545,838 2000,838", fill: "none", stroke: "#8a8576", "stroke-width": "2" }));
+    [["SUBDOMINANT", 40, 56], ["DOMINANT", 1960, 1370, "end"], ["TONIC", 40, 1370]].forEach(([t, x, y, a]) => {
+      if (t === "DOMINANT") { x = 1960; y = 810; }
+      svg.appendChild(el("text", { x, y, "text-anchor": a || "start", "font-size": "26", fill: "#8a8576", opacity: "0.7", "letter-spacing": "6", "font-family": "Helvetica,Arial,sans-serif" }, t));
+    });
+    // cluster leader lines
+    if (level === 2) CLUSTERS.forEach((c) => {
+      const t = byId.get(c.t);
+      svg.appendChild(el("line", { x1: c.hub[0], y1: c.hub[1], x2: t.pos[0], y2: t.pos[1], stroke: "#bdb28f", "stroke-width": "2.4", "stroke-dasharray": "3 9" }));
+    });
+    // dark discs
+    Object.entries(DISC).forEach(([, d]) => svg.appendChild(el("circle", { cx: d.c[0], cy: d.c[1], r: d.r, fill: "#232220", stroke: "#8a6a4e", "stroke-width": "4" })));
+    // decorative arrows
+    STATIC.forEach(([a, b, style]) => {
+      if (!byId.has(a) || !byId.has(b)) return;
+      const p = el("path", { d: arrowPath(byId.get(a).pos, byId.get(b).pos, style === "solid" ? 0.1 : 0.15), fill: "none", stroke: "#9a6a4a", "stroke-width": "3", opacity: "0.38", "marker-end": "url(#ah1)" });
+      if (style === "dash") p.setAttribute("stroke-dasharray", "14 9"); else if (style === "dot") p.setAttribute("stroke-dasharray", "2 8");
+      svg.appendChild(p);
+    });
+
+    const fol = current && byId.has(current) ? followers(current) : new Map();
+    if (current && byId.has(current)) {
+      const a = byId.get(current).pos;
+      fol.forEach((kind, tid) => {
+        if (kind !== "strong" && kind !== "alt") return;
+        const p = el("path", { d: arrowPath(a, byId.get(tid).pos, 0.14), fill: "none", stroke: "#4f7a45", "stroke-width": "5", "marker-end": "url(#ah0)", opacity: "0.92" });
+        if (kind === "alt") p.setAttribute("stroke-dasharray", "16 10");
+        svg.appendChild(p);
+      });
+    }
+    // nodes
+    const visits = new Map(); prog.forEach((id, i) => { if (!visits.has(id)) visits.set(id, []); visits.get(id).push(i + 1); });
+    byId.forEach((n) => {
+      const [w, h] = boxOf(n), f = fontOf(n), x = Math.min(1994 - w / 2, Math.max(6 + w / 2, n.pos[0])), y = n.pos[1], dark = n.ring === "in" && n.kind === "main" || n.circle > 0 && n.ring === "in";
+      const g = el("g", { class: "node", "data-id": n.id });
+      if (n.circle && n.ring === "in" && n.kind === "member") g.appendChild(el("circle", { cx: x, cy: y, r: n.circle, fill: "#232220", stroke: "#8a6a4e", "stroke-width": "3" }));
+      else if (n.circle && n.ring === "in") g.appendChild(el("circle", { cx: x, cy: y, r: n.circle, fill: "#232220", stroke: "#8a6a4e", "stroke-width": "3" }));
+      else if (n.circle) g.appendChild(el("circle", { cx: x, cy: y, r: n.circle, fill: "#fbf8f1", stroke: "#26231e", "stroke-width": "3" }));
+      const kind = fol.get(n.id), isCur = n.id === current;
+      const halo = el("rect", { class: "halo", x: x - w / 2, y: y - h / 2, width: w, height: h, rx: 14, fill: isCur ? "#b07a5a" : "transparent", stroke: "none" });
+      if (kind) {
+        const r = { strong: ["#4f7a45", 5, ""], alt: ["#4f7a45", 4, "12 7"], flow: ["#8a9e7e", 3, "3 7"], approach: ["#b07a5a", 3, "3 7"] }[kind];
+        halo.setAttribute("stroke", r[0]); halo.setAttribute("stroke-width", r[1]); if (r[2]) halo.setAttribute("stroke-dasharray", r[2]);
+        halo.setAttribute("x", x - w / 2 - 6); halo.setAttribute("y", y - h / 2 - 6); halo.setAttribute("width", w + 12); halo.setAttribute("height", h + 12);
+      }
+      g.appendChild(halo);
+      const base = COLORS[n.col || ""], onDark = (n.ring === "in" && (n.kind === "main" || n.circle > 0));
+      const fill = isCur ? "#fbf8f1" : onDark ? (n.col === "lblue" ? COLORS.lblue : "#f3efe6") : base;
+      g.appendChild(el("text", { x, y: y + f * 0.34, "text-anchor": "middle", "font-size": f, "font-weight": "700", fill, "font-family": "Georgia,'Times New Roman',serif", "pointer-events": "none" }, n.label));
+      if (visits.has(n.id)) {
+        g.appendChild(el("circle", { cx: x + w / 2 - 4, cy: y - h / 2 + 2, r: 17, fill: "#3d3a30", stroke: "#fbf8f1", "stroke-width": "3", "pointer-events": "none" }));
+        g.appendChild(el("text", { x: x + w / 2 - 4, y: y - h / 2 + 9, "text-anchor": "middle", "font-size": visits.get(n.id).length > 1 ? 13 : 19, "font-weight": "700", fill: "#fbf8f1", "font-family": "Helvetica,Arial,sans-serif", "pointer-events": "none" }, visits.get(n.id).join("·")));
+      }
+      svg.appendChild(g);
+    });
+    renderProg(); renderInfo(fol);
+    $("m-trad").setAttribute("aria-pressed", String(!jazz())); $("m-jazz").setAttribute("aria-pressed", String(jazz()));
+    $("l-basic").setAttribute("aria-pressed", String(level === 1)); $("l-adv").setAttribute("aria-pressed", String(level === 2));
+  }
+
+  const REGION_NAME = { T: "tonic", S: "subdominant", D: "dominant" };
+  function renderProg() {
+    const host = $("prog"); host.innerHTML = "";
+    const lead = document.createElement("span"); lead.className = "lead"; lead.textContent = "Progression"; host.appendChild(lead);
+    if (!prog.length) { const e = document.createElement("span"); e.className = "empty"; e.textContent = "Click chords on the map to build a progression. Tonic chords (I or i) are a good place to start."; host.appendChild(e); }
+    prog.forEach((id, i) => {
+      const n = byId.get(id); if (!n) return;
+      const c = document.createElement("span"); c.className = "pchip"; c.dataset.i = i;
+      c.innerHTML = `${n.prog}<button type="button" class="x" title="Remove" aria-label="Remove">×</button>`;
+      c.addEventListener("click", (e) => {
+        if (e.target.closest(".x")) { prog.splice(i, 1); current = prog.length ? prog[prog.length - 1] : null; render(); return; }
+        current = id; playChord(n); render();
+      });
+      host.appendChild(c);
+    });
+    const sp = document.createElement("span"); sp.className = "spacer"; host.appendChild(sp);
+    const mk = (t, cls, fn, dis) => { const b = document.createElement("button"); b.type = "button"; b.className = "btn " + cls; b.textContent = t; b.disabled = !!dis; b.addEventListener("click", fn); host.appendChild(b); };
+    mk(playingTimers.length ? "Stop" : "Play", "", playProg, !prog.length);
+    mk("Undo", "ghost", undo, !prog.length);
+    mk("Clear", "ghost", clearProg, !prog.length);
+  }
+  function renderInfo(fol) {
+    const box = $("info");
+    if (!current || !byId.has(current)) { box.innerHTML = "<b>Start anywhere.</b> Click a chord to hear it and add it to your progression; the map then shows what can follow. Solid green arrows are the strongest moves, dashed ones are substitutes, and dotted outlines are other chords you could reach."; return; }
+    const n = byId.get(current), names = (k) => [...fol.entries()].filter(([, kd]) => kd === k).map(([id]) => byId.get(id).prog).join(", ");
+    const parts = [`<b>${n.prog}</b> — ${REGION_NAME[n.region]} function${n.ring === "in" ? " (minor-mode chord)" : ""}.`];
+    const s = names("strong"), a = names("alt"), f = names("flow"), ap = names("approach");
+    if (s) parts.push(`Strong moves: <b>${s}</b>.`);
+    if (a) parts.push(`Alternatives: ${a}.`);
+    if (ap) parts.push(`Approach chords into those (clay dotted outline): ${ap}.`);
+    if (f && !s) parts.push(`Chords from the next region (green dotted outline): ${f}.`);
+    box.innerHTML = parts.join(" ");
+  }
+
+  // ---------- audio (always in C: the map is Roman numerals only) ----------
+  function ensureAudio() { if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)(); if (audioCtx.state === "suspended") audioCtx.resume(); }
+  function tone(m, t, dur, g) {
+    const osc = audioCtx.createOscillator(), gain = audioCtx.createGain();
+    osc.type = "triangle"; osc.frequency.value = 440 * Math.pow(2, (m - 69) / 12);
+    gain.gain.setValueAtTime(0.0001, t); gain.gain.linearRampToValueAtTime(g, t + 0.015); gain.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+    osc.connect(gain).connect(audioCtx.destination); osc.start(t); osc.stop(t + dur + 0.03); oscs.push(osc);
+  }
+  function voicing(n, prevMean) {   // bass low; the other tones voiced as close as possible to the previous chord
+    const rootPc = mod(n.off), pcs = Q[n.q].map((i) => mod(rootPc + i)), bassPc = n.bass !== undefined ? mod(rootPc + n.bass) : rootPc;
+    const ups = pcs.map((pc) => { let best = null; for (let m = 50; m <= 78; m++) if (mod(m) === pc && (best === null || Math.abs(m - prevMean) < Math.abs(best - prevMean))) best = m; return best; }).sort((a, b) => a - b);
+    return { bass: 36 + bassPc, ups, mean: ups.reduce((s, m) => s + m, 0) / ups.length };
+  }
+  function playChord(n, when, dur) {
+    ensureAudio();
+    const v = voicing(n, lastMean), t = when !== undefined ? when : audioCtx.currentTime + 0.02, d = dur || 1.6;
+    tone(v.bass, t, d, 0.16); v.ups.forEach((m) => tone(m, t, d, 0.1));
+    lastMean = v.mean; return v;
+  }
+  function stopAudio() { playingTimers.forEach(clearTimeout); playingTimers = []; oscs.forEach((o) => { try { o.stop(); } catch (e) {} }); oscs = []; document.querySelectorAll(".pchip.playing").forEach((c) => c.classList.remove("playing")); }
+  function playProg() {
+    if (playingTimers.length) { stopAudio(); renderProg(); return; }
+    if (!prog.length) return;
+    ensureAudio();
+    const step = +$("speed").value, t0 = audioCtx.currentTime + 0.05; lastMean = 62;
+    prog.forEach((id, i) => {
+      const n = byId.get(id); if (!n) return;
+      playChord(n, t0 + i * step, step * 1.15);
+      playingTimers.push(setTimeout(() => { document.querySelectorAll(".pchip").forEach((c) => c.classList.toggle("playing", +c.dataset.i === i)); }, i * step * 1000 + 50));
+    });
+    playingTimers.push(setTimeout(() => { stopAudio(); renderProg(); }, prog.length * step * 1000 + 200));
+    renderProg();
+  }
+  function undo() { stopAudio(); prog.pop(); current = prog.length ? prog[prog.length - 1] : null; render(); }
+  function clearProg() { stopAudio(); prog = []; current = null; render(); }
+
+  // ---------- wiring ----------
+  // switching map style keeps the progression (same functions, renamed); switching level drops chords that are not on the new map
+  function relevel() {
+    stopAudio(); buildNodes();
+    prog = prog.filter((id) => byId.has(id));
+    if (current && !byId.has(current)) current = prog.length ? prog[prog.length - 1] : null;
+    save(); render();
+  }
+  $("map").addEventListener("click", (e) => {
+    const g = e.target.closest && e.target.closest(".node"); if (!g) return;
+    const n = byId.get(g.dataset.id); if (!n) return;
+    stopAudio(); current = n.id; prog.push(n.id); playChord(n); render();
+  });
+  $("m-trad").addEventListener("click", () => { mapType = "trad"; relevel(); });
+  $("m-jazz").addEventListener("click", () => { mapType = "jazz"; relevel(); });
+  $("l-basic").addEventListener("click", () => { level = 1; relevel(); });
+  $("l-adv").addEventListener("click", () => { level = 2; relevel(); });
+  document.addEventListener("keydown", (e) => {
+    if (e.ctrlKey || e.metaKey || e.altKey) return;
+    const tag = e.target && e.target.tagName;
+    if (tag === "SELECT" || tag === "INPUT" || tag === "TEXTAREA") return;
+    const k = e.key;
+    if (k === " " || k === "Spacebar") { if (tag === "BUTTON") return; e.preventDefault(); playProg(); }
+    else if (k === "Backspace") { e.preventDefault(); undo(); }
+    else if (k === "Escape") clearProg();
+    else if (k === "ArrowUp") { e.preventDefault(); level = 2; relevel(); }
+    else if (k === "ArrowDown") { e.preventDefault(); level = 1; relevel(); }
+    else if (k.toLowerCase() === "m") { mapType = jazz() ? "trad" : "jazz"; relevel(); }
+  });
+  window.__harmony = { byId, followers, voicing, Q, MAIN, CLUSTERS, boxOf, get state() { return { mapType, level, prog, current }; }, set(t, l) { mapType = t; level = l; relevel(); } };
+  relevel();
+})();
+</script>
+</body>
+</html>

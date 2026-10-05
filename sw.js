@@ -6,6 +6,7 @@ const PRECACHE_URLS = [
   "./fretline.html",
   "./ear_training.html",
   "./scale_lab.html",
+  "./harmony_map.html",
   "./manifest.webmanifest",
   "./icons/icon-192.png",
   "./icons/icon-512.png",
