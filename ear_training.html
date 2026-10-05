@@ -451,7 +451,7 @@ details.settings summary { cursor: pointer; font-size: 11px; letter-spacing: 0.1
     qAnswered = false;
     intBtns.forEach((b) => { b.className = "ans"; b.disabled = false; });
     $("int-status").className = "status hint"; $("int-status").textContent = "Which interval was that?";
-    $("int-next").textContent = "Next"; $("int-next").disabled = true;
+    $("int-next").textContent = "Next"; $("int-next").disabled = false;   // Next works at any time, answered or not
     drawIntervalVisuals();
     if (!dir || dir === "both") { /* nothing shown for harmonic until answered */ }
     if (autoplay && gestured) playInterval(); else $("int-status").textContent = "Press Repeat to hear the notes, then pick the interval.";
@@ -570,7 +570,7 @@ details.settings summary { cursor: pointer; font-size: 11px; letter-spacing: 0.1
     $("chd-slots").classList.toggle("tight", N_CHORDS > 4);
     $("chd-status").className = "status hint";
     $("chd-status").textContent = `Listen to the ${C.scale.name.toLowerCase()} scale, then name the Roman numeral (scale degree) and the quality of each of the ${NUM_WORD[N_CHORDS]} chords.`;
-    $("chd-next").textContent = "Next"; $("chd-next").disabled = true;
+    $("chd-next").textContent = "Next"; $("chd-next").disabled = false;
     if (autoplay && gestured) playChords(true); else $("chd-status").textContent += " (Press Repeat all to start.)";
   }
   function buildChordSlots() {
@@ -780,8 +780,10 @@ details.settings summary { cursor: pointer; font-size: 11px; letter-spacing: 0.1
     if (key === "c" && S.mode === "chd") { gestured = true; playChords(false); return; }
     if (e.key === " " || key === "r") { e.preventDefault(); gestured = true; S.mode === "int" ? playInterval() : playChords(true); }
     else if (e.key === "Enter" || key === "n") {
-      if (S.mode === "int" && qAnswered) newInterval(true);
-      else if (S.mode === "chd") { if (cChecked) newChords(true); else if (!$("chd-check").disabled) checkChords(); }
+      gestured = true;
+      if (S.mode === "int") newInterval(true);
+      else if (e.key === "Enter" && !cChecked && !$("chd-check").disabled) checkChords();   // Enter checks a finished answer; N (or Enter otherwise) moves on
+      else newChords(true);
     }
   });
   updateIntSub(); buildIntervalButtons(); newInterval(false);
