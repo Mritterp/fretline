@@ -45,6 +45,8 @@ main { max-width: 1100px; margin: 0 auto; padding: 10px 16px 24px; }
 .kbd-wrap { overflow: hidden; border: 1px solid var(--wheat); background: #fff; margin-top: 6px; }
 .kbd-wrap svg { display: block; width: 100%; height: auto; }
 .kbd-wrap .key { cursor: pointer; }
+.keys { display: flex; flex-wrap: wrap; gap: 6px 22px; margin: 12px 2px 0; font-size: 11px; color: var(--moss); }
+.keys kbd { font: inherit; font-size: 10px; letter-spacing: 0.06em; padding: 2px 6px; border: 1px solid var(--wheat); border-bottom-width: 2px; border-radius: 3px; background: #fff; color: var(--bark); }
 .kbd-wrap { user-select: none; -webkit-user-select: none; touch-action: manipulation; }
 .status { min-height: 40px; margin: 8px 0 4px; font-size: 14px; line-height: 1.4; }
 .status.good { color: var(--good); }
@@ -180,6 +182,14 @@ details.settings summary { cursor: pointer; font-size: 11px; letter-spacing: 0.1
       <div class="setgroup"><h3>Chord qualities (answers and pool)</h3><div class="chips" id="qual-chips"></div></div>
     </div>
   </details>
+
+  <p class="keys" aria-label="Keyboard shortcuts">
+    <span><kbd>Space</kbd> <kbd>R</kbd> repeat (all)</span>
+    <span class="chd-only"><kbd>C</kbd> repeat chords</span>
+    <span><kbd>Enter</kbd> <kbd>N</kbd> next · or check</span>
+    <span><kbd>S</kbd> skip</span>
+    <span>click a piano key to play it</span>
+  </p>
 </main>
 
 <script>
@@ -619,6 +629,7 @@ details.settings summary { cursor: pointer; font-size: 11px; letter-spacing: 0.1
     $("mode-int").setAttribute("aria-pressed", String(m === "int")); $("mode-chd").setAttribute("aria-pressed", String(m === "chd"));
     $("view-int").hidden = m !== "int"; $("view-chd").hidden = m !== "chd";
     $("set-int").hidden = m !== "int"; $("set-chd").hidden = m !== "chd";
+    document.querySelectorAll(".keys .chd-only").forEach((el) => { el.hidden = m !== "chd"; });
     if (m === "chd" && !C) newChords(false);
     if (m === "int") drawIntervalVisuals();                       // sizes are only measurable while the view is visible
     else if (cChecked && C) renderStaff($("chd-staff"), C.chords.map((ch, k) => voicing(ch, C.rootMidi[k]).slice(1)), true);
@@ -673,8 +684,12 @@ details.settings summary { cursor: pointer; font-size: 11px; letter-spacing: 0.1
   chipSet($("qual-chips"), QUALS, () => S.quals, (q) => q.name + (q.sym ? "  " + q.sym : ""), onChdSettings);
   document.addEventListener("keydown", (e) => {
     if (e.target.closest && e.target.closest("details, select, input")) return;
-    if (e.key === " " || e.key === "r") { e.preventDefault(); gestured = true; S.mode === "int" ? playInterval() : playChords(true); }
-    else if (e.key === "Enter" || e.key === "n") {
+    if (e.ctrlKey || e.metaKey || e.altKey) return;
+    const key = e.key.toLowerCase();
+    if (key === "s") { gestured = true; S.mode === "int" ? newInterval(true) : newChords(true); return; }
+    if (key === "c" && S.mode === "chd") { gestured = true; playChords(false); return; }
+    if (e.key === " " || key === "r") { e.preventDefault(); gestured = true; S.mode === "int" ? playInterval() : playChords(true); }
+    else if (e.key === "Enter" || key === "n") {
       if (S.mode === "int" && qAnswered) newInterval(true);
       else if (S.mode === "chd") { if (cChecked) newChords(true); else if (!$("chd-check").disabled) checkChords(); }
     }
