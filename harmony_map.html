@@ -118,7 +118,7 @@ details.diff th { color: var(--bark); font-weight: 600; }
   <div class="controls">
     <span class="seg" role="group" aria-label="Map style"><button type="button" id="m-trad" aria-pressed="true">Traditional</button><button type="button" id="m-jazz" aria-pressed="false">Jazz</button></span>
     <span class="seg" role="group" aria-label="Map level"><button type="button" id="l-basic" aria-pressed="true">Basic</button><button type="button" id="l-med" aria-pressed="false">Medium</button><button type="button" id="l-adv" aria-pressed="false">Advanced</button></span>
-    <details class="enh" id="enh-menu"><summary id="enh-sum">Enharmonic moves</summary>
+    <details class="enh" id="enh-menu"><summary id="enh-sum">Substitutions &amp; modulations</summary>
       <div class="enh-panel" id="enh-panel"></div>
     </details>
     <button type="button" id="edit-btn" class="edit-btn" hidden aria-pressed="false" title="Drag chords and circle pairs to a better layout">Edit layout</button>
@@ -149,7 +149,7 @@ details.diff th { color: var(--bark); font-weight: 600; }
       <span class="mv" data-k="green"><svg width="30" height="10"><line x1="1" y1="5" x2="25" y2="5" stroke="#4f7a45" stroke-width="2.5"/><path d="M25 1 L30 5 L25 9z" fill="#4f7a45"/></svg>green arrow: suggested next chord</span>
       <span class="mv" data-k="gdash"><svg width="30" height="10"><line x1="1" y1="5" x2="25" y2="5" stroke="#4f7a45" stroke-width="2.5" stroke-dasharray="4 3"/><path d="M25 1 L30 5 L25 9z" fill="#4f7a45"/></svg>dashed green arrow: alternative next chord</span>
       <span class="mv" data-k="flow"><svg width="22" height="14"><rect x="1" y="1" width="20" height="12" rx="4" fill="none" stroke="#8a9e7e" stroke-width="1.6" stroke-dasharray="1.5 2.5"/></svg>dotted outline: other chords you could reach from here</span>
-          <span class="mv" data-k="enh"><svg width="22" height="14"><rect x="1" y="1" width="20" height="12" rx="3" fill="none" stroke="#7a4fa0" stroke-width="1.8" stroke-dasharray="4 2.5"/></svg>violet outline: reachable through a toggled enharmonic move</span>
+          <span class="mv" data-k="enh"><svg width="22" height="14"><rect x="1" y="1" width="20" height="12" rx="3" fill="none" stroke="#7a4fa0" stroke-width="1.8" stroke-dasharray="4 2.5"/></svg>violet outline: reachable through a switched-on substitution or modulation option</span>
     </div></div>
     <div class="lg-row"><span class="lg-title">Shortcuts</span><div class="lg-items">
       <span><kbd>Space</kbd> play progression</span>
@@ -371,7 +371,7 @@ details.diff th { color: var(--bark); font-weight: 600; }
     return out;
   }
 
-  // ---------- enharmonic moves (computed from the chords' actual notes; the map plays in C) ----------
+  // ---------- substitutions & modulations (computed from the chords' actual notes; the map plays in C) ----------
   const pcsOf = (n) => new Set(Q[n.q].map((i) => mod(n.off + i)));
   const rootOf = (n) => mod(n.off);
   const KEY_NAME = { 0: "I", 7: "V", 5: "IV", 2: "ii", 9: "vi", 4: "iii", 10: "♭VII", 3: "♭III", 8: "♭VI", 1: "♭II", 6: "♯IV / ♭V", 11: "vii" };
@@ -884,7 +884,7 @@ details.diff th { color: var(--bark); font-weight: 600; }
         if (circ) halo.setAttribute("r", circ + 9); else { halo.setAttribute("x", x - w / 2 - 6); halo.setAttribute("y", y - h / 2 - 6); halo.setAttribute("width", w + 12); halo.setAttribute("height", h + 12); }
       }
       g.appendChild(halo);
-      if (ENH.marks.has(n.id)) {   // violet ring: reachable through one of the enharmonic options that are switched on
+      if (ENH.marks.has(n.id)) {   // violet ring: reachable through one of the substitution / modulation options that are switched on
         const vr = circ ? el("circle", { cx: x, cy: y, r: circ + 16, fill: "none" }) : el("rect", { x: x - w / 2 - 13, y: y - h / 2 - 13, width: w + 26, height: h + 26, rx: 18, fill: "none" });
         vr.setAttribute("stroke", "#7a4fa0"); vr.setAttribute("stroke-width", "4"); vr.setAttribute("stroke-dasharray", "10 6"); vr.setAttribute("pointer-events", "none"); g.appendChild(vr);
       }
@@ -1051,7 +1051,7 @@ details.diff th { color: var(--bark); font-weight: 600; }
   const panel = $("enh-panel");
   panel.innerHTML = '<div class="bulk"><button type="button" data-all="1">All on</button><button type="button" data-all="0">All off</button></div>' +
     ENH_OPTS.map(([k, t, d]) => `<label><input type="checkbox" data-k="${k}"${enh[k] ? " checked" : ""}><span>${t}<small>${d}</small></span></label>`).join("");
-  const syncEnh = () => { const n = ENH_OPTS.filter(([k]) => enh[k]).length; $("enh-sum").textContent = "Enharmonic moves" + (n ? " (" + n + ")" : ""); $("enh-menu").classList.toggle("on", n > 0); };
+  const syncEnh = () => { const n = ENH_OPTS.filter(([k]) => enh[k]).length; $("enh-sum").textContent = "Substitutions & modulations" + (n ? " (" + n + ")" : ""); $("enh-menu").classList.toggle("on", n > 0); };
   panel.addEventListener("change", (e) => { const k = e.target.dataset && e.target.dataset.k; if (!k) return; enh[k] = e.target.checked; save(); syncEnh(); render(); });
   panel.addEventListener("click", (e) => { const b = e.target.closest && e.target.closest("[data-all]"); if (!b) return; ENH_OPTS.forEach(([k]) => { enh[k] = b.dataset.all === "1"; }); panel.querySelectorAll("input").forEach((i) => { i.checked = !!enh[i.dataset.k]; }); save(); syncEnh(); render(); });
   document.addEventListener("click", (e) => { const m = $("enh-menu"); if (m.open && !m.contains(e.target)) m.open = false; });
