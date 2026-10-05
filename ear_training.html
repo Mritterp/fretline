@@ -39,11 +39,13 @@ main { max-width: 1100px; margin: 0 auto; padding: 10px 16px 24px; }
 .card { background: #f9f5ee; border: 1px solid #e3dac6; padding: 12px 14px 14px; margin-bottom: 12px; }
 .card h2 { margin: 0 0 2px; font-family: var(--font-display); font-weight: 400; font-size: 22px; }
 .sub { font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--sage); margin-bottom: 10px; }
-.staff { height: clamp(130px, 22vh, 215px); overflow: hidden; }
+.staff { height: clamp(190px, 32vh, 330px); overflow: hidden; }
 .staff svg { display: block; width: 100%; height: 100%; }
 #chd-staff:empty { display: none; }
 .kbd-wrap { overflow: hidden; border: 1px solid var(--wheat); background: #fff; margin-top: 6px; }
 .kbd-wrap svg { display: block; width: 100%; height: auto; }
+.kbd-wrap .key { cursor: pointer; }
+.kbd-wrap { user-select: none; -webkit-user-select: none; touch-action: manipulation; }
 .status { min-height: 40px; margin: 8px 0 4px; font-size: 14px; line-height: 1.4; }
 .status.good { color: var(--good); }
 .status.bad { color: var(--bad); }
@@ -274,9 +276,15 @@ details.settings summary { cursor: pointer; font-size: 11px; letter-spacing: 0.1
     const renderer = new Renderer(el, Renderer.Backends.SVG);
     // ledger lines need room: measure how far the notes sit above the treble staff / below the bass staff
     const step = (m) => 7 * Math.floor(m / 12) + [0, 0, 1, 1, 2, 3, 3, 4, 4, 5, 5, 6][mod(m)];   // diatonic steps (5px each)
-    const all = [].concat(...moments);
-    const above = all.length ? Math.max(0, (step(Math.max(...all)) - step(77)) * 5 + 8) : 0;   // top line is F5
-    const below = all.length ? Math.max(0, (step(43) - step(Math.min(...all))) * 5 + 8) : 0;   // bottom line is G2
+    const trebleSet = moments.map((m) => m.filter((x) => x >= 60)), bassSet = moments.map((m) => m.filter((x) => x < 60));
+    const hi = Math.max(0, ...[].concat(...trebleSet)), lo = Math.min(200, ...[].concat(...bassSet));
+    const shiftT = hi >= 100 ? 24 : hi >= 88 ? 12 : 0;      // E6 and above -> 8va, E7 and above -> 15ma
+    const shiftB = lo <= 24 ? 24 : lo <= 36 ? 12 : 0;        // C2 and below -> 8vb, C1 and below -> 15mb
+    const trebleDisp = trebleSet.map((m) => m.map((x) => x - shiftT)), bassDisp = bassSet.map((m) => m.map((x) => x + shiftB));
+    const allT = [].concat(...trebleDisp), allB = [].concat(...bassDisp);
+    const ledgerUp = allT.length ? Math.max(0, (step(Math.max(...allT)) - step(77)) * 5) : 0;     // top line is F5
+    const ledgerDown = allB.length ? Math.max(0, (step(43) - step(Math.min(...allB))) * 5) : 0;   // bottom line is G2
+    const above = (allT.length ? ledgerUp + 8 : 0) + (shiftT ? 20 : 0), below = (allB.length ? ledgerDown + 8 : 0) + (shiftB ? 20 : 0);
     const trebleY = 20 + above, bassY = trebleY + 40 + 56;
     const H = bassY + 40 + below + 20;
     renderer.resize(W, H);
@@ -308,12 +316,32 @@ details.settings summary { cursor: pointer; font-size: 11px; letter-spacing: 0.1
       sorted.forEach((m, i) => { const k = KEYS[mod(m)]; if (k.length > 1) note.addModifier(new Accidental(k[1]), i); });
       return note;
     };
-    const tn = moments.map((m) => mk(m.filter((x) => x >= 60), "treble")), bn = moments.map((m) => mk(m.filter((x) => x < 60), "bass"));
+    const tn = trebleDisp.map((m) => mk(m, "treble")), bn = bassDisp.map((m) => mk(m, "bass"));
     const beats = moments.length * 2;
     const vt = new Voice({ num_beats: beats, beat_value: 4 }).setStrict(false).addTickables(tn);
     const vb = new Voice({ num_beats: beats, beat_value: 4 }).setStrict(false).addTickables(bn);
     new Formatter().joinVoices([vt]).joinVoices([vb]).format([vt, vb], W - 120);
     vt.draw(c, treble); vb.draw(c, bass);
+    // octave sign: a label plus a dashed bracket over (or under) the notes it applies to
+    const NS = "http://www.w3.org/2000/svg";
+    const mark = (text, notes, y, hook) => {
+      const xs = notes.map((n) => n.getAbsoluteX());
+      if (!xs.length) return;
+      const x0 = Math.min(...xs) - 6, x1 = Math.max(...xs) + 18;
+      const t = document.createElementNS(NS, "text");
+      t.setAttribute("x", x0); t.setAttribute("y", y); t.setAttribute("font-size", "12"); t.setAttribute("font-style", "italic");
+      t.setAttribute("font-family", "Georgia,serif"); t.setAttribute("fill", "#3d3a30"); t.setAttribute("stroke", "none"); t.setAttribute("font-weight", "normal"); t.textContent = text;
+      svgEl.appendChild(t);
+      const yl = y - 4;
+      const ln = document.createElementNS(NS, "path");
+      ln.setAttribute("d", `M ${x0 + text.length * 7 + 4} ${yl} L ${x1} ${yl} L ${x1} ${yl + hook * 6}`);
+      ln.setAttribute("fill", "none"); ln.setAttribute("stroke", "#3d3a30"); ln.setAttribute("stroke-width", "1"); ln.setAttribute("stroke-dasharray", "4 3");
+      svgEl.appendChild(ln);
+    };
+    // notes with real pitches are the non-ghost ones
+    const real = (arr, sets) => arr.filter((n, i) => sets[i].length);
+    if (shiftT) mark(shiftT === 24 ? "15ma" : "8va", real(tn, trebleDisp), trebleY - ledgerUp - 14, 1);
+    if (shiftB) mark(shiftB === 24 ? "15mb" : "8vb", real(bn, bassDisp), bassY + 40 + ledgerDown + 26, -1);
     fit();
   }
   const KBD = { kw: 26, h: 112 };
@@ -323,17 +351,17 @@ details.settings summary { cursor: pointer; font-size: 11px; letter-spacing: 0.1
     const xOf = new Map(); whites.forEach((m, i) => xOf.set(m, i * KBD.kw));
     const W = whites.length * KBD.kw, p = [];
     whites.forEach((m) => {
-      p.push(`<rect x="${xOf.get(m)}" y="0" width="${KBD.kw}" height="${KBD.h}" fill="#fff" stroke="#c4b89a" stroke-width="1"/>`);
-      if (mod(m) === 0) p.push(`<text x="${xOf.get(m) + KBD.kw / 2}" y="${KBD.h - 6}" text-anchor="middle" font-size="11" fill="#8a9e7e" font-family="Helvetica,Arial,sans-serif">C${Math.floor(m / 12) - 1}</text>`);
+      p.push(`<rect class="key" data-midi="${m}" x="${xOf.get(m)}" y="0" width="${KBD.kw}" height="${KBD.h}" fill="#fff" stroke="#c4b89a" stroke-width="1"><title>${noteName(m)}</title></rect>`);
+      if (mod(m) === 0) p.push(`<text x="${xOf.get(m) + KBD.kw / 2}" y="${KBD.h - 6}" text-anchor="middle" font-size="11" fill="#8a9e7e" pointer-events="none" font-family="Helvetica,Arial,sans-serif">C${Math.floor(m / 12) - 1}</text>`);
     });
     for (let m = LOW; m <= HIGH; m++) if (isBlack(m)) {
       const x = xOf.get(m - 1) + KBD.kw - 8;
-      p.push(`<rect x="${x}" y="0" width="16" height="${KBD.h * 0.6}" fill="#3d3a30" rx="2"/>`);
+      p.push(`<rect class="key" data-midi="${m}" x="${x}" y="0" width="16" height="${KBD.h * 0.6}" fill="#3d3a30" rx="2"><title>${noteName(m, true)}</title></rect>`);
     }
     marks.forEach((k) => {
       const black = isBlack(k.midi);
       const cx = black ? xOf.get(k.midi - 1) + KBD.kw : xOf.get(k.midi) + KBD.kw / 2, cy = black ? KBD.h * 0.6 - 16 : KBD.h - 26;
-      p.push(`<circle cx="${cx}" cy="${cy}" r="13" fill="#b07a5a" stroke="#fff" stroke-width="1.5"/><text x="${cx}" y="${cy + 4.5}" text-anchor="middle" font-size="12" font-weight="700" fill="#fff" font-family="Helvetica,Arial,sans-serif">${k.label}</text>`);
+      p.push(`<g pointer-events="none"><circle cx="${cx}" cy="${cy}" r="13" fill="#b07a5a" stroke="#fff" stroke-width="1.5"/><text x="${cx}" y="${cy + 4.5}" text-anchor="middle" font-size="12" font-weight="700" fill="#fff" font-family="Helvetica,Arial,sans-serif">${k.label}</text></g>`);
     });
     el.innerHTML = `<svg viewBox="0 0 ${W} ${KBD.h}" preserveAspectRatio="xMidYMid meet">${p.join("")}</svg>`;
     if (marks.length && el.scrollWidth > el.clientWidth) {   // phones keep a scrollable keyboard: centre it on the notes
@@ -577,6 +605,15 @@ details.settings summary { cursor: pointer; font-size: 11px; letter-spacing: 0.1
     showScore();
   }
   document.addEventListener("pointerdown", () => { gestured = true; }, { once: true });
+  $("int-kbd").addEventListener("pointerdown", (e) => {
+    const k = e.target.closest && e.target.closest("[data-midi]");
+    if (!k) return;
+    gestured = true;
+    tone(+k.dataset.midi, audio().currentTime + 0.01, 1.3, 0.26);
+    const was = k.getAttribute("fill");                       // brief press feedback
+    k.setAttribute("fill", was === "#fff" ? "#e0d7c4" : "#6b6658");
+    setTimeout(() => k.setAttribute("fill", was), 180);
+  });
   $("mode-int").addEventListener("click", () => setMode("int"));
   $("mode-chd").addEventListener("click", () => setMode("chd"));
   $("reset").addEventListener("click", () => { S.score = defaults().score; save(); showScore(); });
