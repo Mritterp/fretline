@@ -100,7 +100,6 @@ main { padding: 14px 24px 50px; max-width: 1500px; margin: 0 auto; }
   <div class="segnote" id="segnote" hidden></div>
   <p class="keys" aria-label="Keyboard shortcuts">
     <span><kbd>Space</kbd> play / stop</span>
-    <span><kbd>S</kbd> Segovia scale</span>
     <span><kbd>K</kbd> key: intervals / notes</span>
     <span><kbd>↑</kbd> <kbd>↓</kbd> <kbd>←</kbd> <kbd>→</kbd> scale (rows / along the row)</span>
     <span>click a note to hear it</span>
@@ -341,8 +340,7 @@ main { padding: 14px 24px 50px; max-width: 1500px; margin: 0 auto; }
     const k = e.key;
     if (k === " " || k === "Spacebar") { if (tag === "BUTTON") return; e.preventDefault(); playScale(); return; }
     const key = k.length === 1 ? k.toLowerCase() : k;
-    if (key === "s") { if (!$("seg").disabled) $("seg").click(); }
-    else if (key === "k") setShow(!showNotes);   // K = key: flip between intervals and note names
+    if (key === "k") setShow(!showNotes);   // K = key: flip between intervals and note names
     else if (key === "ArrowDown" || key === "ArrowUp" || key === "ArrowLeft" || key === "ArrowRight") {
       // navigate the picker as a grid: left/right move along a row (mode, then its variations); up/down move to the nearest scale in the row above or below
       e.preventDefault();
