@@ -262,6 +262,7 @@ details.diff th { color: var(--bark); font-weight: 600; }
     iii: { Q: [1572, 980], P: [1780, 974], br: [1574, 1805, 1081], dash: 0.74, z: [1703, 1040], d: [[1703, 1040], [1700, 950], [1680, 885], [1612, 865]], arcs: { V7: [1847, 906, -33, 87], I64: [1965, 870, 110, 206], V7sus4: [1926, 957, 150, 270] } },
   };
   const GEO0 = JSON.parse(JSON.stringify(GEO)), CL0 = CLUSTERS.map((c) => JSON.parse(JSON.stringify(c.pos)));
+  const FREE = new Set(["bVI/V7"]);   // chords the user may place anywhere: no automatic spacing, nudging or re-aiming reacts to them
   const DEFAULT_LAYOUT = {"groups":{"IV":[-17,-16],"ii":[-18,-5],"bVI":[-13,-21],"V7":[-9,15],"bVII":[-14,0],"bIII":[-185,173],"vi":[-66,91],"iii":[-7,140]},"labels":{"bIII07":[44,4],"bVI/V7":[-2,1],"bVI/I64":[13,-7],"bVI/V7sus4":[58,-3],"bVI/subii":[-4,-7],"ii/vii07":[-23,0],"ii/I64":[52,21],"ii/V7sus4":[12,11],"ii/V7":[21,-3],"V7/iio":[-16,-8],"V7/ii":[-10,-3],"V7/subii":[14,1],"I64":[35,15],"V7sus4":[67,6],"i64":[-2,34],"V7":[5,9],"vi/V7sus4":[12,-50],"vi/I64":[30,-25],"vi/V7":[-18,2],"iii/I64":[-34,-27],"iii/V7":[8,-7],"iii/V7sus4":[9,-15],"bIII/V7":[-17,-14],"bIII/V7sus4":[29,-37],"bIII/vii07":[26,7],"vi/N7":[8,-8],"IV/V7":[4,21],"IV/V7sus4":[-14,-7],"IV/i64":[-6,-21],"IV/I64":[-9,-16],"IV/N7":[19,-4],"bIII/N7":[9,-6],"bIII/ii":[-8,-32],"ii/N7":[23,-8]}};   // a layout copied from the editor can be pasted here to make it the default for everyone
   let layout = JSON.parse(JSON.stringify(DEFAULT_LAYOUT)), editing = false;
   const EDIT_ALLOWED = /[?&]edit(=|&|$)/.test(location.search);   // visitors always see DEFAULT_LAYOUT; the editor is reached with harmony_map.html?edit
@@ -540,8 +541,9 @@ details.diff th { color: var(--bark); font-weight: 600; }
     if (L.V7) {
       const others = keys.filter((k) => k !== "V7").map((k) => L[k]); if (disc && disc.circle) others.push(disc.pos);
       const mx = others.reduce((t, p) => t + p[0], 0) / (others.length || 1), my = others.reduce((t, p) => t + p[1], 0) / (others.length || 1);
-      face.V7 = axisOf(mx - L.V7[0], my - L.V7[1]);
-      keys.forEach((k) => { if (k !== "V7") { const dx = L.V7[0] - L[k][0], dy = L.V7[1] - L[k][1]; face[k] = Math.abs(dx) >= 0.35 * Math.abs(dy) ? (dx >= 0 ? 0 : 180) : dy >= 0 ? 90 : 270; } });   // arcs of V7sus4 / I64 face sideways unless V7 is almost straight above or below
+      const off0 = FREE.has(idOf("V7")) ? layout.labels[idOf("V7")] || [0, 0] : [0, 0], FV = [L.V7[0] - off0[0], L.V7[1] - off0[1]];
+      face.V7 = axisOf(mx - FV[0], my - FV[1]);
+      keys.forEach((k) => { if (k !== "V7") { const dx = FV[0] - L[k][0], dy = FV[1] - L[k][1]; face[k] = Math.abs(dx) >= 0.35 * Math.abs(dy) ? (dx >= 0 ? 0 : 180) : dy >= 0 ? 90 : 270; } });   // arcs of V7sus4 / I64 face sideways unless V7 is almost straight above or below
     }
     const build = (R) => {   // the arcs' radius R: smaller circles when the labels are close together
     const T = {};
@@ -602,7 +604,7 @@ details.diff th { color: var(--bark); font-weight: 600; }
   }
   const boxHitsDisc = (x, y, tw, th) => Object.values(DISC).some((d) => Math.hypot(Math.max(x - tw, Math.min(d.c[0], x + tw)) - d.c[0], Math.max(y - th, Math.min(d.c[1], y + th)) - d.c[1]) < d.r + 5);
   function spaceTrees(A, idOf) {   // when V7sus4 / I64 sit too close to V7 for full arcs, slide them away from V7 (squeezing the lettering at the map edge)
-    const keys = ["I64", "V7sus4"].filter((k) => A[k] && byId.has(idOf(k)) && !byId.get(idOf(k)).pinned); if (!A.V7 || !byId.has(idOf("V7")) || !keys.length) return;
+    const keys = ["I64", "V7sus4"].filter((k) => A[k] && byId.has(idOf(k)) && !byId.get(idOf(k)).pinned); if (!A.V7 || !byId.has(idOf("V7")) || !keys.length || FREE.has(idOf("V7"))) return;
     const V = byId.get(idOf("V7")).pos, base = {}, dir = {};
     keys.forEach((k) => {
       const n = byId.get(idOf(k)); base[k] = [n.pos[0], n.pos[1], n.wd];
@@ -666,6 +668,7 @@ details.diff th { color: var(--bark); font-weight: 600; }
     const clashAll = (x, y, tw, th, id) => clash(x, y, tw, th, id) || clash0(x, y, tw, th, id);
     const settle = (n) => {
       near(n);
+      if (FREE.has(n.id)) { const [fw, fh] = dims(n, 1); placed.push([n.pos[0], n.pos[1], fw, fh]); return; }
       if (n.pinned) {   // a placed label stays put; if it would touch something its lettering narrows, and only if that is not enough does it move
         const [pw, ph] = dims(n, 1); let ok = !clashAll(n.pos[0], n.pos[1], pw, ph, n.id);
         if (!ok) for (const k of [0.9, 0.8, 0.7]) { const [kw] = dims(n, k); if (!clashAll(n.pos[0], n.pos[1], kw, ph, n.id)) { n.wd = Math.round((n.wd ? Math.min(n.wd, textW(n.label, fontOf(n))) : textW(n.label, fontOf(n))) * k); ok = true; break; } }
@@ -779,7 +782,7 @@ details.diff th { color: var(--bark); font-weight: 600; }
         tpc.arcs.forEach(([cc, r, a0, a1]) => { for (let an = a0; an <= a1; an += 3) obsPts.push(ptOn(cc, r, an)); });
         tpc.segs.forEach(([x1, y1, x2, y2]) => { const n = Math.max(2, Math.round(Math.hypot(x2 - x1, y2 - y1) / 4)); for (let i = 0; i <= n; i++) obsPts.push([x1 + ((x2 - x1) * i) / n, y1 + ((y2 - y1) * i) / n]); });
       }
-      ["V7", "I64", "V7sus4"].forEach((k) => { const nn = byId.get(c.t + "/" + k); if (nn && !nn.circle) { const [tw, th] = tight(nn); obsBoxes.push([nn.pos[0], nn.pos[1], tw + 5, th + 4]); } });
+      ["V7", "I64", "V7sus4"].forEach((k) => { const nn = byId.get(c.t + "/" + k); if (nn && !nn.circle && !FREE.has(nn.id)) { const [tw, th] = tight(nn); obsBoxes.push([nn.pos[0], nn.pos[1], tw + 5, th + 4]); } });
       const ringRuns = (ctr, a0, a1) => {
         const runs = []; let cur = null;
         for (let an = a0; an <= a1; an += 2) {
@@ -830,7 +833,7 @@ details.diff th { color: var(--bark); font-weight: 600; }
         if (best[0] > 0) {   // every start crosses something: slide the chord(s) in the way just clear of the line
           const dx3 = t.pos[0] - x1, dy3 = t.pos[1] - y1, d3 = Math.hypot(dx3, dy3) || 1, nx3 = -dy3 / d3, ny3 = dx3 / d3;
           byId.forEach((m) => {
-            if (m === t || m.circle) return;
+            if (m === t || m.circle || FREE.has(m.id)) return;
             const [tw, th] = tight(m), rx = m.pos[0] - x1, ry = m.pos[1] - y1, along = (rx * dx3 + ry * dy3) / d3;
             if (along < 4 || along > d3 - 20) return;
             const perp = rx * nx3 + ry * ny3, need = Math.abs(nx3) * tw + Math.abs(ny3) * th + 6;
@@ -939,6 +942,7 @@ details.diff th { color: var(--bark); font-weight: 600; }
         const tx = el("text", { x, y: y + sz * 0.34, "text-anchor": "middle", "font-size": sz.toFixed(1), "font-weight": "700", fill, "font-family": LABEL_FONT, "pointer-events": "none" }, n.label);
         tx.setAttribute("textLength", n.wd.toFixed(1)); tx.setAttribute("lengthAdjust", "spacingAndGlyphs"); g.appendChild(tx);
       } else put(n.label, f, y + f * 0.34);
+      if (FREE.has(n.id)) g.querySelectorAll("text").forEach((tx) => { tx.setAttribute("stroke", { S: "#ebe7dd", D: "#f4f0e6", T: "#fbf8f1" }[n.region] || "#fbf8f1"); tx.setAttribute("stroke-width", "7"); tx.setAttribute("paint-order", "stroke"); tx.setAttribute("stroke-linejoin", "round"); });
     });
     if (editing && level >= 2) CLUSTERS.forEach((c) => {
       const g = GEO[c.t]; if (!g || !byId.has(c.t)) return;
