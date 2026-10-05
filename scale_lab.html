@@ -45,6 +45,7 @@ h1 { margin: 0; font-family: var(--font-display); font-weight: 400; font-size: 3
 .picker .pk-vars::before { content: "\2192"; color: var(--wheat); font-size: 12px; margin-right: 2px; }
 .picker .pk-vars:empty::before { content: ""; }
 @media (max-width: 700px) { .picker { grid-template-columns: 1fr; } .picker .pk-vars { padding-left: 14px; } }
+.picker .pk-mode.pk-base { background: var(--linen); border-color: var(--bark); box-shadow: inset 0 0 0 1px var(--bark); }
 .segnote { font-size: 11px; color: var(--moss); margin-top: 8px; max-width: 900px; line-height: 1.5; }
 .player { display: inline-flex; align-items: center; gap: 12px; }
 .btn { font: inherit; font-size: 11px; letter-spacing: 0.16em; text-transform: uppercase; padding: 8px 16px; border: 1px solid var(--bark); background: var(--bark); color: var(--parchment); cursor: pointer; }
@@ -195,7 +196,9 @@ main { padding: 14px 24px 50px; max-width: 1500px; margin: 0 auto; }
       $("scale").dispatchEvent(new Event("change"));
     });
   })();
-  const syncPicker = () => { const cur = SCALES[+$("scale").value].name; document.querySelectorAll("#picker [data-scale]").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.scale === cur))); };
+  const syncPicker = () => { const cur = SCALES[+$("scale").value].name; document.querySelectorAll("#picker [data-scale]").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.scale === cur)));
+    // while a variation is selected its mode (first column) stays marked as the base it was stepped out from
+    document.querySelectorAll("#picker .pk-mode").forEach((m) => { const row = m.closest(".pk-row"); m.classList.toggle("pk-base", m.dataset.scale !== cur && [...row.querySelectorAll(".pk-chip")].some((c) => c.dataset.scale === cur)); }); };
   let showNotes = false;
   try { showNotes = localStorage.getItem("fretline-scale-show") === "notes"; } catch (e) {}
 
