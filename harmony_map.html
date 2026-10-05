@@ -37,6 +37,11 @@ main { padding: 12px 24px 40px; max-width: 1560px; margin: 0 auto; }
 .prog .empty { font-size: 12px; color: var(--sage); }
 .pchip { display: inline-flex; align-items: center; gap: 6px; border: 1px solid var(--wheat); background: #fff; padding: 4px 6px 4px 12px; border-radius: 16px; cursor: pointer; font-size: 15px; font-family: var(--font-display); font-weight: 700; }
 .pchip .x { border: 0; background: none; color: var(--clay); cursor: pointer; font-size: 15px; line-height: 1; padding: 0 2px; font-family: var(--font-body); font-weight: 400; }
+.pchip { position: relative; }
+.pchip .cap { display: none; position: absolute; left: 0; top: calc(100% + 6px); z-index: 15; width: 300px; background: #fffdf8; border: 1px solid var(--wheat); box-shadow: 0 6px 18px rgba(61,58,48,0.16); padding: 7px 10px; font: 400 12px/1.4 Helvetica, Arial, sans-serif; color: var(--bark); text-align: left; cursor: default; }
+.pchip .cap span { display: block; }
+.pchip .cap span + span { margin-top: 4px; }
+.pchip:hover .cap { display: block; }
 .pchip.playing { background: var(--clay); border-color: var(--clay); color: var(--parchment); }
 .pchip.playing .x { color: var(--parchment); }
 .btn { font: inherit; font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase; padding: 7px 14px; border: 1px solid var(--bark); background: var(--bark); color: var(--parchment); cursor: pointer; }
@@ -58,6 +63,18 @@ details.diff summary { cursor: pointer; padding: 10px 0; font-size: 11px; letter
 details.diff table { border-collapse: collapse; margin: 0 0 12px; width: 100%; }
 details.diff th, details.diff td { text-align: left; padding: 4px 14px 4px 0; border-bottom: 1px solid #e3dac6; font-weight: 400; }
 details.diff th { color: var(--bark); font-weight: 600; }
+.enh { position: relative; }
+.enh summary { list-style: none; cursor: pointer; font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; padding: 7px 14px; border: 1px solid var(--wheat); color: var(--moss); user-select: none; }
+.enh summary::-webkit-details-marker { display: none; }
+.enh summary::after { content: " ▾"; }
+.enh[open] summary, .enh.on summary { background: #7a4fa0; border-color: #7a4fa0; color: var(--parchment); }
+.enh-panel { position: absolute; z-index: 20; top: calc(100% + 6px); left: 0; width: 420px; max-width: 86vw; background: #fffdf8; border: 1px solid var(--wheat); box-shadow: 0 8px 24px rgba(61,58,48,0.18); padding: 10px 14px 12px; }
+.enh-panel .bulk { display: flex; gap: 14px; margin-bottom: 6px; }
+.enh-panel .bulk button { font: inherit; font-size: 10px; letter-spacing: 0.14em; text-transform: uppercase; background: none; border: 0; color: var(--clay); cursor: pointer; padding: 2px 0; }
+.enh-panel label { display: flex; gap: 10px; align-items: flex-start; padding: 6px 0; border-top: 1px solid #eee5d3; font-size: 12px; line-height: 1.35; letter-spacing: 0; text-transform: none; color: var(--bark); cursor: pointer; }
+.enh-panel label small { display: block; color: var(--moss); font-size: 11px; margin-top: 1px; }
+.enh-panel input { margin-top: 2px; accent-color: #7a4fa0; }
+.info .enh-line { color: #5b3a80; }
 .node { cursor: pointer; }
 .node:hover .halo { stroke: #3d3a30; stroke-opacity: 0.55; stroke-width: 2; }
 @media (max-width: 700px) { header { padding: 12px 14px 10px; } main { padding: 10px 10px 30px; } }
@@ -78,6 +95,9 @@ details.diff th { color: var(--bark); font-weight: 600; }
   <div class="controls">
     <span class="seg" role="group" aria-label="Map style"><button type="button" id="m-trad" aria-pressed="true">Traditional</button><button type="button" id="m-jazz" aria-pressed="false">Jazz</button></span>
     <span class="seg" role="group" aria-label="Map level"><button type="button" id="l-basic" aria-pressed="true">Basic</button><button type="button" id="l-med" aria-pressed="false">Medium</button><button type="button" id="l-adv" aria-pressed="false">Advanced</button></span>
+    <details class="enh" id="enh-menu"><summary id="enh-sum">Enharmonic moves</summary>
+      <div class="enh-panel" id="enh-panel"></div>
+    </details>
     <label>Speed <select id="speed"><option value="2.0">Slow</option><option value="1.4" selected>Medium</option><option value="0.9">Fast</option></select></label>
   </div>
 </header>
@@ -197,7 +217,19 @@ details.diff th { color: var(--bark); font-weight: 600; }
     const s = JSON.parse(localStorage.getItem("fretline-harmony2") || "null");
     if (s) { mapType = s.mapType === "jazz" ? "jazz" : "trad"; level = [1, 2, 3].includes(s.level) ? s.level : 1; }
   } catch (e) {}
-  const save = () => { try { localStorage.setItem("fretline-harmony2", JSON.stringify({ mapType, level })); } catch (e) {} };
+  const ENH_OPTS = [
+    ["tritone", "Tritone substitution", "dominant ↔ the dominant a tritone away (V7 ↔ subV7): same 3rd and 7th"],
+    ["aug6", "Augmented sixths", "Gr+⁶ / Fr+⁶ / It+⁶ spellings of the same chords"],
+    ["dim7", "Diminished 7th spin", "one dim7 chord, four spellings, four places it resolves up a half step"],
+    ["aug", "Augmented 5th", "raise the 5th (V+); the same notes sit on three roots"],
+    ["shared", "Shared tones", "chords that keep most of the selected chord's notes"],
+    ["mediant", "Chromatic mediants", "roots a third away (♭III, III, ♭VI, VI type moves)"],
+    ["ctdim", "Common-tone diminished", "a dim7 built on the chord's root, keeping it as a common tone"],
+    ["pivot", "Pivot keys", "other keys in which the selected chord is also diatonic"],
+  ];
+  let enh = {};
+  try { enh = JSON.parse(localStorage.getItem("fretline-harmony-enh") || "{}") || {}; } catch (e) {}
+  const save = () => { try { localStorage.setItem("fretline-harmony2", JSON.stringify({ mapType, level })); localStorage.setItem("fretline-harmony-enh", JSON.stringify(enh)); } catch (e) {} };
   const jazz = () => mapType === "jazz";
 
   // ---------- node table ----------
@@ -214,7 +246,7 @@ details.diff th { color: var(--bark); font-weight: 600; }
       const tgt = byId.get(c.t);
       Object.entries(c.pos).forEach(([role, pos]) => {
         if (level === 2 && !MEDIUM_ROLES.includes(role)) return;
-        const r = ROLES[role], circle = c.circles.includes(role) ? 44 : 0;
+        const r = ROLES[role], circle = c.circles.includes(role) ? (role === "i64" ? 42 : 38) : 0;
         let lab = r.lab;
         if (role === "subii") lab = jazz() ? "subii7" : "♭vi7";
         if (role === "N7") lab = jazz() ? "subV7" : (c.gr ? "Gr+⁶" : "N⁷");
@@ -252,14 +284,122 @@ details.diff th { color: var(--bark); font-weight: 600; }
     return out;
   }
 
+  // ---------- enharmonic moves (computed from the chords' actual notes; the map plays in C) ----------
+  const pcsOf = (n) => new Set(Q[n.q].map((i) => mod(n.off + i)));
+  const rootOf = (n) => mod(n.off);
+  const KEY_NAME = { 0: "I", 7: "V", 5: "IV", 2: "ii", 9: "vi", 4: "iii", 10: "♭VII", 3: "♭III", 8: "♭VI", 1: "♭II", 6: "♯IV / ♭V", 11: "vii" };
+  const DIATONIC = [[0, "maj", "maj7", "I"], [2, "min", "m7", "ii"], [4, "min", "m7", "iii"], [5, "maj", "maj7", "IV"], [7, "maj", "dom7", "V"], [9, "min", "m7", "vi"], [11, "dim", "m7b5", "vii"]];
+  function enharmonic(id) {
+    const out = { marks: new Map(), arrows: [], lines: [] };
+    const cur = id && byId.get(id); if (!cur) return out;
+    const r = rootOf(cur), P = pcsOf(cur), others = [...byId.values()].filter((n) => n.id !== cur.id);
+    const mark = (n, tag) => { if (!out.marks.has(n.id)) out.marks.set(n.id, new Set()); out.marks.get(n.id).add(tag); };
+    const names = (list) => [...new Set(list.map((n) => n.prog))].slice(0, 8).join(", ");
+    const isDom = ["dom7", "dom7b5", "sus7"].includes(cur.q);
+    if (enh.tritone && isDom) {
+      const t = others.filter((n) => ["dom7", "dom7b5"].includes(n.q) && rootOf(n) === mod(r + 6));
+      t.forEach((n) => { mark(n, "tritone"); out.arrows.push([cur.id, n.id, "both"]); });
+      out.lines.push(t.length ? `Tritone substitution: <b>${cur.prog}</b> ↔ ${names(t)} (the 3rd and 7th swap roles).` : `Tritone substitution: the dominant a tritone from <b>${cur.prog}</b> is not on this map.`);
+    }
+    if (enh.aug6) {
+      // in this map's key the augmented-sixth chords are the dominant 7th on ♭VI (Gr+⁶), the dominant ♭5 on II (Fr+⁶) and the same chord without its 5th (It+⁶)
+      const gr = cur.q === "dom7" && r === 8, fr = r === 2 && ["dom7b5", "maj"].includes(cur.q);
+      if (gr || fr) {
+        const eq = others.filter((n) => (n.q === "dom7" && rootOf(n) === 8) || (rootOf(n) === 2 && ["dom7b5", "maj"].includes(n.q)));
+        eq.forEach((n) => mark(n, "aug6"));
+        out.lines.push(`Augmented sixth: <b>${cur.prog}</b> is the ${gr ? "German Gr+⁶ (the dominant 7th on ♭VI, spelled with a ♯4)" : "French Fr+⁶ (the dominant ♭5 on II)"}; the same notes are ${gr ? "the tritone sub of the dominant 7th of V" : "a tritone-related spelling of the Gr+⁶"}, and the Italian It+⁶ is the same chord without its 5th. All three resolve outward to V${eq.length ? " (also on this map: " + names(eq) + ")" : ""}.`);
+      }
+    }
+    if (enh.dim7 && cur.q === "dim7") {
+      const tg = [1, 4, 7, 10].map((i) => mod(r + i)), hit = others.filter((n) => n.q !== "dim7" && tg.includes(rootOf(n)));
+      hit.forEach((n) => { mark(n, "dim7"); });
+      hit.slice().sort((a, b) => Math.hypot(a.pos[0] - cur.pos[0], a.pos[1] - cur.pos[1]) - Math.hypot(b.pos[0] - cur.pos[0], b.pos[1] - cur.pos[1])).slice(0, 5).forEach((n) => out.arrows.push([cur.id, n.id, "one"]));
+      const same = others.filter((n) => n.q === "dim7" && [...pcsOf(n)].every((p) => P.has(p)));
+      same.forEach((n) => mark(n, "dim7"));
+      out.lines.push(`Diminished spin: <b>${cur.prog}</b> is four spellings of one chord and resolves up a half step to ${hit.length ? names(hit) : "chords not on this map"}${same.length ? "; same notes as " + names(same) : ""}.`);
+    }
+    if (enh.aug && ["maj", "maj7", "dom7", "sus7"].includes(cur.q)) {
+      const rs = others.filter((n) => rootOf(n) === mod(r + 5) && ["maj", "maj7", "min", "m7"].includes(n.q));
+      rs.forEach((n) => mark(n, "aug"));
+      out.lines.push(`Augmented 5th: raise the 5th of <b>${cur.prog}</b> (+) and it leans up a half step into ${rs.length ? names(rs) : "the chord a fifth below"}; those three notes also form the + chords on the roots a major third and a minor sixth above.`);
+    }
+    if (enh.shared) {
+      const sh = others.filter((n) => { const Q2 = pcsOf(n); let c = 0; Q2.forEach((p) => { if (P.has(p)) c++; }); return c >= Math.min(3, Math.min(P.size, Q2.size) - (P.size === 3 || Q2.size === 3 ? 1 : 0)) && n.q !== "dim7" && cur.q !== "dim7" ? c >= (P.size === 3 || Q2.size === 3 ? 2 : 3) : false; });
+      sh.forEach((n) => mark(n, "shared"));
+      out.lines.push(sh.length ? `Shared tones: <b>${cur.prog}</b> keeps most of its notes in ${names(sh)}.` : `Shared tones: nothing on this map keeps most of <b>${cur.prog}</b>'s notes.`);
+    }
+    if (enh.mediant && ["maj", "maj7", "min", "m7"].includes(cur.q)) {
+      const m = others.filter((n) => [3, 4, 8, 9].includes(mod(rootOf(n) - r)) && ["maj", "maj7", "min", "m7"].includes(n.q));
+      m.forEach((n) => mark(n, "mediant"));
+      out.lines.push(m.length ? `Chromatic mediants of <b>${cur.prog}</b> (roots a third away): ${names(m)}.` : `Chromatic mediants: none on this map for <b>${cur.prog}</b>.`);
+    }
+    if (enh.ctdim && cur.q !== "dim7") {
+      const d = others.filter((n) => n.q === "dim7" && pcsOf(n).has(r));
+      d.forEach((n) => mark(n, "ctdim"));
+      out.lines.push(d.length ? `Common-tone diminished: ${names(d)} ${d.length > 1 ? "each hold" : "holds"} the root of <b>${cur.prog}</b> and move${d.length > 1 ? "" : "s"} back to it.` : `Common-tone diminished: the dim7 on the root of <b>${cur.prog}</b> is not on this map.`);
+    }
+    if (enh.pivot && ["maj", "min", "dim", "maj7", "m7", "dom7", "m7b5"].includes(cur.q)) {
+      const hits = [];
+      for (let k = 0; k < 12; k++) { if (k === 0) continue; DIATONIC.forEach(([step, tri, sev, rn]) => { if (mod(k + step) === r && (cur.q === tri || cur.q === sev)) hits.push((KEY_NAME[k] ? "the key of " + KEY_NAME[k] : "another key") + " (" + rn + ")"); }); }
+      out.lines.push(hits.length ? `Pivot keys for <b>${cur.prog}</b> (also diatonic there): ${hits.join(", ")}.` : `Pivot keys: <b>${cur.prog}</b> is not diatonic in another major key.`);
+    }
+    return out;
+  }
+
+  // ---------- how one chord relates to the next ----------
+  const INTERVAL = ["same root", "root up a half step", "root up a whole step", "root up a minor third", "root up a major third", "root up a fourth (down a fifth)", "root up a tritone", "root up a fifth (down a fourth)", "root up a minor sixth (down a major third)", "root up a major sixth (down a minor third)", "root down a whole step", "root down a half step"];
+  function relation(aId, bId) {
+    const A = byId.get(aId), B = byId.get(bId); if (!A || !B) return "";
+    const d = mod(rootOf(B) - rootOf(A)), PA = pcsOf(A), PB = pcsOf(B);
+    let shared = 0; PB.forEach((p) => { if (PA.has(p)) shared++; });
+    const domA = ["dom7", "dom7b5"].includes(A.q) || A.id === "V", domB = ["dom7", "dom7b5"].includes(B.q), minorA = ["m7", "m7b5", "min", "dim"].includes(A.q);
+    const tonicB = B.region === "T" && B.kind === "main" || (B.kind === "member" && false);
+    const role = A.role || A.id;
+    let t;
+    if (role === "V7sus4" && domB && d === 0) t = "suspension resolves into the dominant";
+    else if ((role === "I64" || role === "i64") && domB && d === 7) t = "cadential 6/4 resolves into the dominant";
+    else if (role === "N6" && domB) t = "Neapolitan sixth → dominant";
+    else if (A.q === "dim7") t = d === 1 ? "diminished 7th → resolves up a half step (leading tone)" : [4, 7, 10].includes(d) ? "diminished 7th, spelled another way, resolving up a half step" : "diminished 7th moving to a different chord";
+    else if (domA && d === 5) t = tonicB ? "authentic resolution: dominant → tonic (down a fifth)" : "dominant resolves down a fifth (secondary dominant)";
+    else if (domA && d === 11) t = "tritone-sub resolution: the dominant a half step above moves down by half step";
+    else if (domA && String(A.id).startsWith("V7") && (B.id === "vi" || B.id === "bVI")) t = "deceptive cadence: dominant → vi / ♭VI instead of the tonic";
+    else if (minorA && domB && d === 5) t = "ii–V: minor 7th → the dominant a fifth below";
+    else if (minorA && domB && d === 11) t = "ii → subV7: the ii–V with the V replaced by its tritone sub";
+    else if (A.region === "S" && B.region === "T") t = "plagal-type: subdominant → tonic";
+    else if (A.region === "S" && B.region === "D") t = "predominant → dominant";
+    else if (A.region === "T" && B.region === "S") t = "tonic → predominant (leaving home)";
+    else if (A.region === "T" && B.region === "D") t = "tonic → dominant: straight to tension, skipping the predominant";
+    else if (A.region === "T" && B.region === "T") t = "tonic → tonic: a colour change over a shared home";
+    else if (A.region === "D" && B.region === "T") t = "dominant → tonic family";
+    else if (A.region === B.region) t = "moves within the " + REGION_NAME[A.region] + " region";
+    else t = "chromatic connection";
+    return t + " · " + INTERVAL[d] + (shared ? " · " + shared + " shared tone" + (shared > 1 ? "s" : "") : "");
+  }
+  // lines describing chord i of the progression (or, for a chord not in it, how it would follow the selected one)
+  function relationLines(id, i) {
+    const lines = [], n = byId.get(id);
+    if (i !== undefined && i !== null) {
+      if (i > 0 && byId.has(prog[i - 1])) lines.push("← from " + byId.get(prog[i - 1]).prog + ": " + relation(prog[i - 1], id));
+      if (i < prog.length - 1 && byId.has(prog[i + 1])) lines.push("→ to " + byId.get(prog[i + 1]).prog + ": " + relation(id, prog[i + 1]));
+      if (!lines.length) lines.push(REGION_NAME[n.region] + " function — the start of the progression");
+    } else if (current && byId.has(current) && current !== id) {
+      const kind = followers(current).get(id);
+      lines.push("after " + byId.get(current).prog + (kind === "strong" ? " (strong move)" : kind === "alt" ? " (alternative)" : kind ? " (possible)" : " (less usual)") + ": " + relation(current, id));
+    } else lines.push(REGION_NAME[n.region] + " function" + (n.ring === "in" ? " (minor-mode chord)" : ""));
+    return lines;
+  }
+
   // ---------- drawing ----------
   const el = (tag, attrs, text) => { const e = document.createElementNS(NS, tag); Object.entries(attrs || {}).forEach(([a, v]) => e.setAttribute(a, v)); if (text !== undefined) e.textContent = text; return e; };
   const COLORS = { "": "#26231e", blue: "#27408b", lblue: "#2aa3d4", red: "#8b2020" };
-  const LABEL_FONT = "Georgia,'Times New Roman',serif";
+  const LABEL_FONT = "'Palatino Linotype','Book Antiqua',Palatino,Georgia,serif";
   const fontOf = (n) => (n.kind === "member" ? 24 : 34);
-  function boxOf(n) { const f = fontOf(n), w = Math.max(60, [...n.label].length * f * 0.58 + 22); return [w, f + 16]; }
+  const _mc = document.createElement("canvas").getContext("2d"), _wc = new Map();
+  function textW(label, f) { const k = f + "|" + label; if (!_wc.has(k)) { _mc.font = "700 " + f + "px " + LABEL_FONT; _wc.set(k, _mc.measureText(label).width); } return _wc.get(k); }
+  function boxOf(n) { if (n.circle) return [n.circle * 2, n.circle * 2]; const f = fontOf(n); return [Math.max(46, textW(n.label, f) + 18), f + 14]; }
 
   // geometry shared by the drawing code
+  function edgeTo(n, fromPt, gap) { const dx = n.pos[0] - fromPt[0], dy = n.pos[1] - fromPt[1], d = Math.hypot(dx, dy) || 1, ux = dx / d, uy = dy / d, e = edgeDist(n, ux, uy) + gap; return [n.pos[0] - ux * e, n.pos[1] - uy * e]; }
   function edgeDist(n, ux, uy) {   // distance from a node's centre to the edge of its label box (or circle) along the unit vector
     const [w, h] = boxOf(n), hw = Math.max(w / 2, n.circle || 0) + 4, hh = Math.max(h / 2, n.circle || 0) + 4;
     return Math.min(Math.abs(ux) < 1e-6 ? Infinity : hw / Math.abs(ux), Math.abs(uy) < 1e-6 ? Infinity : hh / Math.abs(uy));
@@ -279,7 +419,7 @@ details.diff th { color: var(--bark); font-weight: 600; }
     buildNodes();
     const svg = $("map"); svg.innerHTML = "";
     const defs = el("defs");
-    [["ah0", "#4f7a45"], ["ah1", "#9a6a4a"]].forEach(([id, c]) => {
+    [["ah0", "#4f7a45"], ["ah1", "#9a6a4a"], ["ah2", "#7a4fa0"]].forEach(([id, c]) => {
       const m = el("marker", { id, viewBox: "0 0 10 10", refX: "9", refY: "5", markerWidth: "7", markerHeight: "7", orient: "auto-start-reverse" });
       m.appendChild(el("path", { d: "M0 1 L10 5 L0 9z", fill: c })); defs.appendChild(m);
     });
@@ -312,7 +452,12 @@ details.diff th { color: var(--bark); font-weight: 600; }
       if (V) { const apd = arrowPath(V, t, 0.2); if (apd) svg.appendChild(el("path", { d: apd, fill: "none", stroke: brown, "stroke-width": "3.4", "marker-end": "url(#ah1)" })); }
       if (level === 3) {
         // lines to the cadential 6/4 and sus4 chords, with the small arcs beside them
-        if (V) ["I64", "V7sus4", "i64"].forEach((role) => { const m = byId.get(c.t + "/" + role); if (m) svg.appendChild(el("line", { x1: V.pos[0] + 8, y1: V.pos[1] - 22, x2: m.pos[0] - 6, y2: m.pos[1] + 22, stroke: tan, "stroke-width": "2" })); });
+        if (V) ["I64", "V7sus4", "i64"].forEach((role) => {
+          const m = byId.get(c.t + "/" + role); if (!m) return;
+          const top = [V.pos[0], V.pos[1] - boxOf(V)[1] / 2 - 2];
+          const end = role === "i64" ? edgeTo(m, top, 0) : [m.pos[0] + boxOf(m)[0] / 2 + 15, m.pos[1] + 6];
+          svg.appendChild(el("line", { x1: top[0], y1: top[1], x2: end[0], y2: end[1], stroke: tan, "stroke-width": "2" }));
+        });
         ["I64", "V7sus4"].forEach((role) => { const m = byId.get(c.t + "/" + role); if (!m) return; const [w] = boxOf(m), x = Math.min(m.pos[0] + w / 2 + 4, 1990); svg.appendChild(el("path", { d: `M${x} ${m.pos[1] - 24} Q${x + 22} ${m.pos[1]} ${x} ${m.pos[1] + 24}`, fill: "none", stroke: ink, "stroke-width": "2.4" })); });
         // dashed elbow from the ii circle down to the substitute V, solid bracket under the two substitutes, dashed arrow into the target
         svg.appendChild(el("path", { d: `M${nx - 102} ${ny - 62} L${nx - 88} ${ny - 62} L${nx - 52} ${ny + 28} L${nx - 38} ${ny + 28}`, fill: "none", stroke: brown, "stroke-width": "2.6", "stroke-dasharray": "8 6" }));
@@ -325,15 +470,26 @@ details.diff th { color: var(--bark); font-weight: 600; }
     // dark discs
     Object.entries(DISC).forEach(([, d]) => svg.appendChild(el("circle", { cx: d.c[0], cy: d.c[1], r: d.r, fill: "#232220", stroke: "#8a6a4e", "stroke-width": "4" })));
     // the main map's own brackets and arrows, as drawn on the original (basic and advanced share them)
+    const edgeFrom = (n, toward, gap) => { const dx = toward[0] - n.pos[0], dy = toward[1] - n.pos[1], d = Math.hypot(dx, dy) || 1, u = [dx / d, dy / d], e = edgeDist(n, u[0], u[1]) + gap; return [n.pos[0] + u[0] * e, n.pos[1] + u[1] * e]; };
     const brownL = "#9a6a4a", dec = (d, style, head) => { const p = el("path", { d, fill: "none", stroke: brownL, "stroke-width": "3.6", opacity: "0.85" }); if (style === "dash") p.setAttribute("stroke-dasharray", "15 10"); if (style === "dot") { p.setAttribute("stroke-dasharray", "2 9"); p.setAttribute("stroke-linecap", "round"); } if (head) p.setAttribute("marker-end", "url(#ah1)"); svg.appendChild(p); };
     dec("M640 680 L640 695 L1610 695 L1610 680", "solid", false);                        // solid bracket: ii (subdominant) - V7 (dominant)
-    dec("M712 655 C735 705 880 728 944 738", "solid", true);                            // from the subdominant circle round to I
-    dec("M1708 352 C1590 330 1470 410 1345 530 L1062 746", "solid", true);              // V7 -> I
-    dec("M1722 372 C1600 352 1480 440 1392 640 C1330 790 1282 860 1220 896", "dot", true);   // V7 -> vi (deceptive)
-    if (byId.has("bVI")) dec("M1632 440 C1300 560 900 580 626 560", "dot", true);       // V7 -> bVI (deceptive)
-    dec("M1396 632 C1300 640 1185 700 1086 740", "dash", true);                         // N7 / subV7 -> I
-    dec("M785 400 L1363 598 M785 382 L785 400 M1363 598 L1368 612", "dash", false);     // dashed bracket: ii -> N7 / subV7
-    dec("M1568 548 Q1645 520 1637 466", "solid", true);                                 // N6 -> V7
+    // arrows are cubic curves whose ends are computed from the label boxes: a start leaves the edge of its chord, an end stops just short of its chord
+    const decC = (from, c1, c2, toId, style) => {
+      const A = typeof from === "string" ? byId.get(from) : null, B = byId.get(toId); if ((typeof from === "string" && !A) || !B) return;
+      const st = A ? edgeFrom(A, c1, 10) : from, en = edgeTo(B, c2, 10);
+      dec(`M${st[0]} ${st[1]} C${c1[0]} ${c1[1]} ${c2[0]} ${c2[1]} ${en[0]} ${en[1]}`, style, true);
+    };
+    decC([712, 655], [742, 706], [880, 735], "I", "solid");                      // from the subdominant circle round to I
+    decC("V7", [1560, 296], [1250, 540], "I", "solid");                         // V7 -> I
+    decC("V7", [1600, 340], [1300, 790], "vi", "dot");                          // V7 -> vi (deceptive)
+    decC("V7in", [1300, 545], [900, 585], "bVI", "dot");                        // V7 -> bVI (deceptive)
+    decC("N7", [1310, 640], [1195, 705], "I", "dash");                          // N7 / subV7 -> I
+    decC("N6", [1585, 548], [1650, 500], "V7in", "solid");                      // N6 -> V7
+    if (byId.has("ii") && byId.has("N7")) {                                     // dashed bracket: ii -> N7 / subV7, with end ticks
+      const a = edgeFrom(byId.get("ii"), byId.get("N7").pos, 8), b = edgeTo(byId.get("N7"), byId.get("ii").pos, 8);
+      const dx = b[0] - a[0], dy = b[1] - a[1], d = Math.hypot(dx, dy) || 1, nx = -dy / d * 13, ny = dx / d * 13;
+      dec(`M${a[0]} ${a[1]} L${b[0]} ${b[1]} M${a[0] - nx} ${a[1] - ny} L${a[0] + nx} ${a[1] + ny} M${b[0] - nx} ${b[1] - ny} L${b[0] + nx} ${b[1] + ny}`, "dash", false);
+    }
     // small arcs beside V7 (")") and the cadential 6/4 and sus4 chords ("(")
     [["V7", 1], ["I64", -1], ["V7sus4", -1]].forEach(([id, side]) => { const n = byId.get(id); if (!n) return; const [w] = boxOf(n), x = n.pos[0] + side * (w / 2 + 6), y = n.pos[1]; svg.appendChild(el("path", { d: `M${x} ${y - 26} Q${x + side * 24} ${y} ${x} ${y + 26}`, fill: "none", stroke: "#26231e", "stroke-width": "2.4" })); });
     if (byId.has("V7")) [["I64", 1], ["V7sus4", 1], ["i64", 1]].forEach(([id]) => { const m = byId.get(id); if (m) svg.appendChild(el("line", { x1: 1790, y1: 385, x2: m.pos[0] - 40, y2: m.pos[1], stroke: "#a99a76", "stroke-width": "2" })); });
@@ -349,6 +505,13 @@ details.diff th { color: var(--bark); font-weight: 600; }
         svg.appendChild(p);
       });
     }
+    const ENH = enharmonic(current);
+    ENH.arrows.forEach(([a, b, kind]) => {
+      const pd = arrowPath(byId.get(a), byId.get(b), 0.2); if (!pd) return;
+      const p = el("path", { d: pd, fill: "none", stroke: "#7a4fa0", "stroke-width": "4.5", "stroke-dasharray": "3 9", "stroke-linecap": "round", "marker-end": "url(#ah2)", opacity: "0.95" });
+      if (kind === "both") p.setAttribute("marker-start", "url(#ah2)");
+      svg.appendChild(p);
+    });
     // nodes (no position badges: the progression bar already shows the order)
     byId.forEach((n) => {
       const [w, h] = boxOf(n), f = fontOf(n), x = Math.min(1994 - w / 2, Math.max(6 + w / 2, n.pos[0])), y = n.pos[1];
@@ -366,16 +529,21 @@ details.diff th { color: var(--bark); font-weight: 600; }
         if (circ) halo.setAttribute("r", circ + 9); else { halo.setAttribute("x", x - w / 2 - 6); halo.setAttribute("y", y - h / 2 - 6); halo.setAttribute("width", w + 12); halo.setAttribute("height", h + 12); }
       }
       g.appendChild(halo);
+      if (ENH.marks.has(n.id)) {   // violet ring: reachable through one of the enharmonic options that are switched on
+        const vr = circ ? el("circle", { cx: x, cy: y, r: circ + 16, fill: "none" }) : el("rect", { x: x - w / 2 - 13, y: y - h / 2 - 13, width: w + 26, height: h + 26, rx: 18, fill: "none" });
+        vr.setAttribute("stroke", "#7a4fa0"); vr.setAttribute("stroke-width", "4"); vr.setAttribute("stroke-dasharray", "10 6"); vr.setAttribute("pointer-events", "none"); g.appendChild(vr);
+      }
       const onDark = n.ring === "in" && (n.kind === "main" || circ > 0);
       const fill = isCur && !circ ? "#fbf8f1" : onDark ? (n.col === "lblue" ? COLORS.lblue : "#f3efe6") : COLORS[n.col || ""];
-      const t = el("text", { x, y: y + f * 0.34, "text-anchor": "middle", "font-size": f, "font-weight": "700", fill, "font-family": LABEL_FONT, "pointer-events": "none" }, n.label);
-      g.appendChild(t);
-      if (circ) {   // shrink the lettering until it sits inside its circle with a margin
-        const room = circ * 2 - 20, len = t.getComputedTextLength ? t.getComputedTextLength() : 0;
-        if (len > room) { const k = room / len; t.setAttribute("font-size", (f * k).toFixed(1)); t.setAttribute("y", y + f * k * 0.34); }
-      }
+      const room = circ * 2 - 16, fitSize = (txt, sz) => { const w = textW(txt, sz); return w > room ? sz * room / w : sz; };
+      const put = (txt, sz, ty) => g.appendChild(el("text", { x, y: ty, "text-anchor": "middle", "font-size": sz.toFixed(1), "font-weight": "700", fill, "font-family": LABEL_FONT, "pointer-events": "none" }, txt));
+      if (circ && n.kind === "member" && n.label.includes("/")) {   // "ii7♭5/IV" in a small circle: numeral on one line, "/IV" under it
+        const i = n.label.indexOf("/"), a = n.label.slice(0, i), b = n.label.slice(i), s1 = fitSize(a, f), s2 = fitSize(b, f * 0.9);
+        put(a, s1, y - 3); put(b, s2, y + s2 * 0.95);
+      } else if (circ) { const sz = fitSize(n.label, f); put(n.label, sz, y + sz * 0.34); }
+      else put(n.label, f, y + f * 0.34);
     });
-    renderProg(); renderInfo(fol);
+    renderProg(); renderInfo(fol, ENH);
     $("m-trad").setAttribute("aria-pressed", String(!jazz())); $("m-jazz").setAttribute("aria-pressed", String(jazz()));
     $("l-basic").setAttribute("aria-pressed", String(level === 1)); $("l-med").setAttribute("aria-pressed", String(level === 2)); $("l-adv").setAttribute("aria-pressed", String(level === 3));
   }
@@ -388,7 +556,7 @@ details.diff th { color: var(--bark); font-weight: 600; }
     prog.forEach((id, i) => {
       const n = byId.get(id); if (!n) return;
       const c = document.createElement("span"); c.className = "pchip"; c.dataset.i = i;
-      c.innerHTML = `${n.prog}<button type="button" class="x" title="Remove" aria-label="Remove">×</button>`;
+      c.innerHTML = `${n.prog}<button type="button" class="x" title="Remove" aria-label="Remove">×</button><span class="cap">${relationLines(id, i).map((l) => "<span>" + l + "</span>").join("")}</span>`;
       c.addEventListener("click", (e) => {
         if (e.target.closest(".x")) { prog.splice(i, 1); current = prog.length ? prog[prog.length - 1] : null; render(); return; }
         current = id; playChord(n); render();
@@ -401,7 +569,7 @@ details.diff th { color: var(--bark); font-weight: 600; }
     mk("Undo", "ghost", undo, !prog.length);
     mk("Clear", "ghost", clearProg, !prog.length);
   }
-  function renderInfo(fol) {
+  function renderInfo(fol, ENH) {
     const box = $("info");
     if (!current || !byId.has(current)) { box.innerHTML = "<b>Start anywhere.</b> Click a chord to hear it and add it to your progression; the map then shows what can follow. Solid green arrows are the strongest moves, dashed ones are substitutes, and dotted outlines are other chords you could reach."; return; }
     const n = byId.get(current), names = (k) => [...fol.entries()].filter(([, kd]) => kd === k).map(([id]) => byId.get(id).prog).join(", ");
@@ -411,7 +579,7 @@ details.diff th { color: var(--bark); font-weight: 600; }
     if (a) parts.push(`Alternatives: ${a}.`);
     if (ap) parts.push(`Approach chords into those (clay dotted outline): ${ap}.`);
     if (f && !s) parts.push(`Chords from the next region (green dotted outline): ${f}.`);
-    box.innerHTML = parts.join(" ");
+    box.innerHTML = parts.join(" ") + (ENH && ENH.lines.length ? ENH.lines.map((l) => `<div class="enh-line">${l}</div>`).join("") : "");
   }
 
   // ---------- audio (always in C: the map is Roman numerals only) ----------
@@ -458,11 +626,37 @@ details.diff th { color: var(--bark); font-weight: 600; }
     if (current && !byId.has(current)) current = prog.length ? prog[prog.length - 1] : null;
     save(); render();
   }
+  const showCap = (id) => {
+    hideCap();
+    const n = byId.get(id); if (!n) return;
+    const idx = prog.indexOf(id), lines = relationLines(id, idx >= 0 ? idx : null).slice(0, 3);
+    const svg = $("map"), g = el("g", { id: "cap", "pointer-events": "none" }), fs = 21, pad = 12, maxW = 560;
+    const wrapped = [];
+    lines.forEach((ln) => { const words = ln.split(" "); let cur = ""; words.forEach((w) => { const t = cur ? cur + " " + w : w; if (cur && _mc2(t, fs) > maxW) { wrapped.push(cur); cur = w; } else cur = t; }); if (cur) wrapped.push(cur); });
+    const w = Math.min(maxW, Math.max(...wrapped.map((l) => _mc2(l, fs)))) + pad * 2, h = wrapped.length * (fs + 7) + pad * 2 - 4, [, bh] = boxOf(n);
+    let x = n.pos[0] - w / 2, y = n.pos[1] + bh / 2 + 10;
+    x = Math.max(6, Math.min(1994 - w, x)); if (y + h > 1394) y = n.pos[1] - bh / 2 - 10 - h;
+    g.appendChild(el("rect", { x, y, width: w, height: h, rx: 10, fill: "#fffdf8", stroke: "#b07a5a", "stroke-width": "2", opacity: "0.97" }));
+    wrapped.forEach((l, k) => g.appendChild(el("text", { x: x + pad, y: y + pad + fs * 0.85 + k * (fs + 7), "font-size": fs, fill: "#3d3a30", "font-family": "Helvetica,Arial,sans-serif" }, l)));
+    svg.appendChild(g);
+  };
+  const hideCap = () => { const c = $("cap"); if (c) c.remove(); };
+  const _mc2 = (t, size) => { _mc.font = "400 " + size + "px Helvetica,Arial,sans-serif"; return _mc.measureText(t).width; };
+  $("map").addEventListener("mouseover", (e) => { const g = e.target.closest && e.target.closest(".node"); if (g) showCap(g.dataset.id); else hideCap(); });
+  $("map").addEventListener("mouseleave", hideCap);
   $("map").addEventListener("click", (e) => {
     const g = e.target.closest && e.target.closest(".node"); if (!g) return;
     const n = byId.get(g.dataset.id); if (!n) return;
     stopAudio(); current = n.id; prog.push(n.id); playChord(n); render();
   });
+  const panel = $("enh-panel");
+  panel.innerHTML = '<div class="bulk"><button type="button" data-all="1">All on</button><button type="button" data-all="0">All off</button></div>' +
+    ENH_OPTS.map(([k, t, d]) => `<label><input type="checkbox" data-k="${k}"${enh[k] ? " checked" : ""}><span>${t}<small>${d}</small></span></label>`).join("");
+  const syncEnh = () => { const n = ENH_OPTS.filter(([k]) => enh[k]).length; $("enh-sum").textContent = "Enharmonic moves" + (n ? " (" + n + ")" : ""); $("enh-menu").classList.toggle("on", n > 0); };
+  panel.addEventListener("change", (e) => { const k = e.target.dataset && e.target.dataset.k; if (!k) return; enh[k] = e.target.checked; save(); syncEnh(); render(); });
+  panel.addEventListener("click", (e) => { const b = e.target.closest && e.target.closest("[data-all]"); if (!b) return; ENH_OPTS.forEach(([k]) => { enh[k] = b.dataset.all === "1"; }); panel.querySelectorAll("input").forEach((i) => { i.checked = !!enh[i.dataset.k]; }); save(); syncEnh(); render(); });
+  document.addEventListener("click", (e) => { const m = $("enh-menu"); if (m.open && !m.contains(e.target)) m.open = false; });
+  syncEnh();
   $("m-trad").addEventListener("click", () => { mapType = "trad"; relevel(); });
   $("m-jazz").addEventListener("click", () => { mapType = "jazz"; relevel(); });
   $("l-basic").addEventListener("click", () => { level = 1; relevel(); });
@@ -480,7 +674,7 @@ details.diff th { color: var(--bark); font-weight: 600; }
     else if (k === "ArrowDown") { e.preventDefault(); level = Math.max(1, level - 1); relevel(); }
     else if (k.toLowerCase() === "m") { mapType = jazz() ? "trad" : "jazz"; relevel(); }
   });
-  window.__harmony = { byId, followers, voicing, Q, MAIN, CLUSTERS, boxOf, get state() { return { mapType, level, prog, current }; }, set(t, l) { mapType = t; level = l; relevel(); } };
+  window.__harmony = { enharmonic, enh, byId, followers, voicing, Q, MAIN, CLUSTERS, boxOf, get state() { return { mapType, level, prog, current }; }, set(t, l) { mapType = t; level = l; relevel(); } };
   relevel();
 })();
 </script>
