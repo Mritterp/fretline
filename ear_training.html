@@ -59,6 +59,7 @@ main { max-width: 1100px; margin: 0 auto; padding: 10px 16px 24px; }
 .ans.wrong { background: var(--bad-bg); border-color: var(--bad); color: var(--bad); }
 .ans.picked { background: var(--linen); border-color: var(--bark); font-weight: 700; }
 .ans:disabled { cursor: default; }
+.ans.heard { box-shadow: inset 0 0 0 2px var(--clay); }
 
 .actions { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 10px; margin-top: 10px; }
 .btn { font: inherit; font-size: 11px; letter-spacing: 0.16em; text-transform: uppercase; padding: 11px 16px; border: 1px solid var(--bark); background: var(--bark); color: var(--parchment); cursor: pointer; }
@@ -379,7 +380,7 @@ details.settings summary { cursor: pointer; font-size: 11px; letter-spacing: 0.1
     INTERVALS.filter((i) => S.ints.includes(i.n)).forEach((i) => {
       const b = document.createElement("button");
       b.type = "button"; b.className = "ans"; b.textContent = i.name; b.dataset.n = i.n;
-      b.addEventListener("click", () => answerInterval(i.n, b));
+      b.addEventListener("click", () => { if (qAnswered) auditionInterval(i.n, b); else answerInterval(i.n, b); });
       host.appendChild(b); intBtns.push(b);
     });
   }
@@ -420,6 +421,25 @@ details.settings summary { cursor: pointer; font-size: 11px; letter-spacing: 0.1
     if (Q.dir === "both") { tone(Q.lo, t, 1.7, 0.2); tone(Q.hi, t, 1.7, 0.2); }
     else { tone(Q.first, t, 1.0, 0.24); tone(Q.second, t + 1.0, 1.4, 0.24); }
   }
+  // Plays interval n above (or below) the question's first note, in the question's direction; if that runs off the keyboard it goes the other way.
+  function auditionInterval(n, btn) {
+    if (!Q) return;
+    gestured = true;
+    cancelPlay();
+    intBtns.forEach((b) => b.classList.remove("heard"));
+    btn.classList.add("heard");
+    const c = audio(), t = c.currentTime + 0.05, from = Q.first;
+    const fits = (m) => m >= LOW && m <= HIGH;
+    if (Q.dir === "both") {
+      let lo = from, hi = from + n;
+      if (!fits(hi)) { hi = from; lo = from - n; }
+      tone(lo, t, 1.7, 0.2); tone(hi, t, 1.7, 0.2);
+    } else {
+      let to = Q.dir === "down" ? from - n : from + n;
+      if (!fits(to)) to = Q.dir === "down" ? from + n : from - n;
+      tone(from, t, 1.0, 0.24); tone(to, t + 1.0, 1.4, 0.24);
+    }
+  }
   function answerInterval(n, btn) {
     try { answerIntervalInner(n, btn); } catch (e) { console.error("answerInterval failed", e); }
   }
@@ -428,11 +448,11 @@ details.settings summary { cursor: pointer; font-size: 11px; letter-spacing: 0.1
     qAnswered = true;
     const ok = n === Q.n, correct = INTERVALS.find((i) => i.n === Q.n);
     S.score.int.n++; if (ok) S.score.int.ok++; save(); showScore();
-    intBtns.forEach((b) => { b.disabled = true; if (+b.dataset.n === Q.n) b.classList.add("right"); });
+    intBtns.forEach((b) => { if (+b.dataset.n === Q.n) b.classList.add("right"); });
     if (!ok) btn.classList.add("wrong");
     const dirName = { up: "ascending", down: "descending", both: "harmonic" }[Q.dir];
     $("int-status").className = "status " + (ok ? "good" : "bad");
-    $("int-status").textContent = (ok ? "Correct! " : "Not quite. ") + `That was a ${correct.name} (${dirName}): ${noteName(Q.first)} ${Q.dir === "both" ? "+" : "→"} ${noteName(Q.second)}.`;
+    $("int-status").textContent = (ok ? "Correct! " : "Not quite. ") + `That was a ${correct.name} (${dirName}): ${noteName(Q.first)} ${Q.dir === "both" ? "+" : "→"} ${noteName(Q.second)}. Click any interval to hear it from the same starting note.`;
     const mom = Q.dir === "both" ? [[Q.lo, Q.hi]] : [[Q.first], [Q.second]];
     drawIntervalVisuals();
     $("int-next").disabled = false;
