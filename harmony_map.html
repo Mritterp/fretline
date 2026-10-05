@@ -110,7 +110,6 @@ details.diff th { color: var(--bark); font-weight: 600; }
     <span><svg width="26" height="10"><line x1="1" y1="5" x2="22" y2="5" stroke="#4f7a45" stroke-width="2.5"/><path d="M22 1 L26 5 L22 9z" fill="#4f7a45"/></svg>strong move</span>
     <span><svg width="26" height="10"><line x1="1" y1="5" x2="22" y2="5" stroke="#4f7a45" stroke-width="2.5" stroke-dasharray="4 3"/><path d="M22 1 L26 5 L22 9z" fill="#4f7a45"/></svg>alternative / substitute</span>
     <span><svg width="22" height="14"><rect x="1" y="1" width="20" height="12" rx="4" fill="none" stroke="#8a9e7e" stroke-width="1.6" stroke-dasharray="1.5 2.5"/></svg>also possible (same flow)</span>
-    <span><svg width="22" height="14"><rect x="1" y="1" width="20" height="12" rx="4" fill="none" stroke="#b07a5a" stroke-width="1.6" stroke-dasharray="1.5 2.5"/></svg>approach chord to a possible next chord</span>
     <span><b style="color:#27408b">blue</b> ii – V family</span>
     <span><b style="color:#8b2020">red</b> substitutes</span>
     <span>dark circle = minor-mode chords</span>
@@ -280,7 +279,6 @@ details.diff th { color: var(--bark); font-weight: 600; }
     (STRONG[id] || []).forEach((t) => add(t, "strong"));
     (ALT[id] || []).forEach((t) => add(t, "alt"));
     (REGION_FLOW[node.region] || []).forEach((rg) => byId.forEach((n) => { if (n.kind === "main" && n.region === rg) add(n.id, "flow"); }));
-    [...out.entries()].filter(([, kd]) => kd !== "flow").forEach(([tid]) => { byId.forEach((n) => { if (n.kind === "member" && n.target === tid) add(n.id, "approach"); }); });
     return out;
   }
 
@@ -440,14 +438,14 @@ details.diff th { color: var(--bark); font-weight: 600; }
     const edgePt = (pt, n, tow) => { const dx = tow[0] - pt[0], dy = tow[1] - pt[1], d = Math.hypot(dx, dy) || 1, ux = dx / d, uy = dy / d, e = edgeDist(n, -ux, -uy); return [tow[0] - ux * e, tow[1] - uy * e]; };
     if (level >= 2) CLUSTERS.forEach((c) => {
       const t = byId.get(c.t), N = byId.get(c.t + "/N6"), V = byId.get(c.t + "/V7"); if (!t || !N) return;
-      const [nx, ny] = N.pos, c1 = [nx - 178, ny - 25], c2 = [nx + 22, ny - 28];
-      svg.appendChild(el("circle", { cx: c1[0], cy: c1[1], r: 82, fill: "none", stroke: tan, "stroke-width": "2.4" }));
-      svg.appendChild(el("circle", { cx: c2[0], cy: c2[1], r: 72, fill: "none", stroke: tan, "stroke-width": "2.4" }));
-      svg.appendChild(el("line", { x1: nx - 99, y1: ny - 22, x2: nx - 50, y2: ny - 22, stroke: ink, "stroke-width": "3.2" }));
+      const [nx, ny] = N.pos, c1 = [nx - 165, ny - 20], c2 = [nx + 10, ny - 25], R1 = 90, R2 = 80;
+      svg.appendChild(el("circle", { cx: c1[0], cy: c1[1], r: R1, fill: "none", stroke: tan, "stroke-width": "2.4" }));
+      svg.appendChild(el("circle", { cx: c2[0], cy: c2[1], r: R2, fill: "none", stroke: tan, "stroke-width": "2.4" }));
+      svg.appendChild(el("line", { x1: nx - 88, y1: ny - 22, x2: nx - 58, y2: ny - 22, stroke: ink, "stroke-width": "3.4" }));
       // black line from the V circle to the target chord
       const dx = t.pos[0] - c2[0], dy = t.pos[1] - c2[1], dd = Math.hypot(dx, dy) || 1, ux = dx / dd, uy = dy / dd;
       const e = edgeDist(t, ux, uy) + 8;
-      if (dd - 72 - e > 14) svg.appendChild(el("line", { x1: c2[0] + ux * 72, y1: c2[1] + uy * 72, x2: t.pos[0] - ux * e, y2: t.pos[1] - uy * e, stroke: ink, "stroke-width": "2.6" }));
+      if (dd - R2 - e > 14) svg.appendChild(el("line", { x1: c2[0] + ux * R2, y1: c2[1] + uy * R2, x2: t.pos[0] - ux * e, y2: t.pos[1] - uy * e, stroke: ink, "stroke-width": "2.6" }));
       // solid arrow V7/X -> X
       if (V) { const apd = arrowPath(V, t, 0.2); if (apd) svg.appendChild(el("path", { d: apd, fill: "none", stroke: brown, "stroke-width": "3.4", "marker-end": "url(#ah1)" })); }
       if (level === 3) {
@@ -455,10 +453,15 @@ details.diff th { color: var(--bark); font-weight: 600; }
         if (V) ["I64", "V7sus4", "i64"].forEach((role) => {
           const m = byId.get(c.t + "/" + role); if (!m) return;
           const top = [V.pos[0], V.pos[1] - boxOf(V)[1] / 2 - 2];
-          const end = role === "i64" ? edgeTo(m, top, 0) : [m.pos[0] + boxOf(m)[0] / 2 + 15, m.pos[1] + 6];
+          const face = m.pos[0] < V.pos[0] ? 1 : -1;
+          const end = role === "i64" ? edgeTo(m, top, 0) : [m.pos[0] + face * (boxOf(m)[0] / 2 + 17), m.pos[1]];
           svg.appendChild(el("line", { x1: top[0], y1: top[1], x2: end[0], y2: end[1], stroke: tan, "stroke-width": "2" }));
         });
-        ["I64", "V7sus4"].forEach((role) => { const m = byId.get(c.t + "/" + role); if (!m) return; const [w] = boxOf(m), x = Math.min(m.pos[0] + w / 2 + 4, 1990); svg.appendChild(el("path", { d: `M${x} ${m.pos[1] - 24} Q${x + 22} ${m.pos[1]} ${x} ${m.pos[1] + 24}`, fill: "none", stroke: ink, "stroke-width": "2.4" })); });
+        ["I64", "V7sus4"].forEach((role) => {
+          const m = byId.get(c.t + "/" + role); if (!m || !V) return;
+          const face = m.pos[0] < V.pos[0] ? 1 : -1, [w] = boxOf(m), x = m.pos[0] + face * (w / 2 + 6);
+          svg.appendChild(el("path", { d: `M${x} ${m.pos[1] - 24} Q${x + face * 22} ${m.pos[1]} ${x} ${m.pos[1] + 24}`, fill: "none", stroke: ink, "stroke-width": "2.4" }));
+        });
         // dashed elbow from the ii circle down to the substitute V, solid bracket under the two substitutes, dashed arrow into the target
         svg.appendChild(el("path", { d: `M${nx - 102} ${ny - 62} L${nx - 88} ${ny - 62} L${nx - 52} ${ny + 28} L${nx - 38} ${ny + 28}`, fill: "none", stroke: brown, "stroke-width": "2.6", "stroke-dasharray": "8 6" }));
         const by = ny + 80, bx1 = nx - 190, bx2 = nx + 40;
@@ -524,7 +527,7 @@ details.diff th { color: var(--bark); font-weight: 600; }
       if (circ) halo = el("circle", { class: "halo", cx: x, cy: y, r: circ + 7, fill: "none", stroke: isCur ? "#b07a5a" : "transparent", "stroke-width": isCur ? 7 : 3 });
       else halo = el("rect", { class: "halo", x: x - w / 2, y: y - h / 2, width: w, height: h, rx: 14, fill: isCur ? "#b07a5a" : "transparent", stroke: "none" });
       if (kind) {
-        const r = { strong: ["#4f7a45", 5, ""], alt: ["#4f7a45", 4, "12 7"], flow: ["#8a9e7e", 3, "3 7"], approach: ["#b07a5a", 3, "3 7"] }[kind];
+        const r = { strong: ["#4f7a45", 5, ""], alt: ["#4f7a45", 4, "12 7"], flow: ["#8a9e7e", 3, "3 7"] }[kind];
         halo.setAttribute("stroke", r[0]); halo.setAttribute("stroke-width", r[1]); if (r[2]) halo.setAttribute("stroke-dasharray", r[2]);
         if (circ) halo.setAttribute("r", circ + 9); else { halo.setAttribute("x", x - w / 2 - 6); halo.setAttribute("y", y - h / 2 - 6); halo.setAttribute("width", w + 12); halo.setAttribute("height", h + 12); }
       }
@@ -574,10 +577,9 @@ details.diff th { color: var(--bark); font-weight: 600; }
     if (!current || !byId.has(current)) { box.innerHTML = "<b>Start anywhere.</b> Click a chord to hear it and add it to your progression; the map then shows what can follow. Solid green arrows are the strongest moves, dashed ones are substitutes, and dotted outlines are other chords you could reach."; return; }
     const n = byId.get(current), names = (k) => [...fol.entries()].filter(([, kd]) => kd === k).map(([id]) => byId.get(id).prog).join(", ");
     const parts = [`<b>${n.prog}</b> — ${REGION_NAME[n.region]} function${n.ring === "in" ? " (minor-mode chord)" : ""}.`];
-    const s = names("strong"), a = names("alt"), f = names("flow"), ap = names("approach");
+    const s = names("strong"), a = names("alt"), f = names("flow");
     if (s) parts.push(`Strong moves: <b>${s}</b>.`);
     if (a) parts.push(`Alternatives: ${a}.`);
-    if (ap) parts.push(`Approach chords into those (clay dotted outline): ${ap}.`);
     if (f && !s) parts.push(`Chords from the next region (green dotted outline): ${f}.`);
     box.innerHTML = parts.join(" ") + (ENH && ENH.lines.length ? ENH.lines.map((l) => `<div class="enh-line">${l}</div>`).join("") : "");
   }
