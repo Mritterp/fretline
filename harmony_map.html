@@ -255,6 +255,7 @@ details.diff th { color: var(--bark); font-weight: 600; }
   // ---------- drawing ----------
   const el = (tag, attrs, text) => { const e = document.createElementNS(NS, tag); Object.entries(attrs || {}).forEach(([a, v]) => e.setAttribute(a, v)); if (text !== undefined) e.textContent = text; return e; };
   const COLORS = { "": "#26231e", blue: "#27408b", lblue: "#2aa3d4", red: "#8b2020" };
+  const LABEL_FONT = "Georgia,'Times New Roman',serif";
   const fontOf = (n) => (n.kind === "member" ? 24 : 34);
   function boxOf(n) { const f = fontOf(n), w = Math.max(60, [...n.label].length * f * 0.58 + 22); return [w, f + 16]; }
 
@@ -348,30 +349,31 @@ details.diff th { color: var(--bark); font-weight: 600; }
         svg.appendChild(p);
       });
     }
-    // nodes
-    const visits = new Map(); prog.forEach((id, i) => { if (!visits.has(id)) visits.set(id, []); visits.get(id).push(i + 1); });
+    // nodes (no position badges: the progression bar already shows the order)
     byId.forEach((n) => {
-      const [w, h] = boxOf(n), f = fontOf(n), x = Math.min(1994 - w / 2, Math.max(6 + w / 2, n.pos[0])), y = n.pos[1], dark = n.ring === "in" && n.kind === "main" || n.circle > 0 && n.ring === "in";
+      const [w, h] = boxOf(n), f = fontOf(n), x = Math.min(1994 - w / 2, Math.max(6 + w / 2, n.pos[0])), y = n.pos[1];
       const g = el("g", { class: "node", "data-id": n.id });
-      if (n.circle && n.ring === "in" && n.kind === "member") g.appendChild(el("circle", { cx: x, cy: y, r: n.circle, fill: "#232220", stroke: "#8a6a4e", "stroke-width": "3" }));
-      else if (n.circle && n.ring === "in") g.appendChild(el("circle", { cx: x, cy: y, r: n.circle, fill: "#232220", stroke: "#8a6a4e", "stroke-width": "3" }));
-      else if (n.circle) g.appendChild(el("circle", { cx: x, cy: y, r: n.circle, fill: "#fbf8f1", stroke: "#26231e", "stroke-width": "3" }));
-      const kind = fol.get(n.id), isCur = n.id === current;
-      const halo = el("rect", { class: "halo", x: x - w / 2, y: y - h / 2, width: w, height: h, rx: 14, fill: isCur ? "#b07a5a" : "transparent", stroke: "none" });
+      svg.appendChild(g);
+      const circ = n.circle || 0, kind = fol.get(n.id), isCur = n.id === current, darkCircle = circ && n.ring === "in";
+      if (circ) g.appendChild(el("circle", { cx: x, cy: y, r: circ, fill: darkCircle ? "#232220" : "#fbf8f1", stroke: darkCircle ? "#8a6a4e" : "#26231e", "stroke-width": "3" }));
+      // highlight: a rounded box around a plain label, a ring around a circled one
+      let halo;
+      if (circ) halo = el("circle", { class: "halo", cx: x, cy: y, r: circ + 7, fill: "none", stroke: isCur ? "#b07a5a" : "transparent", "stroke-width": isCur ? 7 : 3 });
+      else halo = el("rect", { class: "halo", x: x - w / 2, y: y - h / 2, width: w, height: h, rx: 14, fill: isCur ? "#b07a5a" : "transparent", stroke: "none" });
       if (kind) {
         const r = { strong: ["#4f7a45", 5, ""], alt: ["#4f7a45", 4, "12 7"], flow: ["#8a9e7e", 3, "3 7"], approach: ["#b07a5a", 3, "3 7"] }[kind];
         halo.setAttribute("stroke", r[0]); halo.setAttribute("stroke-width", r[1]); if (r[2]) halo.setAttribute("stroke-dasharray", r[2]);
-        halo.setAttribute("x", x - w / 2 - 6); halo.setAttribute("y", y - h / 2 - 6); halo.setAttribute("width", w + 12); halo.setAttribute("height", h + 12);
+        if (circ) halo.setAttribute("r", circ + 9); else { halo.setAttribute("x", x - w / 2 - 6); halo.setAttribute("y", y - h / 2 - 6); halo.setAttribute("width", w + 12); halo.setAttribute("height", h + 12); }
       }
       g.appendChild(halo);
-      const base = COLORS[n.col || ""], onDark = (n.ring === "in" && (n.kind === "main" || n.circle > 0));
-      const fill = isCur ? "#fbf8f1" : onDark ? (n.col === "lblue" ? COLORS.lblue : "#f3efe6") : base;
-      g.appendChild(el("text", { x, y: y + f * 0.34, "text-anchor": "middle", "font-size": f, "font-weight": "700", fill, "font-family": "Georgia,'Times New Roman',serif", "pointer-events": "none" }, n.label));
-      if (visits.has(n.id)) {
-        g.appendChild(el("circle", { cx: x + w / 2 - 4, cy: y - h / 2 + 2, r: 17, fill: "#3d3a30", stroke: "#fbf8f1", "stroke-width": "3", "pointer-events": "none" }));
-        g.appendChild(el("text", { x: x + w / 2 - 4, y: y - h / 2 + 9, "text-anchor": "middle", "font-size": visits.get(n.id).length > 1 ? 13 : 19, "font-weight": "700", fill: "#fbf8f1", "font-family": "Helvetica,Arial,sans-serif", "pointer-events": "none" }, visits.get(n.id).join("·")));
+      const onDark = n.ring === "in" && (n.kind === "main" || circ > 0);
+      const fill = isCur && !circ ? "#fbf8f1" : onDark ? (n.col === "lblue" ? COLORS.lblue : "#f3efe6") : COLORS[n.col || ""];
+      const t = el("text", { x, y: y + f * 0.34, "text-anchor": "middle", "font-size": f, "font-weight": "700", fill, "font-family": LABEL_FONT, "pointer-events": "none" }, n.label);
+      g.appendChild(t);
+      if (circ) {   // shrink the lettering until it sits inside its circle with a margin
+        const room = circ * 2 - 20, len = t.getComputedTextLength ? t.getComputedTextLength() : 0;
+        if (len > room) { const k = room / len; t.setAttribute("font-size", (f * k).toFixed(1)); t.setAttribute("y", y + f * k * 0.34); }
       }
-      svg.appendChild(g);
     });
     renderProg(); renderInfo(fol);
     $("m-trad").setAttribute("aria-pressed", String(!jazz())); $("m-jazz").setAttribute("aria-pressed", String(jazz()));
