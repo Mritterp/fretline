@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Fretline — Scale Lab</title>
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#3D3A30">
+<link rel="icon" href="icons/favicon-32.png" sizes="32x32">
+<style>
+:root {
+  --parchment: #f5f0e8; --linen: #e8e0d0; --wheat: #c4b89a; --sage: #8a9e7e;
+  --moss: #5c6b52; --clay: #b07a5a; --bark: #3d3a30; --root: #a6433d;
+  --font-display: Georgia, 'Times New Roman', serif;
+  --font-body: Helvetica, Arial, sans-serif;
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--parchment); color: var(--bark); font-family: var(--font-body); }
+header { background: var(--parchment); border-bottom: 1px solid var(--wheat); padding: 14px 24px 12px; }
+.brand { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 8px 22px; margin-bottom: 10px; }
+h1 { margin: 0; font-family: var(--font-display); font-weight: 400; font-size: 30px; }
+.site-tabs { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 4px; }
+.site-tab { font-size: 10px; letter-spacing: 0.18em; text-transform: uppercase; text-decoration: none; padding: 7px 12px; border: 1px solid var(--wheat); color: var(--sage); }
+.site-tab:hover { border-color: var(--sage); color: var(--bark); }
+.site-tab.current { border-color: var(--bark); background: var(--bark); color: var(--parchment); }
+.controls { display: flex; flex-wrap: wrap; gap: 12px 22px; align-items: center; }
+.controls label { font-size: 10px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--moss); display: flex; align-items: center; gap: 8px; }
+.controls select { font: inherit; font-size: 13px; letter-spacing: 0; text-transform: none; padding: 5px 8px; background: var(--parchment); border: 1px solid var(--wheat); color: var(--bark); }
+.seg { display: inline-flex; }
+.seg button { font: inherit; font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase; padding: 7px 14px; border: 1px solid var(--wheat); background: transparent; color: var(--moss); cursor: pointer; }
+.seg button + button { border-left: 0; }
+.seg button[aria-pressed="true"] { background: var(--bark); border-color: var(--bark); color: var(--parchment); }
+main { padding: 14px 24px 50px; max-width: 1500px; margin: 0 auto; }
+.title-row { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 22px; margin: 4px 0 10px; }
+.title-row h2 { margin: 0; font-family: var(--font-display); font-weight: 400; font-size: 24px; }
+.facts { font-size: 12px; color: var(--moss); line-height: 1.7; }
+.facts b { color: var(--bark); font-weight: 600; }
+.board { background: #f9f5ee; border: 1px solid #e3dac6; padding: 8px 10px 4px; }
+.board svg { display: block; width: 100%; height: auto; }
+.dot { cursor: pointer; }
+.dot:hover circle { stroke: #3d3a30; stroke-width: 2; }
+.legend { margin-top: 10px; font-size: 11px; color: var(--moss); display: flex; flex-wrap: wrap; gap: 6px 18px; }
+.legend i { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 6px; vertical-align: -1px; }
+@media (max-width: 700px) { header { padding: 12px 14px 10px; } main { padding: 12px 10px 40px; } .board { overflow-x: auto; } .board svg { width: 900px; } }
+</style>
+</head>
+<body>
+<header>
+  <div class="brand">
+    <h1>Fretline</h1>
+    <nav class="site-tabs" aria-label="Pages">
+      <a class="site-tab" href="fretline.html">Sightreading</a>
+      <a class="site-tab" href="ear_training.html">Ear Training</a>
+      <a class="site-tab" href="shapes_lab.html">Chord Lab</a>
+      <a class="site-tab current" href="scale_lab.html" aria-current="page">Scale Lab</a>
+    </nav>
+  </div>
+  <div class="controls">
+    <label>Root <select id="root"></select></label>
+    <label>Scale <select id="scale"></select></label>
+    <span class="seg" role="group" aria-label="Show on the fretboard">
+      <button type="button" id="show-int" aria-pressed="true">Intervals</button><button type="button" id="show-note" aria-pressed="false">Notes</button>
+    </span>
+    <label>Frets <select id="frets"><option>12</option><option selected>15</option><option>17</option><option>22</option><option>24</option></select></label>
+  </div>
+</header>
+
+<main>
+  <div class="title-row"><h2 id="title"></h2><div class="facts" id="facts"></div></div>
+  <div class="board" id="board"></div>
+  <div class="legend"><span><i style="background:var(--root)"></i>root</span><span><i style="background:var(--moss)"></i>other scale notes</span><span id="hint">Click any note to hear it.</span></div>
+</main>
+
+<script>
+(function () {
+  "use strict";
+  const $ = (id) => document.getElementById(id);
+  const OPEN = [40, 45, 50, 55, 59, 64];                 // low E .. high e
+  const STRING_NAME = ["E", "A", "D", "G", "B", "e"];
+  const LETTERS = ["C", "D", "E", "F", "G", "A", "B"], NATURAL = [0, 2, 4, 5, 7, 9, 11];
+  const ROOTS = [["C", 0], ["D♭", 1], ["D", 2], ["E♭", 3], ["E", 4], ["F", 5], ["F♯", 6], ["G", 7], ["A♭", 8], ["A", 9], ["B♭", 10], ["B", 11]];
+  const mod = (n) => ((n % 12) + 12) % 12;
+
+  // semis = semitones above the root; deg = interval label (the number tells which letter name each note takes)
+  const SCALES = [
+    { name: "Major (Ionian)", semis: [0, 2, 4, 5, 7, 9, 11], deg: ["1", "2", "3", "4", "5", "6", "7"] },
+    { name: "Dorian", semis: [0, 2, 3, 5, 7, 9, 10], deg: ["1", "2", "♭3", "4", "5", "6", "♭7"] },
+    { name: "Phrygian", semis: [0, 1, 3, 5, 7, 8, 10], deg: ["1", "♭2", "♭3", "4", "5", "♭6", "♭7"] },
+    { name: "Lydian", semis: [0, 2, 4, 6, 7, 9, 11], deg: ["1", "2", "3", "♯4", "5", "6", "7"] },
+    { name: "Mixolydian", semis: [0, 2, 4, 5, 7, 9, 10], deg: ["1", "2", "3", "4", "5", "6", "♭7"] },
+    { name: "Natural minor (Aeolian)", semis: [0, 2, 3, 5, 7, 8, 10], deg: ["1", "2", "♭3", "4", "5", "♭6", "♭7"] },
+    { name: "Locrian", semis: [0, 1, 3, 5, 6, 8, 10], deg: ["1", "♭2", "♭3", "4", "♭5", "♭6", "♭7"] },
+    { name: "Harmonic minor", semis: [0, 2, 3, 5, 7, 8, 11], deg: ["1", "2", "♭3", "4", "5", "♭6", "7"] },
+    { name: "Melodic minor (ascending)", semis: [0, 2, 3, 5, 7, 9, 11], deg: ["1", "2", "♭3", "4", "5", "6", "7"] },
+    { name: "Phrygian dominant", semis: [0, 1, 4, 5, 7, 8, 10], deg: ["1", "♭2", "3", "4", "5", "♭6", "♭7"] },
+    { name: "Lydian dominant", semis: [0, 2, 4, 6, 7, 9, 10], deg: ["1", "2", "3", "♯4", "5", "6", "♭7"] },
+    { name: "Altered (super Locrian)", semis: [0, 1, 3, 4, 6, 8, 10], deg: ["1", "♭2", "♭3", "♭4", "♭5", "♭6", "♭7"] },
+    { name: "Major pentatonic", semis: [0, 2, 4, 7, 9], deg: ["1", "2", "3", "5", "6"] },
+    { name: "Minor pentatonic", semis: [0, 3, 5, 7, 10], deg: ["1", "♭3", "4", "5", "♭7"] },
+    { name: "Blues (minor)", semis: [0, 3, 5, 6, 7, 10], deg: ["1", "♭3", "4", "♭5", "5", "♭7"] },
+    { name: "Whole tone", semis: [0, 2, 4, 6, 8, 10], deg: ["1", "2", "3", "♯4", "♯5", "♭7"] },
+    { name: "Diminished (whole-half)", semis: [0, 2, 3, 5, 6, 8, 9, 11], deg: ["1", "2", "♭3", "4", "♭5", "♭6", "6", "7"] },
+    { name: "Diminished (half-whole)", semis: [0, 1, 3, 4, 6, 7, 9, 10], deg: ["1", "♭2", "♭3", "3", "♯4", "5", "6", "♭7"] },
+  ];
+
+  const ACC = { "-2": "𝄫", "-1": "♭", "0": "", "1": "♯", "2": "𝄪" };
+  // spell a note from its interval: the degree number picks the letter, the pitch decides the accidental
+  function spell(rootName, rootPc, semis, degLabel) {
+    const num = +degLabel.replace(/[^0-9]/g, "");
+    const li = (LETTERS.indexOf(rootName[0]) + num - 1) % 7;
+    const diff = ((mod(rootPc + semis) - NATURAL[li] + 18) % 12) - 6;
+    return LETTERS[li] + (ACC[String(diff)] !== undefined ? ACC[String(diff)] : "");
+  }
+  const noteName = (m) => ["C", "C♯", "D", "E♭", "E", "F", "F♯", "G", "A♭", "A", "B♭", "B"][mod(m)] + (Math.floor(m / 12) - 1);
+
+  ROOTS.forEach(([n, pc]) => { const o = document.createElement("option"); o.value = pc; o.textContent = n; $("root").appendChild(o); });
+  SCALES.forEach((sc, i) => { const o = document.createElement("option"); o.value = i; o.textContent = sc.name; $("scale").appendChild(o); });
+  $("root").value = "0"; $("scale").value = "0";
+  let showNotes = false;
+  try { showNotes = localStorage.getItem("fretline-scale-show") === "notes"; } catch (e) {}
+
+  function render() {
+    const rootPc = +$("root").value, rootName = ROOTS.find((r) => r[1] === rootPc)[0], sc = SCALES[+$("scale").value], maxFret = +$("frets").value;
+    const byPc = new Map();   // pitch class -> {interval, note, root}
+    sc.semis.forEach((semi, i) => byPc.set(mod(rootPc + semi), { interval: sc.deg[i], note: spell(rootName, rootPc, semi, sc.deg[i]), root: i === 0 }));
+
+    // facts above the board
+    const steps = sc.semis.map((s, i) => (sc.semis[i + 1] !== undefined ? sc.semis[i + 1] : 12) - s).map((d) => ({ 1: "H", 2: "W", 3: "W+H" }[d] || String(d)));
+    $("title").textContent = rootName + " " + sc.name;
+    $("facts").innerHTML = `<div><b>Notes</b> ${sc.semis.map((s, i) => byPc.get(mod(rootPc + s)).note).join(" · ")}</div><div><b>Intervals</b> ${sc.deg.join(" · ")}</div><div><b>Steps</b> ${steps.join(" – ")}</div>`;
+
+    // fretboard geometry (drawing units; the SVG scales to the page width)
+    const cw = 62, x0 = 58, y0 = 30, rh = 27, W = x0 + maxFret * cw + 24, H = y0 + 5 * rh + 44;
+    const yOf = (s) => y0 + (5 - s) * rh, xOf = (f) => (f === 0 ? x0 - 24 : x0 + (f - 0.5) * cw);
+    const p = [];
+    // inlays
+    [3, 5, 7, 9, 12, 15, 17, 19, 21, 24].filter((f) => f <= maxFret).forEach((f) => {
+      const cx = x0 + (f - 0.5) * cw, cy = y0 + 2.5 * rh;
+      if (f % 12 === 0) { p.push(`<circle cx="${cx}" cy="${cy - rh}" r="5" fill="#e3dac6"/><circle cx="${cx}" cy="${cy + rh}" r="5" fill="#e3dac6"/>`); }
+      else p.push(`<circle cx="${cx}" cy="${cy}" r="5.5" fill="#e3dac6"/>`);
+    });
+    for (let s = 0; s < 6; s++) {
+      p.push(`<line x1="${x0}" x2="${x0 + maxFret * cw}" y1="${yOf(s)}" y2="${yOf(s)}" stroke="#3D3A30" stroke-width="${0.8 + (5 - s) * 0.18}" opacity="0.75"/>`);
+      p.push(`<text x="12" y="${yOf(s) + 4}" font-size="11" fill="#8A9E7E" font-family="Helvetica,Arial,sans-serif">${STRING_NAME[s]}</text>`);
+    }
+    for (let f = 0; f <= maxFret; f++) {
+      const x = x0 + f * cw;
+      p.push(`<line x1="${x}" x2="${x}" y1="${y0}" y2="${y0 + 5 * rh}" stroke="#C4B89A" stroke-width="${f === 0 ? 4 : 1}"/>`);
+      if (f >= 1) { const mark = [3, 5, 7, 9, 12, 15, 17, 19, 21, 24].includes(f); p.push(`<text x="${x - cw / 2}" y="${H - 12}" text-anchor="middle" font-size="${mark ? 12 : 11}" font-weight="${mark ? 700 : 400}" fill="${mark ? "#5C6B52" : "#B5AE98"}" font-family="Helvetica,Arial,sans-serif">${f}</text>`); }
+    }
+    // the scale's notes
+    for (let s = 0; s < 6; s++) for (let f = 0; f <= maxFret; f++) {
+      const m = OPEN[s] + f, info = byPc.get(mod(m));
+      if (!info) continue;
+      const cx = xOf(f), cy = yOf(s), label = showNotes ? info.note : info.interval, fill = info.root ? "var(--root)" : "var(--moss)";
+      p.push(`<g class="dot" data-midi="${m}"><title>${noteName(m)}${showNotes ? "" : " · " + info.note}</title><circle cx="${cx}" cy="${cy}" r="11.5" fill="${fill}"/><text x="${cx}" y="${cy + 4}" text-anchor="middle" font-size="${label.length > 2 ? 10 : 12}" font-weight="700" fill="#F5F0E8" font-family="Helvetica,Arial,sans-serif">${label}</text></g>`);
+    }
+    $("board").innerHTML = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${rootName} ${sc.name} on the guitar fretboard">${p.join("")}</svg>`;
+    $("show-int").setAttribute("aria-pressed", String(!showNotes)); $("show-note").setAttribute("aria-pressed", String(showNotes));
+  }
+
+  // click a note to hear it (same triangle tone as the other pages)
+  let audioCtx = null;
+  function playMidi(m) {
+    if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    if (audioCtx.state === "suspended") audioCtx.resume();
+    const t = audioCtx.currentTime + 0.01, dur = 1.4, osc = audioCtx.createOscillator(), gain = audioCtx.createGain();
+    osc.type = "triangle"; osc.frequency.value = 440 * Math.pow(2, (m - 69) / 12);
+    gain.gain.setValueAtTime(0.0001, t); gain.gain.linearRampToValueAtTime(0.18, t + 0.012); gain.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+    osc.connect(gain).connect(audioCtx.destination); osc.start(t); osc.stop(t + dur + 0.02);
+  }
+  $("board").addEventListener("pointerdown", (e) => { const d = e.target.closest && e.target.closest("[data-midi]"); if (d) playMidi(+d.dataset.midi); });
+
+  ["root", "scale", "frets"].forEach((id) => $(id).addEventListener("change", render));
+  const setShow = (notes) => { showNotes = notes; try { localStorage.setItem("fretline-scale-show", notes ? "notes" : "intervals"); } catch (e) {} render(); };
+  $("show-int").addEventListener("click", () => setShow(false));
+  $("show-note").addEventListener("click", () => setShow(true));
+  render();
+})();
+</script>
+</body>
+</html>

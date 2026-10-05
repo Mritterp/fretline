@@ -5,6 +5,7 @@ const CACHE_NAME = "fretline-v2";
 const PRECACHE_URLS = [
   "./fretline.html",
   "./ear_training.html",
+  "./scale_lab.html",
   "./manifest.webmanifest",
   "./icons/icon-192.png",
   "./icons/icon-512.png",

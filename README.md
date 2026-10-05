@@ -22,6 +22,8 @@ Live app: https://claude.ai/code/artifact/b0f71811-d152-4e1b-a595-7abeb8a99003
   recognition); `splice.js` builds it into `ear_training.html` with the same VexFlow bundle. Edit the
   `_body` file, then run `node splice.js`.
 - `shapes_lab.html` — the standalone Chord Shapes Lab used to review and approve chord patterns.
+- `scale_lab.html` — the Scale Lab: any root and scale on the fretboard, toggleable between intervals and note names
+  (click a note to hear it). Standalone page, no build step.
 - `fretline.html` — the built, publish-ready file. **Generated — don't edit
   directly**, run `node splice.js` after editing `fretline_body.html` instead.
 - `serve.js` — a tiny static file server for local preview (no dependencies).
