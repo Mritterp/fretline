@@ -191,6 +191,7 @@ details.settings summary { cursor: pointer; font-size: 11px; letter-spacing: 0.1
   <p class="keys" aria-label="Keyboard shortcuts">
     <span><kbd>Space</kbd> <kbd>R</kbd> repeat (all)</span>
     <span class="chd-only"><kbd>C</kbd> repeat chords</span>
+    <span class="chd-only">hold <kbd>A</kbd> + click a chord = arpeggiate it</span>
     <span><kbd>Enter</kbd> <kbd>N</kbd> next · or check</span>
     <span><kbd>S</kbd> skip</span>
     <span>click a piano key to play it</span>
@@ -576,10 +577,12 @@ details.settings summary { cursor: pointer; font-size: 11px; letter-spacing: 0.1
     if (!C || p.deg === null || p.q === null) return null;
     return { deg: p.deg, pc: mod(C.tonic + C.scale.iv[p.deg]), q: p.q };
   }
+  let aHeld = false;   // holding A while clicking a chord arpeggiates it
   function playOneChord(ch) {
     cancelPlay();
-    const t = audio().currentTime + 0.03;
-    voicing(ch, 48 + ch.pc).forEach((m, j) => tone(m, t, 1.5, j === 0 ? 0.14 : 0.1));
+    const t = audio().currentTime + 0.03, notes = voicing(ch, 48 + ch.pc);
+    if (aHeld) notes.forEach((m, j) => tone(m, t + j * 0.2, Math.max(0.9, 1.7 - j * 0.15), j === 0 ? 0.16 : 0.13));   // low to high, each note rings on
+    else notes.forEach((m, j) => tone(m, t, 1.5, j === 0 ? 0.14 : 0.1));
   }
   function drawYouStaff() {
     if (!C) return;
@@ -730,8 +733,11 @@ details.settings summary { cursor: pointer; font-size: 11px; letter-spacing: 0.1
   refreshIntervalChips();
   chipSet($("scale-chips"), SCALES, () => S.scales, (s) => s.name, onChdSettings);
   chipSet($("qual-chips"), QUALS, () => S.quals, (q) => q.name + (q.sym ? "  " + q.sym : ""), onChdSettings);
+  document.addEventListener("keyup", (e) => { if (e.key.toLowerCase() === "a") aHeld = false; });
+  window.addEventListener("blur", () => { aHeld = false; });
   document.addEventListener("keydown", (e) => {
     if (e.target.closest && e.target.closest("details, select, input")) return;
+    if (e.key.toLowerCase() === "a" && !e.ctrlKey && !e.metaKey && !e.altKey) { aHeld = true; return; }
     if (e.ctrlKey || e.metaKey || e.altKey) return;
     const key = e.key.toLowerCase();
     if (key === "s") { gestured = true; S.mode === "int" ? newInterval(true) : newChords(true); return; }
