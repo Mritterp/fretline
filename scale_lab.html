@@ -247,7 +247,7 @@ main { padding: 14px 24px 50px; max-width: 1500px; margin: 0 auto; }
       const path = dir === "up" ? asc : dir === "down" ? desc : asc.concat(desc.slice(1));
       seq = path.map((n) => ({ m: OPEN[n.s] + n.f, s: n.s, f: n.f }));
     } else {
-      const up = sc.semis.map((x) => base + x).concat([base + 12]), down = up.slice().reverse();
+      const up = sc.semis.map((x) => base + x).concat(sc.semis.map((x) => base + 12 + x), [base + 24]), down = up.slice().reverse();   // two octaves, root to root
       seq = (dir === "up" ? up : dir === "down" ? down : up.concat(down.slice(1))).map((m) => ({ m }));
     }
     const t0 = audioCtx.currentTime + 0.08;
