@@ -41,7 +41,9 @@ main { max-width: 1100px; margin: 0 auto; padding: 10px 16px 24px; }
 .sub { font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--sage); margin-bottom: 10px; }
 .staff { height: clamp(190px, 32vh, 330px); overflow: hidden; }
 .staff svg { display: block; width: 100%; height: 100%; }
-#chd-staff:empty { display: none; }
+.staff.chd { height: clamp(140px, 20vh, 220px); }
+.staff-label { margin: 10px 0 0; font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--moss); }
+.staff-label .hint { letter-spacing: 0; text-transform: none; }
 .kbd-wrap { overflow: hidden; border: 1px solid var(--wheat); background: #fff; margin-top: 6px; }
 .kbd-wrap svg { display: block; width: 100%; height: auto; }
 .kbd-wrap .key { cursor: pointer; }
@@ -153,7 +155,10 @@ details.settings summary { cursor: pointer; font-size: 11px; letter-spacing: 0.1
       <div class="sub" id="chd-sub"></div>
       <div class="status hint" id="chd-status"></div>
       <div id="chd-slots"></div>
-      <div class="staff" id="chd-staff"></div>
+      <div class="staff-label">Your answer <span class="hint">· click a chord to hear it; change a pick above to try another</span></div>
+      <div class="staff chd" id="chd-staff-you"></div>
+      <div class="staff-label">Correct answer <span class="hint">· revealed after Check, also clickable</span></div>
+      <div class="staff chd" id="chd-staff"></div>
       <div class="actions">
         <div class="left">
           <button type="button" class="btn ghost" id="chd-skip">Skip</button>
@@ -282,7 +287,7 @@ details.settings summary { cursor: pointer; font-size: 11px; letter-spacing: 0.1
   function cancelPlay() { stopAll(); timers.forEach(clearTimeout); timers = []; playToken++; }
 
   // ---------- staff + keyboard ----------
-  function renderStaff(el, moments, flat) {
+  function renderStaff(el, moments, flat, onChord) {
     el.innerHTML = "";
     const W = 150 + Math.max(2, moments.length) * 130;   // drawing units; the SVG scales to its box
     const renderer = new Renderer(el, Renderer.Backends.SVG);
@@ -354,6 +359,16 @@ details.settings summary { cursor: pointer; font-size: 11px; letter-spacing: 0.1
     const real = (arr, sets) => arr.filter((n, i) => sets[i].length);
     if (shiftT) mark(shiftT === 24 ? "15ma" : "8va", real(tn, trebleDisp), trebleY - ledgerUp - 14, 1);
     if (shiftB) mark(shiftB === 24 ? "15mb" : "8vb", real(bn, bassDisp), bassY + 40 + ledgerDown + 26, -1);
+    // clickable columns: pressing a chord on the staff plays it
+    if (onChord) tn.forEach((n, i) => {
+      const r = document.createElementNS(NS, "rect");
+      r.setAttribute("x", n.getAbsoluteX() - 20); r.setAttribute("y", trebleY - 16); r.setAttribute("width", 56); r.setAttribute("height", bassY + 40 - trebleY + 32);
+      r.setAttribute("rx", 6); r.setAttribute("stroke", "none"); r.setAttribute("fill", "transparent"); r.setAttribute("pointer-events", "all"); r.style.cursor = "pointer";
+      r.addEventListener("mouseenter", () => r.setAttribute("fill", "rgba(176,122,90,0.10)"));
+      r.addEventListener("mouseleave", () => r.setAttribute("fill", "transparent"));
+      r.addEventListener("click", () => onChord(i));
+      svgEl.appendChild(r);
+    });
     fit();
   }
   const KBD = { kw: 26, h: 112 };
@@ -501,7 +516,7 @@ details.settings summary { cursor: pointer; font-size: 11px; letter-spacing: 0.1
   function newChords(autoplay) {
     cancelPlay();
     cChecked = false; resetPicks();
-    $("chd-staff").innerHTML = ""; $("chd-check").disabled = true;
+    $("chd-staff").innerHTML = ""; $("chd-staff-you").innerHTML = ""; $("chd-check").disabled = true;
     const scales = SCALES.filter((s) => S.scales.includes(s.id));
     let made = null;
     for (let tries = 0; tries < 80 && scales.length && S.quals.length && !made; tries++) {
@@ -516,7 +531,7 @@ details.settings summary { cursor: pointer; font-size: 11px; letter-spacing: 0.1
       made = { scale, tonic, chords: seq.map((x) => ({ deg: x.deg, pc: x.pc, q: x.q })) };
     }
     if (!made) {
-      C = null; $("chd-slots").innerHTML = "";
+      C = null; $("chd-slots").innerHTML = ""; $("chd-staff").innerHTML = ""; $("chd-staff-you").innerHTML = "";
       $("chd-status").className = "status bad";
       $("chd-status").textContent = "No chords fit: turn on more scales or chord qualities in Settings.";
       $("chd-next").textContent = "Play"; return;
@@ -525,6 +540,7 @@ details.settings summary { cursor: pointer; font-size: 11px; letter-spacing: 0.1
     C.rootMidi = C.chords.map((ch) => 48 + ch.pc);   // chord roots live in C3..B3 so they sit low and clear
     C.tonicMidi = 48 + C.tonic;
     buildChordSlots();
+    drawYouStaff(); drawCorrectStaff();
     $("chd-slots").classList.toggle("tight", N_CHORDS > 4);
     $("chd-status").className = "status hint";
     $("chd-status").textContent = `Listen to the ${C.scale.name.toLowerCase()} scale, then name the Roman numeral (scale degree) and the quality of each of the ${NUM_WORD[N_CHORDS]} chords.`;
@@ -541,16 +557,54 @@ details.settings summary { cursor: pointer; font-size: 11px; letter-spacing: 0.1
         const b = document.createElement("button");
         b.type = "button"; b.className = "ans"; b.textContent = label; b.dataset[key] = value;
         b.addEventListener("click", () => {
-          if (cChecked) return;
+          if (!C) return;
           picks[i][key] = value;
           host2.querySelectorAll(".ans").forEach((x) => x.classList.toggle("picked", x === b));
-          $("chd-check").disabled = !complete();
+          $("chd-check").disabled = cChecked || !complete();
+          if (cChecked) refreshMarks();   // after Check you can still change picks to compare; the score is not touched
+          drawYouStaff();
         });
         host2.appendChild(b);
       };
       ROMAN.forEach((r, d) => make(slot.querySelector(".nums"), r, "deg", d));
       QUALS.filter((q) => S.quals.includes(q.id)).forEach((q) => make(slot.querySelector("#ans" + i), q.name, "q", q.id));
     }
+  }
+  // the chord a pick describes: scale degree + quality, spelled on the key's own scale
+  function youChord(i) {
+    const p = picks[i];
+    if (!C || p.deg === null || p.q === null) return null;
+    return { deg: p.deg, pc: mod(C.tonic + C.scale.iv[p.deg]), q: p.q };
+  }
+  function playOneChord(ch) {
+    cancelPlay();
+    const t = audio().currentTime + 0.03;
+    voicing(ch, 48 + ch.pc).forEach((m, j) => tone(m, t, 1.5, j === 0 ? 0.14 : 0.1));
+  }
+  function drawYouStaff() {
+    if (!C) return;
+    renderStaff($("chd-staff-you"), picks.map((_, i) => { const ch = youChord(i); return ch ? voicing(ch, 48 + ch.pc).slice(1) : []; }), true,
+      (i) => { const ch = youChord(i); if (ch) { gestured = true; playOneChord(ch); } });
+  }
+  function drawCorrectStaff() {
+    if (!C) return;
+    renderStaff($("chd-staff"), C.chords.map((ch, k) => (cChecked ? voicing(ch, C.rootMidi[k]).slice(1) : [])), true,
+      cChecked ? (i) => { gestured = true; playOneChord(C.chords[i]); } : null);
+  }
+  function refreshMarks() {   // right / wrong colouring against the current picks
+    C.chords.forEach((ch, i) => {
+      const ok = picks[i].deg === ch.deg && picks[i].q === ch.q;
+      const mark = (hostId, key, truth, chosen) => $(hostId).querySelectorAll(".ans").forEach((b) => {
+        b.classList.remove("picked", "right", "wrong");
+        const v = b.dataset[key];
+        if (v === String(truth)) b.classList.add("right");
+        else if (v === String(chosen)) b.classList.add("wrong");
+      });
+      mark("nums" + i, "deg", ch.deg, picks[i].deg);
+      mark("ans" + i, "q", ch.q, picks[i].q);
+      $("res" + i).textContent = (ok ? "✓ " : "✗ ") + chordLabel(ch);
+      $("res" + i).style.color = ok ? "var(--good)" : "var(--bad)";
+    });
   }
   function voicing(ch, rootMidi) {
     const q = QUALS.find((x) => x.id === ch.q);
@@ -582,25 +636,14 @@ details.settings summary { cursor: pointer; font-size: 11px; letter-spacing: 0.1
     if (!C || cChecked || !complete()) return;
     cChecked = true;
     let right = 0;
-    C.chords.forEach((ch, i) => {
-      const degOk = picks[i].deg === ch.deg, qOk = picks[i].q === ch.q, ok = degOk && qOk; if (ok) right++;
-      const mark = (hostId, key, truth, chosen) => $(hostId).querySelectorAll(".ans").forEach((b) => {
-        b.disabled = true; b.classList.remove("picked");
-        const v = b.dataset[key];
-        if (v === String(truth)) b.classList.add("right");
-        else if (v === String(chosen)) b.classList.add("wrong");
-      });
-      mark("nums" + i, "deg", ch.deg, picks[i].deg);
-      mark("ans" + i, "q", ch.q, picks[i].q);
-      $("res" + i).textContent = (ok ? "✓ " : "✗ ") + chordLabel(ch);
-      $("res" + i).style.color = ok ? "var(--good)" : "var(--bad)";
-    });
+    C.chords.forEach((ch, i) => { if (picks[i].deg === ch.deg && picks[i].q === ch.q) right++; });
+    refreshMarks();
     S.score.chd.n++; S.score.chd.chords += N_CHORDS; S.score.chd.chordsOk += right;
     if (right === N_CHORDS) S.score.chd.ok++;
     save(); showScore();
     $("chd-status").className = "status " + (right === N_CHORDS ? "good" : "bad");
-    $("chd-status").textContent = (right === N_CHORDS ? `All ${NUM_WORD[N_CHORDS]} correct! ` : `${right} of ${N_CHORDS} fully correct (numeral and quality). `) + `Key: ${rootName(C.tonic)} ${C.scale.name}. Chords: ${C.chords.map(chordLabel).join(" → ")}.`;
-    renderStaff($("chd-staff"), C.chords.map((ch, k) => voicing(ch, C.rootMidi[k]).slice(1)), true);
+    $("chd-status").textContent = (right === N_CHORDS ? `All ${NUM_WORD[N_CHORDS]} correct! ` : `${right} of ${N_CHORDS} fully correct (numeral and quality). `) + `Key: ${rootName(C.tonic)} ${C.scale.name}. Chords: ${C.chords.map(chordLabel).join(" → ")}. Click any chord on either staff to hear it; you can still change your picks to compare.`;
+    drawCorrectStaff();
     $("chd-check").disabled = true; $("chd-next").disabled = false;
   }
 
@@ -637,7 +680,7 @@ details.settings summary { cursor: pointer; font-size: 11px; letter-spacing: 0.1
     document.querySelectorAll(".keys .chd-only").forEach((el) => { el.hidden = m !== "chd"; });
     if (m === "chd" && !C) newChords(false);
     if (m === "int") drawIntervalVisuals();                       // sizes are only measurable while the view is visible
-    else if (cChecked && C) renderStaff($("chd-staff"), C.chords.map((ch, k) => voicing(ch, C.rootMidi[k]).slice(1)), true);
+    else if (C) { drawYouStaff(); drawCorrectStaff(); }
     showScore();
   }
   document.addEventListener("pointerdown", () => { gestured = true; }, { once: true });
