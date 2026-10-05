@@ -182,7 +182,9 @@ details.settings summary { cursor: pointer; font-size: 11px; letter-spacing: 0.1
       <div class="setgroup"><h3>Intervals <button type="button" class="linkbtn" id="int-all">all</button><button type="button" class="linkbtn" id="int-none">none</button><button type="button" class="linkbtn" id="int-simple">within an octave</button></h3><div class="chips" id="int-chips"></div></div>
     </div>
     <div id="set-chd" hidden>
-      <div class="setrow"><label>Chords per question <select id="n-chords"><option>2</option><option>3</option><option>4</option><option>5</option><option>6</option></select></label></div>
+      <div class="setrow"><label>Chords per question <select id="n-chords"><option>2</option><option>3</option><option>4</option><option>5</option><option>6</option></select></label>
+        <button type="button" class="chip" id="diatonic" aria-pressed="false">Diatonic qualities only</button>
+        <span class="hint">each degree uses the triad or 7th chord that stacks up from the scale (no sus chords or borrowed qualities)</span></div>
       <div class="setgroup"><h3>Scales (the chord pool comes from the diatonic chords of these)</h3><div class="chips" id="scale-chips"></div></div>
       <div class="setgroup"><h3>Chord qualities (answers and pool)</h3><div class="chips" id="qual-chips"></div></div>
     </div>
@@ -243,7 +245,7 @@ details.settings summary { cursor: pointer; font-size: 11px; letter-spacing: 0.1
   const defaults = () => ({
     tone: "triangle", volume: 80, mode: "int",
     dirs: ["up", "down", "both"], ints: INTERVALS.map((i) => i.n),
-    regLo: 1, regHi: 6, nChords: 4, scales: ["major", "minor"], quals: ["maj", "min", "dim", "maj7", "dom7", "min7", "hdim7"],
+    regLo: 1, regHi: 6, nChords: 4, diatonic: false, scales: ["major", "minor"], quals: ["maj", "min", "dim", "maj7", "dom7", "min7", "hdim7"],
     score: { int: { ok: 0, n: 0 }, chd: { ok: 0, n: 0, chordsOk: 0, chords: 0 } },
   });
   let S = defaults();
@@ -504,9 +506,23 @@ details.settings summary { cursor: pointer; font-size: 11px; letter-spacing: 0.1
   }
   const rootName = (pc) => NAME_FLAT[mod(pc)];
   const chordLabel = (ch) => ROMAN[ch.deg] + " · " + rootName(ch.pc) + " " + QUALS.find((q) => q.id === ch.q).name;
+  // the triad and the 7th chord that stack up in thirds from scale degree deg (used by "diatonic qualities only")
+  function diatonicSets(scale, deg) {
+    const at = (k) => { const idx = deg + k; return scale.iv[idx % 7] + 12 * Math.floor(idx / 7); };
+    return [[0, at(2) - at(0), at(4) - at(0)], [0, at(2) - at(0), at(4) - at(0), at(6) - at(0)]];
+  }
   function pool(scale, tonic) {
     const sc = new Set(scale.iv.map((i) => mod(tonic + i)));
     const out = [];
+    if (S.diatonic) {   // only the stacked-thirds triad / 7th chord of each degree, still free to switch between the two
+      scale.iv.forEach((semis, deg) => {
+        diatonicSets(scale, deg).forEach((set) => {
+          const q = QUALS.find((x) => x.iv.length === set.length && x.iv.every((v, i) => v === set[i]));
+          if (q && S.quals.includes(q.id)) out.push({ deg, pc: mod(tonic + semis), q: q.id, tonic: deg === 0 });
+        });
+      });
+      return out;
+    }
     scale.iv.forEach((semis, deg) => {
       const pc = mod(tonic + semis);
       S.quals.forEach((qid) => {
@@ -722,6 +738,9 @@ details.settings summary { cursor: pointer; font-size: 11px; letter-spacing: 0.1
     N_CHORDS = +$("n-chords").value; S.nChords = N_CHORDS; save();
     C = null; chordCopy(); newChords(false);
   });
+  const syncDiatonic = () => $("diatonic").setAttribute("aria-pressed", String(!!S.diatonic));
+  syncDiatonic();
+  $("diatonic").addEventListener("click", () => { S.diatonic = !S.diatonic; save(); syncDiatonic(); C = null; chordCopy(); newChords(false); });
   resetPicks(); chordCopy();
   $("chd-check").addEventListener("click", checkChords);
   for (const id of ["reg-lo", "reg-hi"]) for (let r = 1; r <= 6; r++) { const o = document.createElement("option"); o.value = r; o.textContent = "C" + r; $(id).appendChild(o); }
