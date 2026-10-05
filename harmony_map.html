@@ -476,53 +476,94 @@ details.diff th { color: var(--bark); font-weight: 600; }
     }
 
   const polar = (c, r, a) => [c[0] + r * Math.cos((a * Math.PI) / 180), c[1] + r * Math.sin((a * Math.PI) / 180)];
-  function treeParts(A, idOf) {   // arcs (each on the side facing the others) and the thin lines joining them
-    const keys = Object.keys(A).filter((k) => byId.has(idOf(k)));
-    const build = (push) => {   // the arcs of V7sus4 / I64 may be pushed away from V7's arc so that none has to be cut short
-      const T = {};
-      keys.forEach((k) => {
-        T[k] = A[k].slice();
-        if (k !== "V7" && A.V7) { const dx = A[k][0] - A.V7[0], dy = A[k][1] - A.V7[1], d = Math.hypot(dx, dy) || 1; T[k][0] += (dx / d) * push; T[k][1] += (dy / d) * push; }
-      });
-      if (T.V7) {   // the arc round V7 is a symmetric cap on the nearest axis, so the label sits squarely inside it
-        const mid = (T.V7[2] + T.V7[3]) / 2, ca = Math.cos((mid * Math.PI) / 180), sa = Math.sin((mid * Math.PI) / 180), ax = Math.abs(ca) >= Math.abs(sa) ? (ca >= 0 ? 0 : 180) : (sa >= 0 ? 90 : 270), span = Math.min(120, T.V7[3] - T.V7[2]);
-        T.V7[2] = ax - span / 2; T.V7[3] = ax + span / 2;
+  function treeParts(A, idOf) {
+    const keys = ["V7", "I64", "V7sus4"].filter((k) => A[k] && byId.has(idOf(k)));
+    const nodes = {}, L = {};
+    keys.forEach((k) => { nodes[k] = byId.get(idOf(k)); L[k] = nodes[k].pos; });
+    const disc = byId.get(idOf("i64")), rad = (a) => (a * Math.PI) / 180;
+    const axisOf = (dx, dy) => (Math.abs(dx) >= Math.abs(dy) ? (dx >= 0 ? 0 : 180) : dy >= 0 ? 90 : 270);
+    const face = {};
+    if (L.V7) {
+      const others = keys.filter((k) => k !== "V7").map((k) => L[k]); if (disc && disc.circle) others.push(disc.pos);
+      const mx = others.reduce((t, p) => t + p[0], 0) / (others.length || 1), my = others.reduce((t, p) => t + p[1], 0) / (others.length || 1);
+      face.V7 = axisOf(mx - L.V7[0], my - L.V7[1]);
+      keys.forEach((k) => { if (k !== "V7") { const dx = L.V7[0] - L[k][0], dy = L.V7[1] - L[k][1]; face[k] = Math.abs(dx) >= 0.35 * Math.abs(dy) ? (dx >= 0 ? 0 : 180) : dy >= 0 ? 90 : 270; } });   // arcs of V7sus4 / I64 face sideways unless V7 is almost straight above or below
+    }
+    const build = (R) => {   // the arcs' radius R: smaller circles when the labels are close together
+    const T = {};
+    keys.forEach((k) => {
+      const n = nodes[k], nat = textW(n.label, fontOf(n)), w = n.wd ? Math.min(n.wd, nat) : nat, tw = w / 2 + 3, th = fontOf(n) * 0.45 + 2;
+      const ang = face[k] === undefined ? 0 : face[k], u = [Math.round(Math.cos(rad(ang))), Math.round(Math.sin(rad(ang)))], half = k === "V7" ? 60 : 55;
+      const pts = []; for (let a = -half; a <= half; a += 2) pts.push([R * Math.cos(rad(ang + a)), R * Math.sin(rad(ang + a))]);
+      let best = -40;
+      for (let off = -140; off <= 60; off += 1) {   // the label, relative to the arc's centre, moves toward the arc until it is 7 px from it
+        const x = u[0] * off, y = u[1] * off;
+        if (pts.some((p) => Math.abs(p[0] - x) < tw + 7 && Math.abs(p[1] - y) < th + 7)) break;
+        best = off;
       }
-      const samp = (k) => { const out = []; for (let ang = T[k][2]; ang <= T[k][3]; ang += 3) out.push([ang, polar([T[k][0], T[k][1]], 42, ang)]); return out; };
-      for (let it = 0; it < 48; it++) {   // no arc may touch another: shorten the ends that meet
-        let changed = false;
-        for (let i = 0; i < keys.length; i++) for (let j = i + 1; j < keys.length; j++) {
-          const si = samp(keys[i]), sj = samp(keys[j]); let best = null;
-          si.forEach(([ai, p]) => sj.forEach(([aj, q]) => { const d = Math.hypot(p[0] - q[0], p[1] - q[1]); if (!best || d < best[0]) best = [d, ai, aj]; }));
-          if (best && best[0] < 12) {
-            [[keys[i], best[1]], [keys[j], best[2]]].forEach(([k, ang]) => { const t = T[k]; if (t[3] - t[2] <= 40) return; if (ang - t[2] < t[3] - ang) t[2] += 4; else t[3] -= 4; });
-            changed = true;
-          }
+      T[k] = [L[k][0] - u[0] * best, L[k][1] - u[1] * best, ang - half, ang + half];
+    });
+    const samp = (k) => { const out = []; for (let ang = T[k][2]; ang <= T[k][3]; ang += 3) out.push([ang, polar([T[k][0], T[k][1]], R, ang)]); return out; };
+    for (let it = 0; it < 48; it++) {   // no arc may touch another: shorten the ends that meet
+      let changed = false;
+      for (let i = 0; i < keys.length; i++) for (let j = i + 1; j < keys.length; j++) {
+        const si = samp(keys[i]), sj = samp(keys[j]); let best = null;
+        si.forEach(([ai, p]) => sj.forEach(([aj, q]) => { const d = Math.hypot(p[0] - q[0], p[1] - q[1]); if (!best || d < best[0]) best = [d, ai, aj]; }));
+        if (best && best[0] < 12) {
+          [[keys[i], best[1]], [keys[j], best[2]]].forEach(([k, ang]) => { const t = T[k]; if (t[3] - t[2] <= 40) return; if (ang - t[2] < t[3] - ang) t[2] += 4; else t[3] -= 4; });
+          changed = true;
         }
-        if (!changed) break;
       }
-      return T;
+      if (!changed) break;
+    }
+    return T;
     };
-    let T = build(0);
-    for (const push of [0, 6, 12, 18, 24, 30].filter((p) => p <= (A.maxPush === undefined ? 30 : A.maxPush))) { T = build(push); if (keys.every((k) => T[k][3] - T[k][2] >= 76)) break; }
+    let R = 42, T = build(R);
+    for (const r of [42, 38, 34, 30]) { R = r; T = build(R); if (keys.every((k) => T[k][3] - T[k][2] >= 90)) break; }
     const arcs = [], segs = [], ctr = (k) => [T[k][0], T[k][1]], onArc = (k, toward) => {
       const a = (Math.atan2(toward[1] - T[k][1], toward[0] - T[k][0]) * 180) / Math.PI, mid = (T[k][2] + T[k][3]) / 2;
       let d = ((a - mid + 540) % 360) - 180; d = Math.max(T[k][2] - mid, Math.min(T[k][3] - mid, d));
-      return polar(ctr(k), 42, mid + d);
+      return polar(ctr(k), R, mid + d);
     };
-    keys.forEach((k) => arcs.push([ctr(k), 42, T[k][2], T[k][3]]));
+    keys.forEach((k) => arcs.push([ctr(k), R, T[k][2], T[k][3]]));
     ["I64", "V7sus4"].forEach((k) => {
       if (!T[k] || !T.V7) return;
-      const a = onArc("V7", ctr(k)), b = onArc(k, ctr("V7")); segs.push([a[0], a[1], b[0], b[1]]);
+      const m = polar(ctr(k), R, (T[k][2] + T[k][3]) / 2), a = onArc("V7", m); segs.push([a[0], a[1], m[0], m[1]]);
     });
-    const disc = byId.get(idOf("i64"));
     if (disc && disc.circle && T.V7) {
       const a = onArc("V7", disc.pos), dx = disc.pos[0] - a[0], dy = disc.pos[1] - a[1], d = Math.hypot(dx, dy) || 1;
       segs.push([a[0], a[1], disc.pos[0] - dx / d * disc.circle, disc.pos[1] - dy / d * disc.circle]);
     }
     return { arcs, segs, T };
   }
+  function spaceTrees(A, idOf) {   // when V7sus4 / I64 sit too close to V7 for full arcs, slide them away from V7 (squeezing the lettering at the map edge)
+    const keys = ["I64", "V7sus4"].filter((k) => A[k] && byId.has(idOf(k))); if (!A.V7 || !byId.has(idOf("V7")) || !keys.length) return;
+    const V = byId.get(idOf("V7")).pos, base = {}, dir = {};
+    keys.forEach((k) => {
+      const n = byId.get(idOf(k)); base[k] = [n.pos[0], n.pos[1], n.wd];
+      const dx = V[0] - n.pos[0], dy = V[1] - n.pos[1];
+      dir[k] = Math.abs(dx) >= 0.35 * Math.abs(dy) ? [Math.sign(dx) || 1, 0] : [0, Math.sign(dy) || 1];
+    });
+    const apply = (push) => keys.forEach((k) => {
+      const n = byId.get(idOf(k)); n.pos = [base[k][0] - dir[k][0] * push, base[k][1] - dir[k][1] * push]; n.wd = base[k][2];
+      if (dir[k][0]) {   // keep the lettering inside the map
+        const nat = textW(n.label, fontOf(n)), w = n.wd ? Math.min(n.wd, nat) : nat, half = w / 2 + 3, left = n.pos[0] - half, right = n.pos[0] + half;
+        if (right > 1990 || left < 8) { const nl2 = Math.max(left, 8), nr = Math.min(right, 1990), w2 = Math.max(nat * 0.62, nr - nl2 - 6); n.wd = Math.round(w2); n.pos = [(nl2 + nr) / 2, n.pos[1]]; }
+      }
+    });
+    let best = null;
+    for (let push = 0; push <= 48; push += 4) {
+      apply(push);
+      const tp = treeParts(A, idOf), span = Math.min(...Object.values(tp.T).map((t) => t[3] - t[2]));
+      if (!best || span > best[0]) best = [span, push];
+      if (span >= 90) break;
+    }
+    apply(best[1]);
+  }
+
   function spaceLabels() {
+    spaceTrees(MAIN_TREE, (k) => k);
+    if (level === 3) CLUSTERS.forEach((c) => { const g = GEO[c.t]; if (g && byId.has(c.t)) spaceTrees(g.arcs, (k) => c.t + "/" + k); });
     const pts = [], addArc = (c, r, a0, a1) => { for (let a = a0; a <= a1; a += 3) pts.push(polar(c, r, a)); };
     const exempt = [];   // [point, set of label ids that may touch it]
     const addPath = (ps, ids) => { const set = new Set(ids); ps.forEach((p) => exempt.push([p[0], p[1], set])); };
@@ -544,27 +585,6 @@ details.diff th { color: var(--bark); font-weight: 600; }
       addPath([[g.z[0] - 38, g.z[1] - 72], [g.z[0] - 19, g.z[1] - 36], g.z], [c.t + "/ii", c.t + "/iio", c.t + "/N7"]);
       const [bx1, bx2, by] = g.br; for (let x = bx1; x <= bx2; x += 6) exempt.push([x, by, new Set([c.t + "/subii", c.t + "/N7"])]);
     });
-    const snugTree = (A, idOf) => {
-      const tp = treeParts(A, idOf);
-      Object.keys(tp.T).forEach((k) => {
-        const n = byId.get(idOf(k)); if (!n || n.circle) return;
-        // the label sits level with its arc's centre, on the side away from the arc's face, with its near edge 7 px behind the arc
-        const t = tp.T[k], mid = (t[2] + t[3]) / 2, dx = Math.cos((mid * Math.PI) / 180), dy = Math.sin((mid * Math.PI) / 180);
-        const nat = textW(n.label, fontOf(n)), w = n.wd ? Math.min(n.wd, nat) : nat, tw = w / 2 + 3, th = fontOf(n) * 0.45 + 2;
-        const place = (horiz) => {
-          const u = horiz ? [Math.sign(dx) || 1, 0] : [0, Math.sign(dy) || 1], v = [-u[1], u[0]], e = horiz ? tw : th, band = (horiz ? th : tw) + 4;
-          let depth = Infinity;
-          for (let ang = t[2]; ang <= t[3]; ang += 2) { const rx = 42 * Math.cos((ang * Math.PI) / 180), ry = 42 * Math.sin((ang * Math.PI) / 180); if (Math.abs(rx * v[0] + ry * v[1]) < band) depth = Math.min(depth, rx * u[0] + ry * u[1]); }
-          if (!isFinite(depth)) depth = 42 * Math.cos((Math.min(75, (t[3] - t[2]) / 2) * Math.PI) / 180);
-          const off = depth - 7 - e; return [t[0] + u[0] * off, t[1] + u[1] * off];
-        };
-        const inMap = (p) => p[1] - th > 8 && p[1] + th < 1392 && p[0] - tw > 6 && p[0] + tw < 1994;
-        const first = Math.abs(dx) >= Math.abs(dy), a = place(first), b = place(!first);
-        n.pos = inMap(a) || !inMap(b) ? a : b;
-      });
-    };
-    snugTree(MAIN_TREE, (k) => k);
-    if (level === 3) CLUSTERS.forEach((c) => { const g = GEO[c.t]; if (g && byId.has(c.t)) snugTree(g.arcs, (k) => c.t + "/" + k); });
     const placed = [], offs = [];
     for (let dx = -84; dx <= 84; dx += 2) for (let dy = -46; dy <= 46; dy += 2) offs.push([dx, dy, dx * dx + 3 * dy * dy]);
     offs.sort((a, b) => a[2] - b[2]);
