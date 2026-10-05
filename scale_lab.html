@@ -160,7 +160,7 @@ main { padding: 14px 24px 50px; max-width: 1500px; margin: 0 auto; }
       const m = OPEN[s] + f, info = byPc.get(mod(m));
       if (!info) continue;
       const cx = xOf(f), cy = yOf(s), label = showNotes ? info.note : info.interval, fill = info.root ? "var(--root)" : "var(--moss)";
-      p.push(`<g class="dot" data-midi="${m}" data-pc="${mod(m)}"><title>${noteName(m)}${showNotes ? "" : " · " + info.note}</title><circle cx="${cx}" cy="${cy}" r="11.5" fill="${fill}"/><text x="${cx}" y="${cy + 4}" text-anchor="middle" font-size="${label.length > 2 ? 10 : 12}" font-weight="700" fill="#F5F0E8" font-family="Helvetica,Arial,sans-serif">${label}</text></g>`);
+      p.push(`<g class="dot" data-midi="${m}" data-pc="${mod(m)}" data-s="${s}" data-f="${f}"><title>${noteName(m)}${showNotes ? "" : " · " + info.note}</title><circle cx="${cx}" cy="${cy}" r="11.5" fill="${fill}"/><text x="${cx}" y="${cy + 4}" text-anchor="middle" font-size="${label.length > 2 ? 10 : 12}" font-weight="700" fill="#F5F0E8" font-family="Helvetica,Arial,sans-serif">${label}</text></g>`);
     }
     $("board").innerHTML = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${rootName} ${sc.name} on the guitar fretboard">${p.join("")}</svg>`;
     $("show-int").setAttribute("aria-pressed", String(!showNotes)); $("show-note").setAttribute("aria-pressed", String(showNotes));
@@ -203,7 +203,9 @@ main { padding: 14px 24px 50px; max-width: 1500px; margin: 0 auto; }
       const on = (k * step + 0.08) * 1000;
       timers.push(setTimeout(() => {
         document.querySelectorAll(".dot.playing").forEach((d) => d.classList.remove("playing"));
-        document.querySelectorAll('.dot[data-midi="' + m + '"]').forEach((d) => d.classList.add("playing"));   // only the exact pitch sounding, not every octave of that scale degree
+        // one dot at a time: of the places this exact pitch lives, light the one at the lowest fret (open strings first)
+        const spots = [...document.querySelectorAll('.dot[data-midi="' + m + '"]')].sort((a, b) => +a.dataset.f - +b.dataset.f || +a.dataset.s - +b.dataset.s);
+        if (spots[0]) spots[0].classList.add("playing");
       }, on));
     });
     timers.push(setTimeout(stopScale, (seq.length * step + 0.5) * 1000));
