@@ -135,7 +135,7 @@ details.diff th { color: var(--bark); font-weight: 600; }
   </div>
   <div class="mapwrap"><svg id="map" viewBox="0 0 2000 1400" role="img" aria-label="Tonal harmony map"></svg></div>
   <div class="legend" id="legend">
-    <div class="lg-row"><span class="lg-title">Colours</span><div class="lg-items">
+    <div class="lg-row"><span class="lg-title">Colors</span><div class="lg-items">
       <span><b style="color:#27408b">Blue</b> = a secondary ii – V (the two chords that lead into a target chord)</span>
       <span><b style="color:#8b2020">Red</b> = tritone substitutes (a sub ii and sub V7 that can replace the blue pair)</span>
       <span>Outside a dark circle = major-mode chords; inside = minor-mode chords</span>
@@ -203,7 +203,7 @@ details.diff th { color: var(--bark); font-weight: 600; }
 
   // ---------- the maps ----------
   // Every function sits where it does on the original Tonal Harmony maps (2000 x 1400 frame). Each carries a traditional (tr) and a jazz (jz)
-  // name + chord quality. off = semitones above the tonic; bass = inversion bass (semitones above the chord's root); col = text colour class.
+  // name + chord quality. off = semitones above the tonic; bass = inversion bass (semitones above the chord's root); col = text color class.
   // ring "in" = minor-mode chord, drawn inside the dark circle. adv = only on the advanced map.
   const DISC = { S: { c: [630, 518], r: 143 }, D: { c: [1615, 510], r: 143 }, T: { c: [1025, 932], r: 143 } };
   const MAIN = [
@@ -287,7 +287,7 @@ details.diff th { color: var(--bark); font-weight: 600; }
     if (role === "i64" && g.i64) return g.i64;
     return null;
   }
-  const ROLES = {   // semitones above the target's root, chord quality, label, colour
+  const ROLES = {   // semitones above the target's root, chord quality, label, color
     ii: { off: 2, q: "m7", lab: "ii7", col: "blue" }, iio: { off: 2, q: "m7b5", lab: "ii7♭5", col: "blue", colCircle: "lblue" },
     V7: { off: 7, q: "dom7", lab: "V7", col: "blue" }, V7in: { off: 7, q: "dom7", lab: "V7", col: "lblue" },
     N6: { off: 1, q: "maj", bass: 4, lab: "N⁶", col: "" }, vii07: { off: 11, q: "dim7", lab: "vii°7", col: "" },
@@ -463,7 +463,7 @@ details.diff th { color: var(--bark); font-weight: 600; }
     else if (A.region === "S" && B.region === "D") t = "predominant → dominant";
     else if (A.region === "T" && B.region === "S") t = "tonic → predominant (leaving home)";
     else if (A.region === "T" && B.region === "D") t = "tonic → dominant: straight to tension, skipping the predominant";
-    else if (A.region === "T" && B.region === "T") t = "tonic → tonic: a colour change over a shared home";
+    else if (A.region === "T" && B.region === "T") t = "tonic → tonic: a color change over a shared home";
     else if (A.region === "D" && B.region === "T") t = "dominant → tonic family";
     else if (A.region === B.region) t = "moves within the " + REGION_NAME[A.region] + " region";
     else t = "chromatic connection";
