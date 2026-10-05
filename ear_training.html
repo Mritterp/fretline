@@ -71,6 +71,9 @@ main { max-width: 1100px; margin: 0 auto; padding: 10px 16px 24px; }
 .slot-head { font-size: 12px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--moss); }
 .slot-head .res { display: block; letter-spacing: 0; text-transform: none; font-size: 12px; margin-top: 2px; }
 .slot-right { display: grid; gap: 5px; }
+#chd-slots.tight .slot { margin-top: 4px; padding-top: 4px; }
+#chd-slots.tight .ans { padding-top: 5px; padding-bottom: 5px; }
+#chd-slots.tight .slot .answers.nums .ans { padding-top: 3px; padding-bottom: 3px; }
 .slot .answers { grid-template-columns: repeat(auto-fit, minmax(96px, 1fr)); margin-top: 0; }
 .slot .answers.nums { grid-template-columns: repeat(7, 1fr); max-width: 560px; }
 .slot .answers.nums .ans { font-family: var(--font-display); font-size: 14px; letter-spacing: 0.02em; padding: 7px 2px; text-transform: none; }
@@ -105,7 +108,7 @@ details.settings summary { cursor: pointer; font-size: 11px; letter-spacing: 0.1
   <div class="brand">
     <h1><a href="fretline.html">Fretline</a></h1>
     <nav class="site-tabs" aria-label="Pages">
-      <a class="site-tab" href="shapes_lab.html">Chord Shapes Lab</a>
+      <a class="site-tab" href="shapes_lab.html">Chord Lab</a>
       <a class="site-tab current" href="ear_training.html" aria-current="page">Ear Training</a>
     </nav>
   </div>
@@ -142,15 +145,15 @@ details.settings summary { cursor: pointer; font-size: 11px; letter-spacing: 0.1
   <section id="view-chd" hidden>
     <div class="card">
       <h2>Chord Progression</h2>
-      <div class="sub" id="chd-sub">scale · IV – V – I · a beat · four chords: name the numeral and the quality</div>
-      <div class="status hint" id="chd-status">Press Repeat all: you will hear a scale, a IV–V–I, then four chords.</div>
+      <div class="sub" id="chd-sub"></div>
+      <div class="status hint" id="chd-status"></div>
       <div id="chd-slots"></div>
       <div class="staff" id="chd-staff"></div>
       <div class="actions">
         <div class="left">
           <button type="button" class="btn ghost" id="chd-skip">Skip</button>
           <button type="button" class="btn ghost" id="chd-repeat">Repeat all</button>
-          <button type="button" class="btn ghost" id="chd-chords">Chords only</button>
+          <button type="button" class="btn ghost" id="chd-chords">Repeat chords</button>
         </div>
         <div class="right"><button type="button" class="btn" id="chd-check" disabled>Check</button><button type="button" class="btn" id="chd-next">Play</button></div>
       </div>
@@ -168,6 +171,7 @@ details.settings summary { cursor: pointer; font-size: 11px; letter-spacing: 0.1
       <div class="setgroup"><h3>Intervals <button type="button" class="linkbtn" id="int-all">all</button><button type="button" class="linkbtn" id="int-none">none</button><button type="button" class="linkbtn" id="int-simple">within an octave</button></h3><div class="chips" id="int-chips"></div></div>
     </div>
     <div id="set-chd" hidden>
+      <div class="setrow"><label>Chords per question <select id="n-chords"><option>2</option><option>3</option><option>4</option><option>5</option><option>6</option></select></label></div>
       <div class="setgroup"><h3>Scales (the chord pool comes from the diatonic chords of these)</h3><div class="chips" id="scale-chips"></div></div>
       <div class="setgroup"><h3>Chord qualities (answers and pool)</h3><div class="chips" id="qual-chips"></div></div>
     </div>
@@ -224,7 +228,7 @@ details.settings summary { cursor: pointer; font-size: 11px; letter-spacing: 0.1
   const defaults = () => ({
     tone: "triangle", volume: 80, mode: "int",
     dirs: ["up", "down", "both"], ints: INTERVALS.map((i) => i.n),
-    scales: ["major", "minor"], quals: ["maj", "min", "dim", "maj7", "dom7", "min7", "hdim7"],
+    nChords: 4, scales: ["major", "minor"], quals: ["maj", "min", "dim", "maj7", "dom7", "min7", "hdim7"],
     score: { int: { ok: 0, n: 0 }, chd: { ok: 0, n: 0, chordsOk: 0, chords: 0 } },
   });
   let S = defaults();
@@ -288,7 +292,14 @@ details.settings summary { cursor: pointer; font-size: 11px; letter-spacing: 0.1
       const brace = new StaveConnector(treble, bass); brace.setType(StaveConnector.type.BRACE); brace.setContext(c).draw();
       const left = new StaveConnector(treble, bass); left.setType(StaveConnector.type.SINGLE_LEFT); left.setContext(c).draw();
     } catch (e) {}
-    if (!moments.length) return;
+    // fit the viewBox to what was actually drawn (brace, clefs, ledger lines, stems...), so nothing is cut off
+    const fit = () => {
+      try {
+        const b = svgEl.getBBox();   // zero while the view is hidden; redrawn when shown
+        if (b.width > 0 && b.height > 0) { const pad = 6; svgEl.setAttribute("viewBox", [b.x - pad, b.y - pad, b.width + 2 * pad, b.height + 2 * pad].join(" ")); }
+      } catch (e) {}
+    };
+    if (!moments.length) { fit(); return; }
     const KEYS = flat ? ["c", "db", "d", "eb", "e", "f", "f#", "g", "ab", "a", "bb", "b"] : ["c", "c#", "d", "d#", "e", "f", "f#", "g", "g#", "a", "a#", "b"];
     const mk = (midis, clef) => {
       if (!midis.length) return new GhostNote({ duration: "h" });
@@ -303,6 +314,7 @@ details.settings summary { cursor: pointer; font-size: 11px; letter-spacing: 0.1
     const vb = new Voice({ num_beats: beats, beat_value: 4 }).setStrict(false).addTickables(bn);
     new Formatter().joinVoices([vt]).joinVoices([vb]).format([vt, vb], W - 120);
     vt.draw(c, treble); vb.draw(c, bass);
+    fit();
   }
   const KBD = { kw: 26, h: 112 };
   function renderKeyboard(el, marks) {   // marks: [{midi, label}]
@@ -348,6 +360,17 @@ details.settings summary { cursor: pointer; font-size: 11px; letter-spacing: 0.1
     const maxN = Math.max(0, ...S.ints);
     $("int-sub").textContent = `${d} · up to ${maxN <= 12 ? "an octave" : maxN === 24 ? "two octaves" : maxN + " semitones"}`;
   }
+  function drawIntervalVisuals() {
+    if (!Q) return;
+    const label = (m) => noteName(m).replace(/\d/, "");
+    if (!qAnswered) {   // only the first note is shown until you answer (nothing at all for a harmonic interval)
+      renderStaff($("int-staff"), Q.dir === "both" ? [] : [[Q.first]], false);
+      renderKeyboard($("int-kbd"), Q.dir === "both" ? [] : [{ midi: Q.first, label: label(Q.first) }]);
+    } else {
+      renderStaff($("int-staff"), Q.dir === "both" ? [[Q.lo, Q.hi]] : [[Q.first], [Q.second]], false);
+      renderKeyboard($("int-kbd"), [Q.first, Q.second].map((m) => ({ midi: m, label: label(m) })));
+    }
+  }
   function newInterval(autoplay) {
     cancelPlay();
     if (!S.ints.length || !S.dirs.length) { $("int-status").className = "status bad"; $("int-status").textContent = "Turn on at least one interval and one direction in Settings."; Q = null; return; }
@@ -358,8 +381,7 @@ details.settings summary { cursor: pointer; font-size: 11px; letter-spacing: 0.1
     intBtns.forEach((b) => { b.className = "ans"; b.disabled = false; });
     $("int-status").className = "status hint"; $("int-status").textContent = "Which interval was that?";
     $("int-next").textContent = "Next"; $("int-next").disabled = true;
-    renderStaff($("int-staff"), dir === "both" ? [] : [[Q.first]], false);
-    renderKeyboard($("int-kbd"), dir === "both" ? [] : [{ midi: Q.first, label: noteName(Q.first).replace(/\d/, "") }]);
+    drawIntervalVisuals();
     if (!dir || dir === "both") { /* nothing shown for harmonic until answered */ }
     if (autoplay && gestured) playInterval(); else $("int-status").textContent = "Press Repeat to hear the notes, then pick the interval.";
   }
@@ -384,17 +406,21 @@ details.settings summary { cursor: pointer; font-size: 11px; letter-spacing: 0.1
     $("int-status").className = "status " + (ok ? "good" : "bad");
     $("int-status").textContent = (ok ? "Correct! " : "Not quite. ") + `That was a ${correct.name} (${dirName}): ${noteName(Q.first)} ${Q.dir === "both" ? "+" : "→"} ${noteName(Q.second)}.`;
     const mom = Q.dir === "both" ? [[Q.lo, Q.hi]] : [[Q.first], [Q.second]];
-    renderStaff($("int-staff"), mom, false);
-    renderKeyboard($("int-kbd"), [Q.first, Q.second].map((m) => ({ midi: m, label: noteName(m).replace(/\d/, "") })));
+    drawIntervalVisuals();
     $("int-next").disabled = false;
   }
 
   // ======================= Chord progressions =======================
   let C = null, cChecked = false;
-  const N_CHORDS = 4, ROMAN = ["I", "II", "III", "IV", "V", "VI", "VII"];
-  const picks = Array.from({ length: N_CHORDS }, () => ({ deg: null, q: null }));
-  const resetPicks = () => picks.forEach((p) => { p.deg = null; p.q = null; });
-  const complete = () => picks.every((p) => p.deg !== null && p.q !== null);
+  const ROMAN = ["I", "II", "III", "IV", "V", "VI", "VII"], NUM_WORD = ["", "", "two", "three", "four", "five", "six"];
+  let N_CHORDS = Math.min(6, Math.max(2, +S.nChords || 4));
+  const picks = [];
+  const resetPicks = () => { picks.length = 0; for (let i = 0; i < N_CHORDS; i++) picks.push({ deg: null, q: null }); };
+  const complete = () => picks.length === N_CHORDS && picks.every((p) => p.deg !== null && p.q !== null);
+  function chordCopy() {
+    $("chd-sub").textContent = `scale · IV – V – I · a beat · ${NUM_WORD[N_CHORDS]} chords: name the numeral and the quality`;
+    if (!C) $("chd-status").textContent = `Press Repeat all: you will hear a scale, a IV–V–I, then ${NUM_WORD[N_CHORDS]} chords.`;
+  }
   const rootName = (pc) => NAME_FLAT[mod(pc)];
   const chordLabel = (ch) => ROMAN[ch.deg] + " · " + rootName(ch.pc) + " " + QUALS.find((q) => q.id === ch.q).name;
   function pool(scale, tonic) {
@@ -416,9 +442,9 @@ details.settings summary { cursor: pointer; font-size: 11px; letter-spacing: 0.1
     const scales = SCALES.filter((s) => S.scales.includes(s.id));
     let made = null;
     for (let tries = 0; tries < 80 && scales.length && S.quals.length && !made; tries++) {
-      const scale = pick(scales), tonic = rnd(12), pl = pool(scale, tonic), tonics = pl.filter((x) => x.tonic);
-      if (!tonics.length || pl.length < 2) continue;
-      const first = pick(tonics), seq = [first];
+      const scale = pick(scales), tonic = rnd(12), pl = pool(scale, tonic);
+      if (pl.length < 2) continue;
+      const seq = [pick(pl)];   // any chord in the key can open the progression
       for (let i = 1; i < N_CHORDS; i++) {
         let c2, guard = 0;
         do { c2 = pick(pl); guard++; } while (guard < 20 && seq[i - 1].pc === c2.pc && seq[i - 1].q === c2.q);
@@ -436,8 +462,9 @@ details.settings summary { cursor: pointer; font-size: 11px; letter-spacing: 0.1
     C.rootMidi = C.chords.map((ch) => 48 + ch.pc);   // chord roots live in C3..B3 so they sit low and clear
     C.tonicMidi = 48 + C.tonic;
     buildChordSlots();
+    $("chd-slots").classList.toggle("tight", N_CHORDS > 4);
     $("chd-status").className = "status hint";
-    $("chd-status").textContent = `Listen to the ${C.scale.name.toLowerCase()} scale, then name the Roman numeral (scale degree) and the quality of each of the four chords.`;
+    $("chd-status").textContent = `Listen to the ${C.scale.name.toLowerCase()} scale, then name the Roman numeral (scale degree) and the quality of each of the ${NUM_WORD[N_CHORDS]} chords.`;
     $("chd-next").textContent = "Next"; $("chd-next").disabled = true;
     if (autoplay && gestured) playChords(true); else $("chd-status").textContent += " (Press Repeat all to start.)";
   }
@@ -509,7 +536,7 @@ details.settings summary { cursor: pointer; font-size: 11px; letter-spacing: 0.1
     if (right === N_CHORDS) S.score.chd.ok++;
     save(); showScore();
     $("chd-status").className = "status " + (right === N_CHORDS ? "good" : "bad");
-    $("chd-status").textContent = (right === N_CHORDS ? "All four correct! " : `${right} of ${N_CHORDS} fully correct (numeral and quality). `) + `Key: ${rootName(C.tonic)} ${C.scale.name}. Chords: ${C.chords.map(chordLabel).join(" → ")}.`;
+    $("chd-status").textContent = (right === N_CHORDS ? `All ${NUM_WORD[N_CHORDS]} correct! ` : `${right} of ${N_CHORDS} fully correct (numeral and quality). `) + `Key: ${rootName(C.tonic)} ${C.scale.name}. Chords: ${C.chords.map(chordLabel).join(" → ")}.`;
     renderStaff($("chd-staff"), C.chords.map((ch, k) => voicing(ch, C.rootMidi[k]).slice(1)), true);
     $("chd-check").disabled = true; $("chd-next").disabled = false;
   }
@@ -545,6 +572,8 @@ details.settings summary { cursor: pointer; font-size: 11px; letter-spacing: 0.1
     $("view-int").hidden = m !== "int"; $("view-chd").hidden = m !== "chd";
     $("set-int").hidden = m !== "int"; $("set-chd").hidden = m !== "chd";
     if (m === "chd" && !C) newChords(false);
+    if (m === "int") drawIntervalVisuals();                       // sizes are only measurable while the view is visible
+    else if (cChecked && C) renderStaff($("chd-staff"), C.chords.map((ch, k) => voicing(ch, C.rootMidi[k]).slice(1)), true);
     showScore();
   }
   document.addEventListener("pointerdown", () => { gestured = true; }, { once: true });
@@ -561,6 +590,12 @@ details.settings summary { cursor: pointer; font-size: 11px; letter-spacing: 0.1
   $("chd-skip").addEventListener("click", () => newChords(true));
   $("chd-repeat").addEventListener("click", () => { gestured = true; playChords(true); });
   $("chd-chords").addEventListener("click", () => { gestured = true; playChords(false); });
+  $("n-chords").value = String(N_CHORDS);
+  $("n-chords").addEventListener("change", () => {
+    N_CHORDS = +$("n-chords").value; S.nChords = N_CHORDS; save();
+    C = null; chordCopy(); newChords(false);
+  });
+  resetPicks(); chordCopy();
   $("chd-check").addEventListener("click", checkChords);
   $("int-all").addEventListener("click", () => { S.ints = INTERVALS.map((i) => i.n); save(); refreshIntervalChips(); onIntSettings(); });
   $("int-none").addEventListener("click", () => { S.ints = []; save(); refreshIntervalChips(); onIntSettings(); });
