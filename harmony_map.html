@@ -131,6 +131,7 @@ details.diff th { color: var(--bark); font-weight: 600; }
       <span class="mv" data-k="green"><svg width="30" height="10"><line x1="1" y1="5" x2="25" y2="5" stroke="#4f7a45" stroke-width="2.5"/><path d="M25 1 L30 5 L25 9z" fill="#4f7a45"/></svg>green arrow: suggested next chord</span>
       <span class="mv" data-k="gdash"><svg width="30" height="10"><line x1="1" y1="5" x2="25" y2="5" stroke="#4f7a45" stroke-width="2.5" stroke-dasharray="4 3"/><path d="M25 1 L30 5 L25 9z" fill="#4f7a45"/></svg>dashed green arrow: alternative next chord</span>
       <span class="mv" data-k="flow"><svg width="22" height="14"><rect x="1" y="1" width="20" height="12" rx="4" fill="none" stroke="#8a9e7e" stroke-width="1.6" stroke-dasharray="1.5 2.5"/></svg>dotted outline: other chords you could reach from here</span>
+          <span class="mv" data-k="enh"><svg width="22" height="14"><rect x="1" y="1" width="20" height="12" rx="3" fill="none" stroke="#7a4fa0" stroke-width="1.8" stroke-dasharray="4 2.5"/></svg>violet outline: reachable through a toggled enharmonic move</span>
     </div></div>
     <div class="lg-row"><span class="lg-title">Shortcuts</span><div class="lg-items">
       <span><kbd>Space</kbd> play progression</span>
@@ -351,6 +352,15 @@ details.diff th { color: var(--bark); font-weight: 600; }
       const t = others.filter((n) => ["dom7", "dom7b5"].includes(n.q) && rootOf(n) === mod(r + 6));
       t.forEach((n) => { mark(n, "tritone"); out.arrows.push([cur.id, n.id, "both"]); });
       out.lines.push(t.length ? `Tritone substitution: <b>${cur.prog}</b> ↔ ${names(t)} (the 3rd and 7th swap roles).` : `Tritone substitution: the dominant a tritone from <b>${cur.prog}</b> is not on this map.`);
+    }
+    if (enh.tritone) {   // every dominant you could go to also has a tritone substitute you could go to: outline those too
+      const subs = new Map();
+      followers(id).forEach((kind, tid) => {
+        const D = byId.get(tid); if (!D || !["dom7", "dom7b5"].includes(D.q) || D.role === "N7" || D.id === "N7") return;
+        const cand = D.kind === "member" ? [byId.get(D.target + "/N7")].filter(Boolean) : others.filter((n) => n.kind === "main" && ["dom7", "dom7b5"].includes(n.q) && rootOf(n) === mod(rootOf(D) + 6));
+        cand.forEach((sn) => { if (sn.id !== cur.id) { mark(sn, "tritone"); subs.set(sn.id, [sn, D]); } });
+      });
+      if (subs.size && !isDom) out.lines.push(`Tritone substitutions you could go to: ${[...subs.values()].map(([sn, D]) => "<b>" + sn.prog + "</b> in place of " + D.prog).join(", ")}.`);
     }
     if (enh.aug6) {
       // in this map's key the augmented-sixth chords are the dominant 7th on ♭VI (Gr+⁶), the dominant ♭5 on II (Fr+⁶) and the same chord without its 5th (It+⁶)
@@ -837,6 +847,7 @@ details.diff th { color: var(--bark); font-weight: 600; }
       } else put(n.label, f, y + f * 0.34);
     });
     fol.forEach((kind) => { if (kind === "flow") used.add("flow"); });
+    if (ENH.marks.size || ENH.arrows.length) used.add("enh");
     document.querySelectorAll("#legend .mv").forEach((e) => { e.style.display = used.has(e.dataset.k) ? "" : "none"; });
     const mvRow = document.querySelector("#legend .mvrow"); if (mvRow) mvRow.style.display = used.size ? "" : "none";
     renderProg(); renderInfo(fol, ENH);
