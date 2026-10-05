@@ -240,12 +240,12 @@ main { padding: 14px 24px 50px; max-width: 1500px; margin: 0 auto; }
     ensureAudio();
     const rootPc = +$("root").value, sc = SCALES[+$("scale").value], base = 40 + mod(rootPc - 40);   // the lowest full octave on the guitar: root at its lowest spot at or above the low E (E2)
     const seg = segInfo(rootPc, sc), segOn = !!(seg && segPref), dir = $("dir").value;
-    let seq, step = 0.42;
+    let seq;
+    const step = 0.3;   // one tempo for every scale (the Segovia and plain playback now match)
     if (segOn) {   // follow Segovia's own strings and frets, one dot at a time
       const asc = seg.up, desc = seg.down.slice().reverse();
       const path = dir === "up" ? asc : dir === "down" ? desc : asc.concat(desc.slice(1));
       seq = path.map((n) => ({ m: OPEN[n.s] + n.f, s: n.s, f: n.f }));
-      step = 0.3;
     } else {
       const up = sc.semis.map((x) => base + x).concat([base + 12]), down = up.slice().reverse();
       seq = (dir === "up" ? up : dir === "down" ? down : up.concat(down.slice(1))).map((m) => ({ m }));
