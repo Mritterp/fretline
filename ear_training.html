@@ -40,8 +40,8 @@ main { max-width: 1100px; margin: 0 auto; padding: 10px 16px 24px; }
 .card h2 { margin: 0 0 2px; font-family: var(--font-display); font-weight: 400; font-size: 22px; }
 .sub { font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--sage); margin-bottom: 10px; }
 .staff { height: clamp(190px, 32vh, 330px); overflow: hidden; }
-.staff svg { display: block; width: 100%; height: 100%; }
-.staff.chd { height: clamp(140px, 20vh, 220px); }
+.staff svg { display: block; width: 100%; height: 100%; touch-action: manipulation; }
+.staff.chd { height: 170px; }   /* refined per render so the bar fills the width */
 .staff-label { margin: 10px 0 0; font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--moss); }
 .staff-label .hint { letter-spacing: 0; text-transform: none; }
 .kbd-wrap { overflow: hidden; border: 1px solid var(--wheat); background: #fff; margin-top: 6px; }
@@ -191,7 +191,7 @@ details.settings summary { cursor: pointer; font-size: 11px; letter-spacing: 0.1
   <p class="keys" aria-label="Keyboard shortcuts">
     <span><kbd>Space</kbd> <kbd>R</kbd> repeat (all)</span>
     <span class="chd-only"><kbd>C</kbd> repeat chords</span>
-    <span class="chd-only">hold <kbd>A</kbd> + click a chord = arpeggiate it</span>
+    <span class="chd-only">hold <kbd>A</kbd> + click a chord, or double-tap it = arpeggiate</span>
     <span><kbd>Enter</kbd> <kbd>N</kbd> next · or check</span>
     <span><kbd>S</kbd> skip</span>
     <span>click a piano key to play it</span>
@@ -290,7 +290,7 @@ details.settings summary { cursor: pointer; font-size: 11px; letter-spacing: 0.1
   // ---------- staff + keyboard ----------
   function renderStaff(el, moments, flat, onChord) {
     el.innerHTML = "";
-    const W = 150 + Math.max(2, moments.length) * 130;   // drawing units; the SVG scales to its box
+    const W = 150 + Math.max(2, moments.length) * (onChord ? (moments.length < 4 ? 280 : 200) : 130);   // drawing units; the SVG scales to its box
     const renderer = new Renderer(el, Renderer.Backends.SVG);
     // ledger lines need room: measure how far the notes sit above the treble staff / below the bass staff
     const step = (m) => 7 * Math.floor(m / 12) + [0, 0, 1, 1, 2, 3, 3, 4, 4, 5, 5, 6][mod(m)];   // diatonic steps (5px each)
@@ -322,7 +322,11 @@ details.settings summary { cursor: pointer; font-size: 11px; letter-spacing: 0.1
     const fit = () => {
       try {
         const b = svgEl.getBBox();   // zero while the view is hidden; redrawn when shown
-        if (b.width > 0 && b.height > 0) { const pad = 6; svgEl.setAttribute("viewBox", [b.x - pad, b.y - pad, b.width + 2 * pad, b.height + 2 * pad].join(" ")); }
+        if (b.width > 0 && b.height > 0) {
+          const pad = 6; svgEl.setAttribute("viewBox", [b.x - pad, b.y - pad, b.width + 2 * pad, b.height + 2 * pad].join(" "));
+          // chord staves: size the box to the bar so the staff fills the full width instead of leaving side margins
+          if (el.classList.contains("chd") && el.clientWidth) el.style.height = Math.round(Math.min(330, Math.max(110, (el.clientWidth * (b.height + 2 * pad)) / (b.width + 2 * pad)))) + "px";
+        }
       } catch (e) {}
     };
     if (!moments.length) { fit(); return; }
@@ -339,6 +343,9 @@ details.settings summary { cursor: pointer; font-size: 11px; letter-spacing: 0.1
     const vt = new Voice({ num_beats: beats, beat_value: 4 }).setStrict(false).addTickables(tn);
     const vb = new Voice({ num_beats: beats, beat_value: 4 }).setStrict(false).addTickables(bn);
     new Formatter().joinVoices([vt]).joinVoices([vb]).format([vt, vb], W - 120);
+    // space the columns evenly: each moment sits in the middle of an equal share of the bar (accidentals would otherwise skew the spacing)
+    const barStart = treble.getNoteStartX(), barEnd = treble.getNoteEndX(), cellW = (barEnd - barStart) / moments.length;
+    tn.forEach((n, i) => { const x = (i + 0.5) * cellW - 8; n.getTickContext().setX(x); bn[i].getTickContext().setX(x); });
     vt.draw(c, treble); vb.draw(c, bass);
     // octave sign: a label plus a dashed bracket over (or under) the notes it applies to
     const NS = "http://www.w3.org/2000/svg";
@@ -363,9 +370,9 @@ details.settings summary { cursor: pointer; font-size: 11px; letter-spacing: 0.1
     // clickable columns: pressing a chord on the staff plays it
     if (onChord) tn.forEach((n, i) => {
       const r = document.createElementNS(NS, "rect");
-      r.setAttribute("x", n.getAbsoluteX() - 20); r.setAttribute("y", trebleY - 16); r.setAttribute("width", 56); r.setAttribute("height", bassY + 40 - trebleY + 32);
-      r.setAttribute("rx", 6); r.setAttribute("stroke", "none"); r.setAttribute("fill", "transparent"); r.setAttribute("pointer-events", "all"); r.style.cursor = "pointer";
-      r.addEventListener("mouseenter", () => r.setAttribute("fill", "rgba(176,122,90,0.10)"));
+      r.setAttribute("x", barStart + i * cellW); r.setAttribute("y", trebleY - 14); r.setAttribute("width", cellW); r.setAttribute("height", bassY + 40 - trebleY + 28);
+      r.setAttribute("rx", 0); r.setAttribute("stroke", "none"); r.setAttribute("fill", "transparent"); r.setAttribute("pointer-events", "all"); r.style.cursor = "pointer";
+      r.addEventListener("mouseenter", () => r.setAttribute("fill", "rgba(176,122,90,0.12)"));
       r.addEventListener("mouseleave", () => r.setAttribute("fill", "transparent"));
       r.addEventListener("click", () => onChord(i));
       svgEl.appendChild(r);
@@ -578,21 +585,27 @@ details.settings summary { cursor: pointer; font-size: 11px; letter-spacing: 0.1
     return { deg: p.deg, pc: mod(C.tonic + C.scale.iv[p.deg]), q: p.q };
   }
   let aHeld = false;   // holding A while clicking a chord arpeggiates it
-  function playOneChord(ch) {
+  let lastTap = { key: "", t: 0 };
+  function tapChord(key, ch) {   // a second tap on the same chord within 350 ms arpeggiates it (touch screens have no A key)
+    const now = performance.now(), dbl = lastTap.key === key && now - lastTap.t < 350;
+    lastTap = { key, t: dbl ? 0 : now };
+    playOneChord(ch, dbl);
+  }
+  function playOneChord(ch, arp) {
     cancelPlay();
     const t = audio().currentTime + 0.03, notes = voicing(ch, 48 + ch.pc);
-    if (aHeld) notes.forEach((m, j) => tone(m, t + j * 0.2, Math.max(0.9, 1.7 - j * 0.15), j === 0 ? 0.16 : 0.13));   // low to high, each note rings on
+    if (aHeld || arp) notes.forEach((m, j) => tone(m, t + j * 0.2, Math.max(0.9, 1.7 - j * 0.15), j === 0 ? 0.16 : 0.13));   // low to high, each note rings on
     else notes.forEach((m, j) => tone(m, t, 1.5, j === 0 ? 0.14 : 0.1));
   }
   function drawYouStaff() {
     if (!C) return;
     renderStaff($("chd-staff-you"), picks.map((_, i) => { const ch = youChord(i); return ch ? voicing(ch, 48 + ch.pc).slice(1) : []; }), true,
-      (i) => { const ch = youChord(i); if (ch) { gestured = true; playOneChord(ch); } });
+      (i) => { const ch = youChord(i); if (ch) { gestured = true; tapChord("you" + i, ch); } });
   }
   function drawCorrectStaff() {
     if (!C) return;
     renderStaff($("chd-staff"), C.chords.map((ch, k) => (cChecked ? voicing(ch, C.rootMidi[k]).slice(1) : [])), true,
-      cChecked ? (i) => { gestured = true; playOneChord(C.chords[i]); } : null);
+      cChecked ? (i) => { gestured = true; tapChord("cor" + i, C.chords[i]); } : null);
   }
   function refreshMarks() {   // right / wrong colouring against the current picks
     C.chords.forEach((ch, i) => {
@@ -733,6 +746,8 @@ details.settings summary { cursor: pointer; font-size: 11px; letter-spacing: 0.1
   refreshIntervalChips();
   chipSet($("scale-chips"), SCALES, () => S.scales, (s) => s.name, onChdSettings);
   chipSet($("qual-chips"), QUALS, () => S.quals, (q) => q.name + (q.sym ? "  " + q.sym : ""), onChdSettings);
+  let resizeTimer = null;
+  window.addEventListener("resize", () => { clearTimeout(resizeTimer); resizeTimer = setTimeout(() => { if (C && S.mode === "chd") { drawYouStaff(); drawCorrectStaff(); } }, 150); });
   document.addEventListener("keyup", (e) => { if (e.key.toLowerCase() === "a") aHeld = false; });
   window.addEventListener("blur", () => { aHeld = false; });
   document.addEventListener("keydown", (e) => {
