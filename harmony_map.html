@@ -263,7 +263,7 @@ details.diff th { color: var(--bark); font-weight: 600; }
     iii: { Q: [1572, 980], P: [1780, 974], br: [1574, 1805, 1081], dash: 0.74, z: [1703, 1040], d: [[1703, 1040], [1700, 950], [1680, 885], [1612, 865]], arcs: { V7: [1847, 906, -33, 87], I64: [1965, 870, 110, 206], V7sus4: [1926, 957, 150, 270] } },
   };
   const GEO0 = JSON.parse(JSON.stringify(GEO)), CL0 = CLUSTERS.map((c) => JSON.parse(JSON.stringify(c.pos)));
-  const DEFAULT_LAYOUT = {"groups":{"IV":[-17,-16],"ii":[-18,-5],"bVI":[-13,-21],"V7":[-9,15],"bVII":[-14,0],"bIII":[-185,173],"vi":[-66,91],"iii":[-7,140]},"labels":{"bIII07":[44,4],"bVI/V7":[-2,1],"bVI/I64":[13,-7],"bVI/V7sus4":[58,-3],"bVI/subii":[-4,-7],"ii/vii07":[-23,0],"ii/I64":[52,21],"ii/V7sus4":[12,11],"ii/V7":[21,-3],"V7/iio":[-16,-8],"V7/ii":[-10,-3],"V7/subii":[14,1],"I64":[35,15],"V7sus4":[67,6],"i64":[-2,34],"V7":[5,9],"vi/V7sus4":[12,-50],"vi/I64":[30,-25],"vi/V7":[-18,2],"iii/I64":[-34,-27],"iii/V7":[-7,-7],"iii/V7sus4":[9,-15],"bIII/V7":[-17,-14],"bIII/V7sus4":[29,-37],"bIII/vii07":[26,7]}};   // a layout copied from the editor can be pasted here to make it the default for everyone
+  const DEFAULT_LAYOUT = {"groups":{"IV":[-17,-16],"ii":[-18,-5],"bVI":[-13,-21],"V7":[-9,15],"bVII":[-14,0],"bIII":[-185,173],"vi":[-66,91],"iii":[-7,140]},"labels":{"bIII07":[44,4],"bVI/V7":[-2,1],"bVI/I64":[13,-7],"bVI/V7sus4":[58,-3],"bVI/subii":[-4,-7],"ii/vii07":[-23,0],"ii/I64":[52,21],"ii/V7sus4":[12,11],"ii/V7":[21,-3],"V7/iio":[-16,-8],"V7/ii":[-10,-3],"V7/subii":[14,1],"I64":[35,15],"V7sus4":[67,6],"i64":[-2,34],"V7":[5,9],"vi/V7sus4":[12,-50],"vi/I64":[30,-25],"vi/V7":[-18,2],"iii/I64":[-34,-27],"iii/V7":[8,-7],"iii/V7sus4":[9,-15],"bIII/V7":[-17,-14],"bIII/V7sus4":[29,-37],"bIII/vii07":[26,7],"vi/N7":[8,-8],"IV/V7":[4,21],"IV/V7sus4":[-14,-7],"IV/i64":[-6,-21],"IV/I64":[-9,-16],"IV/N7":[19,-4],"bIII/N7":[9,-6],"bIII/ii":[-8,-32],"ii/N7":[23,-8]}};   // a layout copied from the editor can be pasted here to make it the default for everyone
   let layout = JSON.parse(JSON.stringify(DEFAULT_LAYOUT)), editing = false;
   const EDIT_ALLOWED = /[?&]edit(=|&|$)/.test(location.search);   // visitors always see DEFAULT_LAYOUT; the editor is reached with harmony_map.html?edit
   if (EDIT_ALLOWED) { try { const l = JSON.parse(localStorage.getItem("fretline-harmony-layout") || "null"); if (l && l.groups && l.labels) layout = l; } catch (e) {} }
@@ -496,6 +496,7 @@ details.diff th { color: var(--bark); font-weight: 600; }
   // geometry shared by the drawing code
   function edgeTo(n, fromPt, gap) { const dx = n.pos[0] - fromPt[0], dy = n.pos[1] - fromPt[1], d = Math.hypot(dx, dy) || 1, ux = dx / d, uy = dy / d, e = edgeDist(n, ux, uy) + gap; return [n.pos[0] - ux * e, n.pos[1] - uy * e]; }
   function edgeDist(n, ux, uy) {   // distance from a node's centre to the edge of its label box (or circle) along the unit vector
+    if (n.circle) return n.circle + 4;   // a circle is round: no corner allowance
     const [w, h] = boxOf(n), hw = Math.max(w / 2, n.circle || 0) + 4, hh = Math.max(h / 2, n.circle || 0) + 4;
     return Math.min(Math.abs(ux) < 1e-6 ? Infinity : hw / Math.abs(ux), Math.abs(uy) < 1e-6 ? Infinity : hh / Math.abs(uy));
   }
@@ -536,7 +537,7 @@ details.diff th { color: var(--bark); font-weight: 600; }
     const disc = byId.get(idOf("i64")), rad = (a) => (a * Math.PI) / 180;
     const extra = [], pre = String(idOf("V7")).split("/")[0], gx = String(idOf("V7")).includes("/") ? GEO[pre] : null, tgt = gx ? byId.get(pre) : null;
     if (gx && tgt) {   // the line from the V ring to the target chord
-      const dx = tgt.pos[0] - gx.P[0], dy = tgt.pos[1] - gx.P[1], dd = Math.hypot(dx, dy) || 1, ux = dx / dd, uy = dy / dd, e = edgeDist(tgt, ux, uy) + 8;
+      const dx = tgt.pos[0] - gx.P[0], dy = tgt.pos[1] - gx.P[1], dd = Math.hypot(dx, dy) || 1, ux = dx / dd, uy = dy / dd, e = tgt.circle ? tgt.circle + 1 : edgeDist(tgt, ux, uy) + 8;
       if (dd - 76 - e > 14) { const x1 = gx.P[0] + ux * 76, y1 = gx.P[1] + uy * 76, x2 = tgt.pos[0] - ux * e, y2 = tgt.pos[1] - uy * e, n = Math.max(2, Math.round(Math.hypot(x2 - x1, y2 - y1) / 3)); for (let i = 0; i <= n; i++) extra.push([x1 + ((x2 - x1) * i) / n, y1 + ((y2 - y1) * i) / n]); }
     }
     const axisOf = (dx, dy) => (Math.abs(dx) >= Math.abs(dy) ? (dx >= 0 ? 0 : 180) : dy >= 0 ? 90 : 270);
@@ -670,10 +671,10 @@ details.diff th { color: var(--bark); font-weight: 600; }
     const clashAll = (x, y, tw, th, id) => clash(x, y, tw, th, id) || clash0(x, y, tw, th, id);
     const settle = (n) => {
       near(n);
-      if (n.pinned) {
-        const [pw, ph] = dims(n, 1);
-        if (clashAll(n.pos[0], n.pos[1], pw, ph, n.id)) for (const k of [0.9, 0.8, 0.7]) { const [kw] = dims(n, k); if (!clashAll(n.pos[0], n.pos[1], kw, ph, n.id)) { n.wd = Math.round((n.wd ? Math.min(n.wd, textW(n.label, fontOf(n))) : textW(n.label, fontOf(n))) * k); break; } }
-        placed.push([n.pos[0], n.pos[1], pw, ph]); return;
+      if (n.pinned) {   // a placed label stays put; if it would touch something its lettering narrows, and only if that is not enough does it move
+        const [pw, ph] = dims(n, 1); let ok = !clashAll(n.pos[0], n.pos[1], pw, ph, n.id);
+        if (!ok) for (const k of [0.9, 0.8, 0.7]) { const [kw] = dims(n, k); if (!clashAll(n.pos[0], n.pos[1], kw, ph, n.id)) { n.wd = Math.round((n.wd ? Math.min(n.wd, textW(n.label, fontOf(n))) : textW(n.label, fontOf(n))) * k); ok = true; break; } }
+        if (ok) { placed.push([n.pos[0], n.pos[1], pw, ph]); return; }
       }
       const [tw0, th] = dims(n, 1);
       if (!clashAll(n.pos[0], n.pos[1], tw0, th, n.id)) { placed.push([n.pos[0], n.pos[1], tw0, th]); return; }
@@ -797,7 +798,7 @@ details.diff th { color: var(--bark); font-weight: 600; }
       if (level === 3) svg.appendChild(el("line", { x1: Q[0] + R, y1: Q[1] - 1, x2: P[0] - R, y2: Q[1] - 1, stroke: ink, "stroke-width": "3.4" }));
       // black line from the V ring to the target chord
       const dx = t.pos[0] - P[0], dy = t.pos[1] - P[1], dd = Math.hypot(dx, dy) || 1, ux = dx / dd, uy = dy / dd;
-      const e = edgeDist(t, ux, uy) + 8;
+      const e = t.circle ? t.circle + 1 : edgeDist(t, ux, uy) + 8;   // a circled target is touched by the line
       if (dd - R - e > 14) {
         let st = R; const vn = byId.get(c.t + "/V7"), vb = vn && !vn.circle ? tight(vn) : null;
         if (vb) while (st < dd - e - 14 && Math.abs(P[0] + ux * st - vn.pos[0]) < vb[0] + 4 && Math.abs(P[1] + uy * st - vn.pos[1]) < vb[1] + 4) st += 2;
