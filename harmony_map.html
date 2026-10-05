@@ -74,6 +74,18 @@ details.diff table { border-collapse: collapse; margin: 0 0 12px; width: 100%; }
 details.diff th, details.diff td { text-align: left; padding: 4px 14px 4px 0; border-bottom: 1px solid #e3dac6; font-weight: 400; }
 details.diff th { color: var(--bark); font-weight: 600; }
 .enh { position: relative; }
+.edit-btn { font: inherit; font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; padding: 7px 12px; border: 1px solid var(--wheat); background: transparent; color: var(--sage); cursor: pointer; }
+.edit-btn:hover { border-color: var(--sage); color: var(--bark); }
+.edit-btn[aria-pressed="true"] { background: #7a4fa0; border-color: #7a4fa0; color: #fff; }
+.editbar { display: flex; flex-wrap: wrap; gap: 8px 18px; align-items: center; justify-content: space-between; margin: 0 0 10px; padding: 8px 14px; border: 1px solid #7a4fa0; background: #f3edf8; color: var(--bark); font-size: 12px; }
+.editbar[hidden] { display: none; }
+.eb-actions { display: inline-flex; gap: 8px; align-items: center; }
+.eb-actions button { font: inherit; font-size: 11px; padding: 5px 10px; border: 1px solid #7a4fa0; background: #fff; color: #5a3680; cursor: pointer; }
+#edit-msg { font-size: 11px; color: #5a3680; }
+#map.editing { touch-action: none; user-select: none; -webkit-user-select: none; }
+#map.editing .node { cursor: grab; }
+#map.editing .node:active { cursor: grabbing; }
+#map .handle { cursor: move; }
 .enh summary { list-style: none; cursor: pointer; font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; padding: 7px 14px; border: 1px solid var(--wheat); color: var(--moss); user-select: none; }
 .enh summary::-webkit-details-marker { display: none; }
 .enh summary::after { content: " ▾"; }
@@ -108,6 +120,7 @@ details.diff th { color: var(--bark); font-weight: 600; }
     <details class="enh" id="enh-menu"><summary id="enh-sum">Enharmonic moves</summary>
       <div class="enh-panel" id="enh-panel"></div>
     </details>
+    <button type="button" id="edit-btn" class="edit-btn" aria-pressed="false" title="Drag chords and circle pairs to a better layout">Edit layout</button>
     <label>Speed <select id="speed"><option value="1.0">Slow</option><option value="0.6" selected>Medium</option><option value="0.35">Fast</option></select></label>
   </div>
 </header>
@@ -115,6 +128,10 @@ details.diff th { color: var(--bark); font-weight: 600; }
 <main>
   <div class="prog" id="prog"></div>
   <div class="info" id="info"></div>
+  <div class="editbar" id="editbar" hidden>
+    <span><b>Edit layout:</b> drag any chord to move it, or drag the violet handle on a circle pair to move the whole pair. Your layout is kept in this browser.</span>
+    <span class="eb-actions"><button type="button" id="edit-reset">Reset</button><button type="button" id="edit-copy">Copy layout</button><button type="button" id="edit-done">Done</button><span id="edit-msg" aria-live="polite"></span></span>
+  </div>
   <div class="mapwrap"><svg id="map" viewBox="0 0 2000 1400" role="img" aria-label="Tonal harmony map"></svg></div>
   <div class="legend" id="legend">
     <div class="lg-row"><span class="lg-title">Colours</span><div class="lg-items">
@@ -148,8 +165,8 @@ details.diff th { color: var(--bark); font-weight: 600; }
       <svg id="cof" viewBox="0 0 360 360" role="img" aria-label="Circle of fifths: major keys on the outside, minor keys inside"></svg>
       <div class="cof-text">
         <p>The map is laid out according to the circle of fifths with Major key chords outside and minor key chords inside.  From there each chord is broken into its harmonic Function (Tonic, Subdominant, and Dominant chords) and split into three sections.</p>
-        <p>The small circle pairs around the main chords repeat that same layout. Each one is a miniature map for a single target chord: its left circle is that target’s own subdominant side (its ii), and its right circle is its own dominant side (its V7), with the same supporting chords in the same places: the cadential 6/4 and sus4 chords that lead into the V7, the Neapolitan sixth and the diminished 7th. So V7/V does for G what the main V7 does for C, and ii7/V is the subdominant that leads to it. Medium shows only the right-hand (dominant) circles; Advanced adds the left-hand ones.</p>
-        <p>Each small circle pair also sits in the same region as the chord it points to, so it takes that chord’s place in the three groups. The pairs around IV, ii and ♭VI sit in the subdominant (the mountain), the pairs around V and ♭VII sit in the dominant (the boat), and the pairs around vi, iii and ♭III sit in the tonic (the house). Inside a pair the same three roles repeat: its left circle is the subdominant side, its right circle is the dominant side, and the target chord it leads to acts as a temporary tonic. Resolving a pair’s V7 to its target does for that chord what V7 → I does for the main tonic.</p>
+        <p>The semicircles are suspended or inverted forms of the dominant harmony. They replace or lead into the V7 before the resolution to the Tonic.</p>
+        <p>The tan circles come in pairs and help with temporary tonicization. The left circle holds the subdominant and the right circle holds the dominant of whatever chord the pair points to.</p>
         <p>As you click a chord you will see suggested movements based on music theory.</p>
       </div>
     </div>
@@ -244,6 +261,21 @@ details.diff th { color: var(--bark); font-weight: 600; }
     vi: { Q: [1139, 1168], P: [1349, 1161], br: [1129, 1361, 1263], dash: 0.74, z: [1262, 1205], d: [[1262, 1205], [1272, 1130], [1268, 1070], [1246, 1010]], arcs: { V7: [1417, 1099, 186, 282], I64: [1342, 981, -27, 99], V7sus4: [1445, 991, 99, 207] } },
     iii: { Q: [1572, 980], P: [1780, 974], br: [1574, 1805, 1081], dash: 0.74, z: [1703, 1040], d: [[1703, 1040], [1700, 950], [1680, 885], [1612, 865]], arcs: { V7: [1847, 906, -33, 87], I64: [1965, 870, 110, 206], V7sus4: [1926, 957, 150, 270] } },
   };
+  const GEO0 = JSON.parse(JSON.stringify(GEO)), CL0 = CLUSTERS.map((c) => JSON.parse(JSON.stringify(c.pos)));
+  const DEFAULT_LAYOUT = { groups: {}, labels: {} };   // a layout copied from the editor can be pasted here to make it the default for everyone
+  let layout = JSON.parse(JSON.stringify(DEFAULT_LAYOUT)), editing = false;
+  try { const l = JSON.parse(localStorage.getItem("fretline-harmony-layout") || "null"); if (l && l.groups && l.labels) layout = l; } catch (e) {}
+  const saveLayout = () => { try { localStorage.setItem("fretline-harmony-layout", JSON.stringify(layout)); } catch (e) {} };
+  function applyGroups() {   // a moved circle pair carries its rings, bracket, arrows, arcs and chords with it
+    CLUSTERS.forEach((c, i) => {
+      const g0 = GEO0[c.t], g = GEO[c.t], d = layout.groups[c.t] || [0, 0], sh = (p) => [p[0] + d[0], p[1] + d[1]];
+      g.Q = sh(g0.Q); g.P = sh(g0.P); g.z = sh(g0.z); if (g0.i64) g.i64 = sh(g0.i64);
+      g.br = [g0.br[0] + d[0], g0.br[1] + d[0], g0.br[2] + d[1]];
+      g.d = [sh(g0.d[0]), sh(g0.d[1]), sh(g0.d[2]), g0.d[3]];   // the dashed arrow still ends on its target
+      Object.keys(g0.arcs).forEach((k) => { if (Array.isArray(g0.arcs[k])) g.arcs[k] = [g0.arcs[k][0] + d[0], g0.arcs[k][1] + d[1], g0.arcs[k][2], g0.arcs[k][3]]; });
+      Object.keys(CL0[i]).forEach((r) => { c.pos[r] = sh(CL0[i][r]); });
+    });
+  }
   const MAIN_TREE = { V7: [1757, 386, -66, 60], I64: [1900, 328, 66, 228], V7sus4: [1847, 416, 120, 264] };
   const DISC_R = { iio: 40, V7in: 36, N6: 36, i64: 44 };
   function geoPos(t, role) {   // circled chords sit at fixed offsets from the two rings
@@ -572,7 +604,7 @@ details.diff th { color: var(--bark); font-weight: 600; }
   }
   const boxHitsDisc = (x, y, tw, th) => Object.values(DISC).some((d) => Math.hypot(Math.max(x - tw, Math.min(d.c[0], x + tw)) - d.c[0], Math.max(y - th, Math.min(d.c[1], y + th)) - d.c[1]) < d.r + 5);
   function spaceTrees(A, idOf) {   // when V7sus4 / I64 sit too close to V7 for full arcs, slide them away from V7 (squeezing the lettering at the map edge)
-    const keys = ["I64", "V7sus4"].filter((k) => A[k] && byId.has(idOf(k))); if (!A.V7 || !byId.has(idOf("V7")) || !keys.length) return;
+    const keys = ["I64", "V7sus4"].filter((k) => A[k] && byId.has(idOf(k)) && !byId.get(idOf(k)).pinned); if (!A.V7 || !byId.has(idOf("V7")) || !keys.length) return;
     const V = byId.get(idOf("V7")).pos, base = {}, dir = {};
     keys.forEach((k) => {
       const n = byId.get(idOf(k)); base[k] = [n.pos[0], n.pos[1], n.wd];
@@ -636,6 +668,7 @@ details.diff th { color: var(--bark); font-weight: 600; }
     const clashAll = (x, y, tw, th, id) => clash(x, y, tw, th, id) || clash0(x, y, tw, th, id);
     const settle = (n) => {
       near(n);
+      if (n.pinned) { const [pw, ph] = dims(n, 1); placed.push([n.pos[0], n.pos[1], pw, ph]); return; }
       const [tw0, th] = dims(n, 1);
       if (!clashAll(n.pos[0], n.pos[1], tw0, th, n.id)) { placed.push([n.pos[0], n.pos[1], tw0, th]); return; }
       for (const k of [1, 0.9, 0.8]) {
@@ -698,7 +731,9 @@ details.diff th { color: var(--bark); font-weight: 600; }
   }
 
   function render() {
-    buildNodes(); spaceLabels();
+    buildNodes();
+    byId.forEach((n) => { const o = layout.labels[n.id]; if (o) { n.pos = [n.pos[0] + o[0], n.pos[1] + o[1]]; n.pinned = true; } });
+    spaceLabels();
     const svg = $("map"); svg.innerHTML = "";
     // paths (arrows, brackets) stay hidden until a chord is selected, then only the ones leading to its possible next chords appear
     const fol = current && byId.has(current) ? followers(current) : new Map(), covered = new Set();
@@ -847,6 +882,13 @@ details.diff th { color: var(--bark); font-weight: 600; }
         tx.setAttribute("textLength", n.wd.toFixed(1)); tx.setAttribute("lengthAdjust", "spacingAndGlyphs"); g.appendChild(tx);
       } else put(n.label, f, y + f * 0.34);
     });
+    if (editing && level >= 2) CLUSTERS.forEach((c) => {
+      const g = GEO[c.t]; if (!g || !byId.has(c.t)) return;
+      const hg = el("g", { class: "handle", "data-handle": c.t }), hx = (g.Q[0] + g.P[0]) / 2, hy = g.Q[1] - 38;
+      hg.appendChild(el("circle", { cx: hx, cy: hy, r: 17, fill: "#7a4fa0", stroke: "#fff", "stroke-width": "3", opacity: "0.92" }));
+      hg.appendChild(el("text", { x: hx, y: hy + 7, "text-anchor": "middle", "font-size": "20", fill: "#fff", "font-family": "Helvetica,Arial,sans-serif", "pointer-events": "none" }, "\u2725"));
+      svg.appendChild(hg);
+    });
     fol.forEach((kind) => { if (kind === "flow") used.add("flow"); });
     if (ENH.marks.size || ENH.arrows.length) used.add("enh");
     document.querySelectorAll("#legend .mv").forEach((e) => { e.style.display = used.has(e.dataset.k) ? "" : "none"; });
@@ -949,9 +991,36 @@ details.diff th { color: var(--bark); font-weight: 600; }
   };
   const hideCap = () => { const c = $("cap"); if (c) c.remove(); };
   const _mc2 = (t, size) => { _mc.font = "400 " + size + "px Helvetica,Arial,sans-serif"; return _mc.measureText(t).width; };
-  $("map").addEventListener("mouseover", (e) => { const g = e.target.closest && e.target.closest(".node"); if (g) showCap(g.dataset.id); else hideCap(); });
+  // ---------- layout editing ----------
+  function setEditing(on) { editing = on; $("edit-btn").setAttribute("aria-pressed", on ? "true" : "false"); $("editbar").hidden = !on; $("map").classList.toggle("editing", on); hideCap(); $("edit-msg").textContent = ""; render(); }
+  $("edit-btn").addEventListener("click", () => setEditing(!editing));
+  $("edit-done").addEventListener("click", () => setEditing(false));
+  $("edit-reset").addEventListener("click", () => { layout = JSON.parse(JSON.stringify(DEFAULT_LAYOUT)); saveLayout(); applyGroups(); render(); $("edit-msg").textContent = "Layout reset."; });
+  $("edit-copy").addEventListener("click", async () => { const txt = JSON.stringify(layout); try { await navigator.clipboard.writeText(txt); $("edit-msg").textContent = "Layout copied."; } catch (e) { window.prompt("Copy this layout:", txt); } });
+  let drag = null, dragRaf = 0;
+  const svgPoint = (e) => { const svg = $("map"), pt = svg.createSVGPoint(); pt.x = e.clientX; pt.y = e.clientY; const p = pt.matrixTransform(svg.getScreenCTM().inverse()); return [p.x, p.y]; };
+  $("map").addEventListener("pointerdown", (e) => {
+    if (!editing) return;
+    const hd = e.target.closest && e.target.closest("[data-handle]"), g = e.target.closest && e.target.closest(".node");
+    if (!hd && !g) return;
+    e.preventDefault();
+    const p = svgPoint(e);
+    drag = hd ? { kind: "group", key: hd.dataset.handle, start: p, base: (layout.groups[hd.dataset.handle] || [0, 0]).slice() } : { kind: "label", key: g.dataset.id, start: p, base: (layout.labels[g.dataset.id] || [0, 0]).slice() };
+    try { $("map").setPointerCapture(e.pointerId); } catch (err) {}
+  });
+  $("map").addEventListener("pointermove", (e) => {
+    if (!drag) return;
+    e.preventDefault();
+    const p = svgPoint(e), v = [Math.round(drag.base[0] + p[0] - drag.start[0]), Math.round(drag.base[1] + p[1] - drag.start[1])];
+    if (drag.kind === "group") layout.groups[drag.key] = v; else layout.labels[drag.key] = v;
+    if (!dragRaf) dragRaf = requestAnimationFrame(() => { dragRaf = 0; if (drag && drag.kind === "group") applyGroups(); render(); });
+  });
+  const endDrag = () => { if (!drag) return; drag = null; saveLayout(); };
+  $("map").addEventListener("pointerup", endDrag); $("map").addEventListener("pointercancel", endDrag);
+  $("map").addEventListener("mouseover", (e) => { if (editing) return; const g = e.target.closest && e.target.closest(".node"); if (g) showCap(g.dataset.id); else hideCap(); });
   $("map").addEventListener("mouseleave", hideCap);
   $("map").addEventListener("click", (e) => {
+    if (editing) return;
     const g = e.target.closest && e.target.closest(".node"); if (!g) return;
     const n = byId.get(g.dataset.id); if (!n) return;
     stopAudio(); current = n.id; prog.push(n.id); playChord(n); render();
@@ -982,7 +1051,7 @@ details.diff th { color: var(--bark); font-weight: 600; }
     else if (k.toLowerCase() === "m") { mapType = jazz() ? "trad" : "jazz"; relevel(); }
   });
   window.__harmony = { treeParts, GEO, MAIN_PATHS, mainCurve, arrowClear, enharmonic, enh, byId, followers, voicing, Q, MAIN, CLUSTERS, boxOf, get state() { return { mapType, level, prog, current }; }, set(t, l) { mapType = t; level = l; relevel(); } };
-  drawCircleKey(); relevel();
+  drawCircleKey(); applyGroups(); relevel();
 })();
 </script>
 </body>
