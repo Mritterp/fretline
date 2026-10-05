@@ -790,46 +790,53 @@ details.diff th { color: var(--bark); font-weight: 600; }
         if (cur) runs.push(cur);
         return runs.filter((r) => r[1] - r[0] >= 6);
       };
-      [[86, 288], [336, 388]].forEach(([a0, a1]) => ringRuns(P, a0, a1).forEach(([b0, b1]) => svg.appendChild(el("path", { d: arcD(P, R, b0, b1), fill: "none", stroke: tan, "stroke-width": "2.4" }))));
+      const ringPieces = [[86, 288], [336, 388]].flatMap(([a0, a1]) => ringRuns(P, a0, a1));
+      ringPieces.forEach(([b0, b1]) => svg.appendChild(el("path", { d: arcD(P, R, b0, b1), fill: "none", stroke: tan, "stroke-width": "2.4" })));
       if (level === 3) svg.appendChild(el("line", { x1: Q[0] + R, y1: Q[1] - 1, x2: P[0] - R, y2: Q[1] - 1, stroke: ink, "stroke-width": "3.4" }));
       // black line from the V ring to the target chord
       const dx = t.pos[0] - P[0], dy = t.pos[1] - P[1], dd = Math.hypot(dx, dy) || 1, ux = dx / dd, uy = dy / dd;
       const e = t.circle ? t.circle + 1 : edgeDist(t, ux, uy) + 8;   // a circled target is touched by the line
-      if (dd - R - e > 14) {   // the line to the target ends in V7's semicircle (or, without one, on the V ring)
-        let x1 = P[0] + ux * R, y1 = P[1] + uy * R;
-        const v7 = tpc && tpc.T && tpc.T.V7 ? tpc.T.V7 : null;
-        if (v7 && tpc.arcs.length) {
-          const ang = (Math.atan2(t.pos[1] - v7[1], t.pos[0] - v7[0]) * 180) / Math.PI, mid = (v7[2] + v7[3]) / 2;
-          let dA = ((ang - mid + 540) % 360) - 180; dA = Math.max(v7[2] - mid, Math.min(v7[3] - mid, dA));
-          const hits = (px, py) => {   // how many other chords the line from this point to the target would cross
-            const dx2 = t.pos[0] - px, dy2 = t.pos[1] - py, d2 = Math.hypot(dx2, dy2) || 1; let n = 0;
-            for (let i = 4; i < d2 - 20; i += 6) {
-              const x = px + (dx2 * i) / d2, y = py + (dy2 * i) / d2;
-              for (const m of byId.values()) {
-                if (m === t) continue;
-                if (m.circle) { if (Math.hypot(x - m.pos[0], y - m.pos[1]) < m.circle + 2) { n++; break; } }
-                else { const [tw, th] = tight(m); if (Math.abs(x - m.pos[0]) < tw + 2 && Math.abs(y - m.pos[1]) < th + 2) { n++; break; } }
-              }
+      if (dd - R - e > 14) {   // the line to the target leaves the V ring (the tan circle); only in the ♭VI group does it start on V7's semicircle
+        const arcStart = c.t === "bVI" && tpc && tpc.T && tpc.T.V7 && tpc.arcs.length > 0, cand = [];
+        const angTo = (cx0, cy0) => (Math.atan2(t.pos[1] - cy0, t.pos[0] - cx0) * 180) / Math.PI;
+        if (arcStart) {
+          const v7 = tpc.T.V7, mid = (v7[2] + v7[3]) / 2, lo = v7[2] - mid, hi = v7[3] - mid, d0 = ((angTo(v7[0], v7[1]) - mid + 540) % 360) - 180;
+          for (const off of [0, 8, -8, 16, -16, 24, -24, 32, -32, 40, -40, 50, -50, 60, -60]) cand.push(ptOn([v7[0], v7[1]], tpc.arcs[0][1], mid + Math.max(lo, Math.min(hi, d0 + off))));
+        } else {
+          const a0 = angTo(P[0], P[1]);
+          for (const off of [0, 8, -8, 16, -16, 24, -24, 32, -32, 40, -40, 50, -50, 60, -60, 70, -70, 80, -80, 90, -90]) {
+            const an = a0 + off;
+            if (ringPieces.some(([b0, b1]) => (((an - b0) % 360) + 360) % 360 <= b1 - b0)) cand.push(ptOn(P, R, an));
+          }
+          if (!cand.length) cand.push([P[0] + ux * R, P[1] + uy * R]);
+        }
+        const arcObs = [];
+        if (tpc) tpc.arcs.forEach(([cc, rr, q0, q1], i) => { if (arcStart && i === 0) return; for (let an = q0; an <= q1; an += 4) arcObs.push(ptOn(cc, rr, an)); });
+        const hits = (px, py) => {   // how many chords or arcs the line from this point to the target would cross
+          const dx2 = t.pos[0] - px, dy2 = t.pos[1] - py, d2 = Math.hypot(dx2, dy2) || 1; let n = 0;
+          for (let i = 4; i < d2 - 20; i += 6) {
+            const x = px + (dx2 * i) / d2, y = py + (dy2 * i) / d2;
+            if (arcObs.some((q) => Math.hypot(q[0] - x, q[1] - y) < 6)) { n++; continue; }
+            for (const m of byId.values()) {
+              if (m === t) continue;
+              if (m.circle) { if (Math.hypot(x - m.pos[0], y - m.pos[1]) < m.circle + 2) { n++; break; } }
+              else { const [tw, th] = tight(m); if (Math.abs(x - m.pos[0]) < tw + 2 && Math.abs(y - m.pos[1]) < th + 2) { n++; break; } }
             }
-            return n;
-          };
-          let best = null;
-          for (const off of [0, 8, -8, 16, -16, 24, -24, 32, -32, 40, -40, 50, -50, 60, -60]) {   // the nearest point on the arc from which the line is clear
-            const dd2 = Math.max(v7[2] - mid, Math.min(v7[3] - mid, dA + off)), pt2 = ptOn([v7[0], v7[1]], tpc.arcs[0][1], mid + dd2), h = hits(pt2[0], pt2[1]);
-            if (!best || h < best[0]) best = [h, pt2];
-            if (h === 0) break;
           }
-          x1 = best[1][0]; y1 = best[1][1];
-          if (best[0] > 0) {   // every start crosses a chord: slide the chord(s) in the way just clear of the line
-            const dx3 = t.pos[0] - x1, dy3 = t.pos[1] - y1, d3 = Math.hypot(dx3, dy3) || 1, nx3 = -dy3 / d3, ny3 = dx3 / d3;
-            byId.forEach((m) => {
-              if (m === t || m.circle) return;
-              const [tw, th] = tight(m), rx = m.pos[0] - x1, ry = m.pos[1] - y1, along = (rx * dx3 + ry * dy3) / d3;
-              if (along < 4 || along > d3 - 20) return;
-              const perp = rx * nx3 + ry * ny3, need = Math.abs(nx3) * tw + Math.abs(ny3) * th + 6;
-              if (Math.abs(perp) < need) { const sg = perp >= 0 ? 1 : -1, move = need - Math.abs(perp); m.pos = [m.pos[0] + nx3 * sg * move, m.pos[1] + ny3 * sg * move]; }
-            });
-          }
+          return n;
+        };
+        let best = null;
+        for (const p of cand) { const h = hits(p[0], p[1]); if (!best || h < best[0]) best = [h, p]; if (h === 0) break; }
+        const x1 = best[1][0], y1 = best[1][1];
+        if (best[0] > 0) {   // every start crosses something: slide the chord(s) in the way just clear of the line
+          const dx3 = t.pos[0] - x1, dy3 = t.pos[1] - y1, d3 = Math.hypot(dx3, dy3) || 1, nx3 = -dy3 / d3, ny3 = dx3 / d3;
+          byId.forEach((m) => {
+            if (m === t || m.circle) return;
+            const [tw, th] = tight(m), rx = m.pos[0] - x1, ry = m.pos[1] - y1, along = (rx * dx3 + ry * dy3) / d3;
+            if (along < 4 || along > d3 - 20) return;
+            const perp = rx * nx3 + ry * ny3, need = Math.abs(nx3) * tw + Math.abs(ny3) * th + 6;
+            if (Math.abs(perp) < need) { const sg = perp >= 0 ? 1 : -1, move = need - Math.abs(perp); m.pos = [m.pos[0] + nx3 * sg * move, m.pos[1] + ny3 * sg * move]; }
+          });
         }
         const lx = t.pos[0] - x1, ly = t.pos[1] - y1, ll = Math.hypot(lx, ly) || 1, lux = lx / ll, luy = ly / ll, le = t.circle ? t.circle + 1 : edgeDist(t, lux, luy) + 8;
         if (ll - le > 14) svg.appendChild(el("line", { x1, y1, x2: t.pos[0] - lux * le, y2: t.pos[1] - luy * le, stroke: ink, "stroke-width": "2.6" }));
