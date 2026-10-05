@@ -536,10 +536,6 @@ details.diff th { color: var(--bark); font-weight: 600; }
     keys.forEach((k) => { nodes[k] = byId.get(idOf(k)); L[k] = nodes[k].pos; });
     const disc = byId.get(idOf("i64")), rad = (a) => (a * Math.PI) / 180;
     const extra = [], pre = String(idOf("V7")).split("/")[0], gx = String(idOf("V7")).includes("/") ? GEO[pre] : null, tgt = gx ? byId.get(pre) : null;
-    if (gx && tgt) {   // the line from the V ring to the target chord
-      const dx = tgt.pos[0] - gx.P[0], dy = tgt.pos[1] - gx.P[1], dd = Math.hypot(dx, dy) || 1, ux = dx / dd, uy = dy / dd, e = tgt.circle ? tgt.circle + 1 : edgeDist(tgt, ux, uy) + 8;
-      if (dd - 76 - e > 14) { const x1 = gx.P[0] + ux * 76, y1 = gx.P[1] + uy * 76, x2 = tgt.pos[0] - ux * e, y2 = tgt.pos[1] - uy * e, n = Math.max(2, Math.round(Math.hypot(x2 - x1, y2 - y1) / 3)); for (let i = 0; i <= n; i++) extra.push([x1 + ((x2 - x1) * i) / n, y1 + ((y2 - y1) * i) / n]); }
-    }
     const axisOf = (dx, dy) => (Math.abs(dx) >= Math.abs(dy) ? (dx >= 0 ? 0 : 180) : dy >= 0 ? 90 : 270);
     const face = {};
     if (L.V7) {
@@ -799,10 +795,44 @@ details.diff th { color: var(--bark); font-weight: 600; }
       // black line from the V ring to the target chord
       const dx = t.pos[0] - P[0], dy = t.pos[1] - P[1], dd = Math.hypot(dx, dy) || 1, ux = dx / dd, uy = dy / dd;
       const e = t.circle ? t.circle + 1 : edgeDist(t, ux, uy) + 8;   // a circled target is touched by the line
-      if (dd - R - e > 14) {
-        let st = R; const vn = byId.get(c.t + "/V7"), vb = vn && !vn.circle ? tight(vn) : null;
-        if (vb) while (st < dd - e - 14 && Math.abs(P[0] + ux * st - vn.pos[0]) < vb[0] + 4 && Math.abs(P[1] + uy * st - vn.pos[1]) < vb[1] + 4) st += 2;
-        svg.appendChild(el("line", { x1: P[0] + ux * st, y1: P[1] + uy * st, x2: t.pos[0] - ux * e, y2: t.pos[1] - uy * e, stroke: ink, "stroke-width": "2.6" }));
+      if (dd - R - e > 14) {   // the line to the target ends in V7's semicircle (or, without one, on the V ring)
+        let x1 = P[0] + ux * R, y1 = P[1] + uy * R;
+        const v7 = tpc && tpc.T && tpc.T.V7 ? tpc.T.V7 : null;
+        if (v7 && tpc.arcs.length) {
+          const ang = (Math.atan2(t.pos[1] - v7[1], t.pos[0] - v7[0]) * 180) / Math.PI, mid = (v7[2] + v7[3]) / 2;
+          let dA = ((ang - mid + 540) % 360) - 180; dA = Math.max(v7[2] - mid, Math.min(v7[3] - mid, dA));
+          const hits = (px, py) => {   // how many other chords the line from this point to the target would cross
+            const dx2 = t.pos[0] - px, dy2 = t.pos[1] - py, d2 = Math.hypot(dx2, dy2) || 1; let n = 0;
+            for (let i = 4; i < d2 - 20; i += 6) {
+              const x = px + (dx2 * i) / d2, y = py + (dy2 * i) / d2;
+              for (const m of byId.values()) {
+                if (m === t) continue;
+                if (m.circle) { if (Math.hypot(x - m.pos[0], y - m.pos[1]) < m.circle + 2) { n++; break; } }
+                else { const [tw, th] = tight(m); if (Math.abs(x - m.pos[0]) < tw + 2 && Math.abs(y - m.pos[1]) < th + 2) { n++; break; } }
+              }
+            }
+            return n;
+          };
+          let best = null;
+          for (const off of [0, 8, -8, 16, -16, 24, -24, 32, -32, 40, -40, 50, -50, 60, -60]) {   // the nearest point on the arc from which the line is clear
+            const dd2 = Math.max(v7[2] - mid, Math.min(v7[3] - mid, dA + off)), pt2 = ptOn([v7[0], v7[1]], tpc.arcs[0][1], mid + dd2), h = hits(pt2[0], pt2[1]);
+            if (!best || h < best[0]) best = [h, pt2];
+            if (h === 0) break;
+          }
+          x1 = best[1][0]; y1 = best[1][1];
+          if (best[0] > 0) {   // every start crosses a chord: slide the chord(s) in the way just clear of the line
+            const dx3 = t.pos[0] - x1, dy3 = t.pos[1] - y1, d3 = Math.hypot(dx3, dy3) || 1, nx3 = -dy3 / d3, ny3 = dx3 / d3;
+            byId.forEach((m) => {
+              if (m === t || m.circle) return;
+              const [tw, th] = tight(m), rx = m.pos[0] - x1, ry = m.pos[1] - y1, along = (rx * dx3 + ry * dy3) / d3;
+              if (along < 4 || along > d3 - 20) return;
+              const perp = rx * nx3 + ry * ny3, need = Math.abs(nx3) * tw + Math.abs(ny3) * th + 6;
+              if (Math.abs(perp) < need) { const sg = perp >= 0 ? 1 : -1, move = need - Math.abs(perp); m.pos = [m.pos[0] + nx3 * sg * move, m.pos[1] + ny3 * sg * move]; }
+            });
+          }
+        }
+        const lx = t.pos[0] - x1, ly = t.pos[1] - y1, ll = Math.hypot(lx, ly) || 1, lux = lx / ll, luy = ly / ll, le = t.circle ? t.circle + 1 : edgeDist(t, lux, luy) + 8;
+        if (ll - le > 14) svg.appendChild(el("line", { x1, y1, x2: t.pos[0] - lux * le, y2: t.pos[1] - luy * le, stroke: ink, "stroke-width": "2.6" }));
       }
       // solid arrow V7/X -> X
       if (showPath([c.t + "/V7", c.t + "/V7in", c.t + "/vii07"], [c.t], "solid")) { const apd = arrowClear(byId.get(current), t, [0.2, -0.2, 0.38, -0.38, 0.05, 0.55, -0.55, 0]); if (apd) svg.appendChild(el("path", { d: apd, fill: "none", stroke: brown, "stroke-width": "3.4", "marker-end": "url(#ah1)" })); }
