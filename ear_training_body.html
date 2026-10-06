@@ -83,6 +83,9 @@ main { max-width: 1100px; margin: 0 auto; padding: 10px 16px 24px; }
 #chd-slots.tight .slot .answers.nums .ans { padding-top: 3px; padding-bottom: 3px; }
 .slot .answers { grid-template-columns: repeat(auto-fit, minmax(96px, 1fr)); margin-top: 0; }
 .slot .answers.nums { grid-template-columns: repeat(7, 1fr); max-width: 560px; }
+#chd-slots.chrom .slot .answers.nums { grid-template-columns: repeat(12, 1fr); max-width: 760px; }
+#chd-slots.chrom .slot .answers.nums .ans { font-size: 12px; padding-left: 0; padding-right: 0; }
+#set-chd [hidden] { display: none !important; }
 .slot .answers.nums .ans { font-family: var(--font-display); font-size: 14px; letter-spacing: 0.02em; padding: 7px 2px; text-transform: none; }
 
 details.settings { border: 1px solid var(--wheat); background: transparent; padding: 0 14px; }
@@ -105,6 +108,7 @@ details.settings summary { cursor: pointer; font-size: 11px; letter-spacing: 0.1
   .slot { grid-template-columns: 1fr; }
   .slot .answers { grid-template-columns: repeat(2, 1fr); }
   .slot .answers.nums { grid-template-columns: repeat(7, 1fr); }
+  #chd-slots.chrom .slot .answers.nums { grid-template-columns: repeat(6, 1fr); }
   .kbd-wrap { overflow-x: auto; }
   .kbd-wrap svg { width: 900px; }
 }
@@ -187,9 +191,13 @@ details.settings summary { cursor: pointer; font-size: 11px; letter-spacing: 0.1
     <div id="set-chd" hidden>
       <div class="setrow"><label>Chords per question <select id="n-chords"><option>2</option><option>3</option><option>4</option><option>5</option><option>6</option></select></label>
         <button type="button" class="chip" id="diatonic" aria-pressed="false">Diatonic qualities only</button>
-        <span class="hint">each degree uses the triad or 7th chord that stacks up from the scale (no sus chords or borrowed qualities)</span></div>
-      <div class="setgroup"><h3>Scales (the chord pool comes from the diatonic chords of these)</h3><div class="chips" id="scale-chips"></div></div>
-      <div class="setgroup"><h3>Chord qualities (answers and pool)</h3><div class="chips" id="qual-chips"></div></div>
+        <button type="button" class="chip" id="map-prog" aria-pressed="false">Progressions from the Harmony Map</button></div>
+      <div class="setrow" id="map-row" hidden>
+        <label>Map style <select id="map-style"><option value="trad">Traditional (triads)</option><option value="jazz">Jazz (7th chords)</option></select></label>
+        <label>Map level <select id="map-level"><option value="1">Basic</option><option value="2">Medium</option><option value="3">Advanced</option></select></label>
+        <span class="hint">each progression follows the movements the map suggests; the answers use the same numerals as the map, with flats</span></div>
+      <div class="setgroup" id="grp-scales"><h3>Scales (the chord pool comes from the diatonic chords of these)</h3><div class="chips" id="scale-chips"></div></div>
+      <div class="setgroup" id="grp-quals"><h3>Chord qualities (answers and pool)</h3><div class="chips" id="qual-chips"></div></div>
     </div>
   </details>
 
@@ -248,7 +256,7 @@ details.settings summary { cursor: pointer; font-size: 11px; letter-spacing: 0.1
   const defaults = () => ({
     tone: "triangle", volume: 80, mode: "int",
     dirs: ["up", "down", "both"], ints: INTERVALS.map((i) => i.n),
-    nNotes: 2, regLo: 2, regHi: 5, nChords: 4, diatonic: false, scales: ["major", "minor"], quals: ["maj", "min", "dim", "maj7", "dom7", "min7", "hdim7"],
+    nNotes: 2, regLo: 2, regHi: 5, nChords: 4, diatonic: false, mapProg: false, mapStyle: "jazz", mapLevel: 3, scales: ["major", "minor"], quals: ["maj", "min", "dim", "maj7", "dom7", "min7", "hdim7"],
     score: { int: { ok: 0, n: 0 }, chd: { ok: 0, n: 0, chordsOk: 0, chords: 0 } },
   });
   let S = defaults();
@@ -559,11 +567,95 @@ details.settings summary { cursor: pointer; font-size: 11px; letter-spacing: 0.1
   const resetPicks = () => { picks.length = 0; for (let i = 0; i < N_CHORDS; i++) picks.push({ deg: null, q: null }); };
   const complete = () => picks.length === N_CHORDS && picks.every((p) => p.deg !== null && p.q !== null);
   function chordCopy() {
-    $("chd-sub").textContent = `scale · IV – V – I · a beat · ${NUM_WORD[N_CHORDS]} chords: name the numeral and the quality`;
+    $("chd-sub").textContent = `scale · IV – V – I · a beat · ${NUM_WORD[N_CHORDS]} chords${S.mapProg ? " from the Harmony Map" : ""}: name the numeral and the quality`;
     if (!C) $("chd-status").textContent = `Press Repeat all: you will hear a scale, a IV–V–I, then ${NUM_WORD[N_CHORDS]} chords.`;
   }
   const rootName = (pc) => NAME_FLAT[mod(pc)];
-  const chordLabel = (ch) => ROMAN[ch.deg] + " · " + rootName(ch.pc) + " " + QUALS.find((q) => q.id === ch.q).name;
+  const CHROM = ["I", "♭II", "II", "♭III", "III", "IV", "♯IV", "V", "♭VI", "VI", "♭VII", "VII"];   // numerals for the map's progressions: the degree is the number of semitones above the tonic
+  const ALLQ = QUALS.concat([{ id: "sus7", name: "Dominant 7 sus4", sym: "7sus4", iv: [0, 5, 7, 10] }, { id: "dom7b5", name: "Dominant 7♭5", sym: "7♭5", iv: [0, 4, 6, 10] }]);
+  const qualOf = (id) => ALLQ.find((q) => q.id === id);
+  const chordLabel = (ch) => (C && C.map ? CHROM[ch.deg] : ROMAN[ch.deg]) + " · " + rootName(ch.pc) + " " + qualOf(ch.q).name + (ch.fn ? " (" + ch.fn + ")" : "");
+
+  // ---------- progressions from the Tonal Harmony Map ----------
+  // A copy of the map's chords and suggested movements (harmony_map.html: MAIN, CLUSTERS, ROLES, STRONG, ALT, REGION_FLOW, MEMBER_*): keep the two in step.
+  // The three inversions (N⁶, I⁶₄, i⁶₄) are left out because the answers have no inversion option.
+  const MAP_MAIN = {   // id: [region, semitones above the tonic, traditional quality, jazz quality, traditional label, jazz label, advanced only]
+    I: ["T", 0, "maj", "maj7", "I", "I△"], vi: ["T", 9, "min", "min7", "vi", "vi7"], iii: ["T", 4, "min", "min7", "iii", "iii7"],
+    io: ["T", 0, "dim", "dim7", "i°", "i°7"], i: ["T", 0, "min", "min", "i", "i"], bIII: ["T", 3, "maj", "maj7", "♭III", "♭III△"], vio: ["T", 9, "dim", "hdim7", "vi°", "vi7♭5"],
+    IV: ["S", 5, "maj", "maj7", "IV", "IV△"], ii: ["S", 2, "min", "min7", "ii", "ii7"], iv: ["S", 5, "min", "min7", "iv", "iv7"], iio: ["S", 2, "dim", "hdim7", "ii°", "ii7♭5"],
+    bVI: ["S", 8, "maj", "maj7", "♭VI", "♭VI△"], bII: ["S", 1, "maj", "maj7", "♭II", "♭II△", 1], II: ["S", 2, "maj", "dom7b5", "II", "II7♭5", 1],
+    subii: ["S", 8, "min7", "min7", "♭vi7", "subii7", 1], bIII07: ["S", 3, "dim7", "dim7", "♭III°7", "♭III°7", 1],
+    V7: ["D", 7, "dom7", "dom7", "V7", "V7"], V7in: ["D", 7, "dom7", "dom7", "V7", "V7"], bVII: ["D", 10, "maj", "dom7", "♭VII", "♭VII7"], V: ["D", 7, "maj", "maj", "V", "V", 1],
+    vii07: ["D", 11, "dim7", "dim7", "vii°7", "vii°7"], viio: ["D", 11, "dim", "hdim7", "vii°", "vii7♭5"], N7: ["D", 1, "dom7", "dom7", "N⁷", "subV7"], V7sus4: ["D", 7, "sus7", "sus7", "V7sus4", "V7sus4"],
+  };
+  const MAP_STRONG = {
+    I: ["IV", "ii", "vi"], vi: ["ii", "IV"], iii: ["vi", "IV"], io: ["ii", "iii"], i: ["iv", "iio", "bVI"], bIII: ["iv", "bVI"], vio: ["iv", "V7in"],
+    IV: ["V7", "I"], ii: ["V7"], iv: ["V7in", "I", "i"], iio: ["V7in", "V"], bVI: ["bVII", "V7in"], bII: ["V7", "I", "i"], II: ["V7"], subii: ["N7"], bIII07: ["iii", "ii"],
+    V7: ["I", "i"], V7in: ["i", "I"], bVII: ["I", "i"], V: ["i", "I"], vii07: ["I", "i"], viio: ["I", "iii"], N7: ["I", "i"], V7sus4: ["V7"],
+  };
+  const MAP_ALT = { V7: ["vi", "bVI"], V7in: ["bVI", "vi"], ii: ["N7"], iio: ["N7"], bVII: ["bIII"], I: ["iii"], IV: ["iv"], iv: ["IV"] };
+  const MAP_FLOW = { T: ["S", "D"], S: ["D", "T"], D: ["T"] };
+  const MAP_MEMBER_STRONG = { ii: ["V7"], iio: ["V7in", "V7"], subii: ["N7"], V7sus4: ["V7"], V7: ["@t"], V7in: ["@t"], vii07: ["@t"] };
+  const MAP_MEMBER_ALT = { ii: ["N7"], iio: ["N7"], N7: ["@t"] };
+  const MAP_TARGETS = {   // the approach chords drawn around each target: [the target's numeral as the map writes it after the slash, roles]
+    IV: ["IV", "ii iio V7 V7in vii07 subii N7 V7sus4"], ii: ["II", "ii iio V7 vii07 subii N7 V7sus4"], V7: ["V", "ii iio V7 V7in vii07 subii N7 V7sus4"],
+    bVII: ["♭VII", "ii V7 vii07 subii N7 V7sus4"], bVI: ["♭VI", "ii V7 vii07 subii N7 V7sus4"], bIII: ["♭III", "ii V7 vii07 subii N7 V7sus4"],
+    vi: ["VI", "ii iio V7 vii07 subii N7 V7sus4"], iii: ["III", "iio V7 vii07 subii N7 V7sus4"],
+  };
+  const MAP_ROLES = { ii: [2, "min7", "ii7"], iio: [2, "hdim7", "ii7♭5"], V7: [7, "dom7", "V7"], V7in: [7, "dom7", "V7"], vii07: [11, "dim7", "vii°7"], subii: [8, "min7", "♭vi7"], N7: [1, "dom7", "N⁷"], V7sus4: [7, "sus7", "V7sus4"] };
+  function mapNodes() {
+    const jz = S.mapStyle === "jazz", lv = +S.mapLevel || 3, nodes = new Map();
+    Object.entries(MAP_MAIN).forEach(([id, m]) => { if ((m[6] ? 2 : 1) <= lv) nodes.set(id, { id, kind: "main", region: m[0], off: m[1], q: jz ? m[3] : m[2], label: jz ? m[5] : m[4] }); });
+    if (lv >= 2) Object.entries(MAP_TARGETS).forEach(([t, [suf, roles]]) => {
+      const tg = nodes.get(t); if (!tg) return;
+      roles.split(" ").forEach((role) => {
+        if (lv === 2 && !["V7", "V7in", "vii07"].includes(role)) return;   // medium: only the secondary dominants
+        const r = MAP_ROLES[role];
+        const lab = jz && role === "subii" ? "subii7" : jz && role === "N7" ? "subV7" : r[2];
+        nodes.set(t + "/" + role, { id: t + "/" + role, kind: "member", role, target: t, off: mod(tg.off + r[0]), q: r[1], label: lab + "/" + suf });
+      });
+    });
+    return nodes;
+  }
+  function mapFollowers(node, nodes) {   // where the map suggests going from this chord; "approach" = the ii–V-type chords that lead into somewhere you could go
+    const out = new Map(), add = (tid, kind) => { if (tid !== node.id && nodes.has(tid) && !out.has(tid)) out.set(tid, kind); };
+    if (node.kind === "member") {
+      const own = (r) => (r === "@t" ? node.target : node.target + "/" + r);
+      (MAP_MEMBER_STRONG[node.role] || []).forEach((r) => add(own(r), "strong"));
+      (MAP_MEMBER_ALT[node.role] || []).forEach((r) => add(own(r), "alt"));
+      return out;
+    }
+    (MAP_STRONG[node.id] || []).forEach((t) => add(t, "strong"));
+    (MAP_ALT[node.id] || []).forEach((t) => add(t, "alt"));
+    (MAP_FLOW[node.region] || []).forEach((rg) => nodes.forEach((n) => { if (n.kind === "main" && n.region === rg) add(n.id, "flow"); }));
+    nodes.forEach((n) => { if (n.kind === "member") { const k = out.get(n.target); if (k === "strong" || k === "alt") out.set(n.id, "approach"); } });
+    return out;
+  }
+  function mapProgression(N) {   // a walk along the map's suggestions, preferring to end on a main chord
+    const nodes = mapNodes(), starts = ["I", "I", "I", "vi", "IV", "i"].filter((x) => nodes.has(x)), W = { strong: 6, alt: 2, flow: 1 };
+    let best = null;
+    for (let attempt = 0; attempt < 300; attempt++) {
+      let cur = nodes.get(pick(starts)); const seq = [cur];
+      while (seq.length < N) {
+        const fol = mapFollowers(cur, nodes), opts = [], perTarget = new Map();
+        fol.forEach((kind, tid) => { const n = nodes.get(tid); if (kind === "approach") perTarget.set(n.target, (perTarget.get(n.target) || 0) + 1); });
+        fol.forEach((kind, tid) => {
+          const n = nodes.get(tid); if (n.off === cur.off && n.q === cur.q) return;   // not the same sound twice in a row
+          opts.push([n, kind === "approach" ? (W[fol.get(n.target)] * 0.7) / perTarget.get(n.target) : W[kind]]);
+        });
+        if (!opts.length) break;
+        let r = Math.random() * opts.reduce((t, o) => t + o[1], 0), nx = opts[opts.length - 1][0];
+        for (const o of opts) { r -= o[1]; if (r <= 0) { nx = o[0]; break; } }
+        seq.push(nx); cur = nx;
+      }
+      if (seq.length === N) { best = seq; if (seq[N - 1].kind === "main") break; }
+    }
+    return best;
+  }
+  function mapQualList() {
+    const ids = new Set(); mapNodes().forEach((n) => ids.add(n.q));
+    return ALLQ.filter((q) => ids.has(q.id));
+  }
   // the triad and the 7th chord that stack up in thirds from scale degree deg (used by "diatonic qualities only")
   function diatonicSets(scale, deg) {
     const at = (k) => { const idx = deg + k; return scale.iv[idx % 7] + 12 * Math.floor(idx / 7); };
@@ -579,6 +671,7 @@ details.settings summary { cursor: pointer; font-size: 11px; letter-spacing: 0.1
           if (q && S.quals.includes(q.id)) out.push({ deg, pc: mod(tonic + semis), q: q.id, tonic: deg === 0 });
         });
       });
+      ["sus2", "sus4"].forEach((id) => { if (S.quals.includes(id)) out.push({ deg: 0, pc: mod(tonic), q: id, tonic: true }); });   // the I chord also has its sus2 and sus4
       return out;
     }
     scale.iv.forEach((semis, deg) => {
@@ -596,7 +689,10 @@ details.settings summary { cursor: pointer; font-size: 11px; letter-spacing: 0.1
     $("chd-staff").innerHTML = ""; $("chd-staff-you").innerHTML = ""; $("chd-check").disabled = true;
     const scales = SCALES.filter((s) => S.scales.includes(s.id));
     let made = null;
-    for (let tries = 0; tries < 80 && scales.length && S.quals.length && !made; tries++) {
+    if (S.mapProg) {
+      const seq = mapProgression(N_CHORDS), tonic = rnd(12);
+      if (seq) made = { scale: SCALES[0], tonic, map: true, chords: seq.map((n) => ({ deg: n.off, pc: mod(tonic + n.off), q: n.q, fn: n.label })) };
+    } else for (let tries = 0; tries < 80 && scales.length && S.quals.length && !made; tries++) {
       const scale = pick(scales), tonic = rnd(12), pl = pool(scale, tonic);
       if (pl.length < 2) continue;
       const seq = [pick(pl)];   // any chord in the key can open the progression
@@ -610,7 +706,7 @@ details.settings summary { cursor: pointer; font-size: 11px; letter-spacing: 0.1
     if (!made) {
       C = null; $("chd-slots").innerHTML = ""; $("chd-staff").innerHTML = ""; $("chd-staff-you").innerHTML = "";
       $("chd-status").className = "status bad";
-      $("chd-status").textContent = "No chords fit: turn on more scales or chord qualities in Settings.";
+      $("chd-status").textContent = S.mapProg ? "The map has no progression of that length at this level: try another level or style." : "No chords fit: turn on more scales or chord qualities in Settings.";
       $("chd-next").textContent = "Play"; return;
     }
     C = made;
@@ -626,6 +722,7 @@ details.settings summary { cursor: pointer; font-size: 11px; letter-spacing: 0.1
   }
   function buildChordSlots() {
     const host = $("chd-slots"); host.innerHTML = "";
+    host.classList.toggle("chrom", !!(C && C.map));
     for (let i = 0; i < N_CHORDS; i++) {
       const slot = document.createElement("div"); slot.className = "slot";
       slot.innerHTML = `<div class="slot-head"><span>Chord ${i + 1}</span><span class="res" id="res${i}"></span></div><div class="slot-right"><div class="answers nums" id="nums${i}"></div><div class="answers" id="ans${i}"></div></div>`;
@@ -643,15 +740,15 @@ details.settings summary { cursor: pointer; font-size: 11px; letter-spacing: 0.1
         });
         host2.appendChild(b);
       };
-      ROMAN.forEach((r, d) => make(slot.querySelector(".nums"), r, "deg", d));
-      QUALS.filter((q) => S.quals.includes(q.id)).forEach((q) => make(slot.querySelector("#ans" + i), q.name, "q", q.id));
+      (C && C.map ? CHROM : ROMAN).forEach((r, d) => make(slot.querySelector(".nums"), r, "deg", d));
+      (C && C.map ? mapQualList() : QUALS.filter((q) => S.quals.includes(q.id))).forEach((q) => make(slot.querySelector("#ans" + i), q.name, "q", q.id));
     }
   }
   // the chord a pick describes: scale degree + quality, spelled on the key's own scale
   function youChord(i) {
     const p = picks[i];
     if (!C || p.deg === null || p.q === null) return null;
-    return { deg: p.deg, pc: mod(C.tonic + C.scale.iv[p.deg]), q: p.q };
+    return { deg: p.deg, pc: mod(C.tonic + (C.map ? p.deg : C.scale.iv[p.deg])), q: p.q };
   }
   let aHeld = false;   // holding A while clicking a chord arpeggiates it
   let lastTap = { key: "", t: 0 };
@@ -692,7 +789,7 @@ details.settings summary { cursor: pointer; font-size: 11px; letter-spacing: 0.1
     });
   }
   function voicing(ch, rootMidi) {
-    const q = QUALS.find((x) => x.id === ch.q);
+    const q = qualOf(ch.q);
     return [rootMidi - 12].concat(q.iv.map((i) => rootMidi + i));   // low root doubled for body
   }
   // a triad built from the scale's own notes on scale degree d (0 = I, 3 = IV, 4 = V), so a minor key gets minor iv / v
@@ -799,6 +896,17 @@ details.settings summary { cursor: pointer; font-size: 11px; letter-spacing: 0.1
   const syncDiatonic = () => $("diatonic").setAttribute("aria-pressed", String(!!S.diatonic));
   syncDiatonic();
   $("diatonic").addEventListener("click", () => { S.diatonic = !S.diatonic; save(); syncDiatonic(); C = null; chordCopy(); newChords(false); });
+  const syncMap = () => {
+    $("map-prog").setAttribute("aria-pressed", String(!!S.mapProg));
+    $("map-row").hidden = !S.mapProg;
+    ["diatonic", "grp-scales", "grp-quals"].forEach((id) => { $(id).hidden = !!S.mapProg; });
+  };
+  $("map-style").value = S.mapStyle; $("map-level").value = String(S.mapLevel);
+  syncMap();
+  const remake = () => { save(); syncMap(); C = null; chordCopy(); newChords(false); };
+  $("map-prog").addEventListener("click", () => { S.mapProg = !S.mapProg; remake(); });
+  $("map-style").addEventListener("change", () => { S.mapStyle = $("map-style").value; remake(); });
+  $("map-level").addEventListener("change", () => { S.mapLevel = +$("map-level").value; remake(); });
   resetPicks(); chordCopy();
   $("chd-check").addEventListener("click", checkChords);
   for (const id of ["reg-lo", "reg-hi"]) for (let r = 1; r <= 6; r++) { const o = document.createElement("option"); o.value = r; o.textContent = "C" + r; $(id).appendChild(o); }
@@ -819,7 +927,7 @@ details.settings summary { cursor: pointer; font-size: 11px; letter-spacing: 0.1
   chipSet($("dir-chips"), DIRS, () => S.dirs, (d) => d.name, onIntSettings);
   refreshIntervalChips();
   chipSet($("scale-chips"), SCALES, () => S.scales, (s) => s.name, onChdSettings);
-  chipSet($("qual-chips"), QUALS, () => S.quals, (q) => q.name + (q.sym ? "  " + q.sym : ""), onChdSettings);
+  chipSet($("qual-chips"), QUALS, () => S.quals, (q) => q.name + (q.sym && q.sym.toLowerCase() !== q.name.toLowerCase() ? "  " + q.sym : ""), onChdSettings);
   let resizeTimer = null;
   window.addEventListener("resize", () => { clearTimeout(resizeTimer); resizeTimer = setTimeout(() => { if (C && S.mode === "chd") { drawYouStaff(); drawCorrectStaff(); } }, 150); });
   document.addEventListener("keyup", (e) => { if (e.key.toLowerCase() === "a") aHeld = false; });
