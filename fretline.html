@@ -634,9 +634,9 @@ button.mode-chip.active:hover { color: var(--parchment); }
         <div class="field">
           <div class="tempo-head">
             <label style="padding-bottom:0;">Volume</label>
-            <span class="tempo-value"><span id="volume-value">80</span><span class="unit">%</span></span>
+            <span class="tempo-value"><span id="volume-value">120</span><span class="unit">%</span></span>
           </div>
-          <input type="range" id="volume-range" min="0" max="100" value="80" step="1">
+          <input type="range" id="volume-range" min="0" max="300" value="120" step="1">
           <p class="hint">Note playback and metronome clicks together.</p>
         </div>
       </div>
@@ -2576,7 +2576,11 @@ button.mode-chip.active:hover { color: var(--parchment); }
       };
       masterGainNode = audioCtx.createGain();
       masterGainNode.gain.value = parseFloat(document.getElementById("volume-range").value) / 100;
-      masterGainNode.connect(audioCtx.destination);
+      // the volume slider goes past 100%, so a limiter sits between it and the speakers: loud peaks are squashed instead of clipping
+      const limiter = audioCtx.createDynamicsCompressor();
+      limiter.threshold.value = -6; limiter.knee.value = 0; limiter.ratio.value = 20; limiter.attack.value = 0.003; limiter.release.value = 0.1;
+      masterGainNode.connect(limiter);
+      limiter.connect(audioCtx.destination);
     }
     return audioCtx;
   }
