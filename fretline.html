@@ -495,7 +495,7 @@ button.mode-chip.active:hover { color: var(--parchment); }
           <button type="button" class="btn btn-outline" id="play-btn">Play back</button>
           <button type="button" class="btn btn-outline" id="stop-btn" disabled>Stop</button>
         </div>
-        <p class="shortcuts-hint">Space play/pause · Esc stop · G new line · M metronome · N note names · C chords · ← → chord position</p>
+        <p class="shortcuts-hint">Space play/pause · Esc stop · G new line · M metronome · N note names · C chords · ← → modal chord · ↑ ↓ chord position</p>
       </div>
 
       <div id="panel-body">
@@ -696,9 +696,9 @@ button.mode-chip.active:hover { color: var(--parchment); }
           <span class="diagram-caption" id="quality-roman">Chord quality</span>
           <div class="mode-chips quality-chips" id="quality-chips"></div>
           <div class="pos-cycle" id="pos-cycle" hidden>
-            <button type="button" class="pos-btn" id="pos-prev" aria-label="Previous position (lower on the neck)" title="Previous position ( ← or [ )">‹</button>
+            <button type="button" class="pos-btn" id="pos-prev" aria-label="Previous position (lower on the neck)" title="Previous position ( ↓ or [ )">‹</button>
             <span id="pos-label"></span><span class="pos-count" id="pos-count"></span>
-            <button type="button" class="pos-btn" id="pos-next" aria-label="Next position (higher on the neck)" title="Next position ( → or ] )">›</button>
+            <button type="button" class="pos-btn" id="pos-next" aria-label="Next position (higher on the neck)" title="Next position ( ↑ or ] )">›</button>
           </div>
           <div class="chord-legend quality-legend">
             <span class="chord-legend-item"><i class="chord-legend-swatch" style="--tone-color: var(--tone-root)"></i>Root</span>
@@ -2456,6 +2456,13 @@ button.mode-chip.active:hover { color: var(--parchment); }
     document.getElementById("pos-count").textContent = (ctx.posIdx + 1) + " / " + list.length;
     bar.hidden = list.length < 2;
   }
+  function cycleModalChord(step) {
+    const chips = [...document.querySelectorAll("#mode-chords .chord-chip")];
+    if (!chips.length) return;
+    const at = chips.findIndex((c) => c.classList.contains("active"));
+    const to = at < 0 ? (step > 0 ? 0 : chips.length - 1) : (at + step + chips.length) % chips.length;
+    chips[to].click();   // the same path as clicking the chip, so the quality panel and fretboard follow
+  }
   function cycleChordPosition(step) {
     const ctx = activeChordCtx;
     if (!ctx || !ctx.posCount || document.getElementById("quality-panel").hidden) return;
@@ -3262,9 +3269,12 @@ button.mode-chip.active:hover { color: var(--parchment); }
     } else if (e.key === "[" || e.key === "]") {
       e.preventDefault();
       cycleChordPosition(e.key === "]" ? 1 : -1);
-    } else if ((e.key === "ArrowLeft" || e.key === "ArrowRight") && !e.shiftKey && activeChordCtx && activeChordCtx.posCount > 1 && !document.getElementById("quality-panel").hidden) {
-      e.preventDefault();   // only taken over while a chord with several positions is selected; otherwise the arrows keep scrolling as usual
-      cycleChordPosition(e.key === "ArrowRight" ? 1 : -1);
+    } else if ((e.key === "ArrowLeft" || e.key === "ArrowRight") && !e.shiftKey && document.querySelector("#mode-chords .chord-chip")) {
+      e.preventDefault();   // left / right step through the mode's chords (nothing selected yet: right starts at the first, left at the last)
+      cycleModalChord(e.key === "ArrowRight" ? 1 : -1);
+    } else if ((e.key === "ArrowUp" || e.key === "ArrowDown") && !e.shiftKey && activeChordCtx && activeChordCtx.posCount > 1 && !document.getElementById("quality-panel").hidden) {
+      e.preventDefault();   // up / down step through the selected chord's positions up the neck; with no chord selected they keep scrolling as usual
+      cycleChordPosition(e.key === "ArrowUp" ? 1 : -1);
     }
   });
 
