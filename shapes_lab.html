@@ -435,7 +435,7 @@ function renderPatterns() {
   });
   html.push("</section>");
   if (!rows.length) html.push(`<div class="empty">No fingerable patterns with these settings.</div>`);
-  html.push(`<section class="group"><h2>Map up the neck<span>${ROOTS[rootPc]}${quality.sym} · positions in order Pos 1 → ${nPrimary}</span></h2><div class="row">${overviewSVG(MAP_REPEAT[quality.name] ? mapRepeats(firstPerPos, rootPc, quality, MAP_REPEAT[quality.name], opts.maxFret) : firstPerPos, opts.maxFret)}</div></section>`);
+  html.unshift(`<section class="group"><h2>Map up the neck<span>${ROOTS[rootPc]}${quality.sym} · positions in order Pos 1 → ${nPrimary}</span></h2><div class="row">${overviewSVG(MAP_REPEAT[quality.name] ? mapRepeats(firstPerPos, rootPc, quality, MAP_REPEAT[quality.name], opts.maxFret) : firstPerPos, opts.maxFret)}</div></section>`);
   $("out").innerHTML = html.join("");
   const nPlace = rows.reduce((n, r) => n + r.places.length, 0);
   $("summary").textContent = `${ROOTS[rootPc]}${quality.sym} (${quality.name}) — ${rows.length} pattern row${rows.length === 1 ? "" : "s"}, ${nPlace} placements on frets 0–${opts.maxFret}`;
