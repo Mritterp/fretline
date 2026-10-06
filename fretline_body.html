@@ -2444,12 +2444,20 @@ button.mode-chip.active:hover { color: var(--parchment); }
     });
   }
 
+  // Where a chord starts in its list of positions (lowest first). Normally the lowest one; with a mode box pinned on the fretboard
+  // (clicked, not just hovered) it is the lowest one whose notes all sit inside that box, falling back to the lowest if none do.
+  function defaultPositionIndex(list) {
+    if (!pinnedModeBox) return 0;
+    const i = list.findIndex((p) => p.voicing.every((v) => !v || (v.fret >= pinnedModeBox.lo && v.fret <= pinnedModeBox.hi)));
+    return i < 0 ? 0 : i;
+  }
   // Draws one placement of the chord's patterns on the fretboard (ctx.posIdx) and keeps the position control in step.
   function showChordPosition(ctx, qualityKey) {
     const fretWindow = currentFretWindow || { lo: 0, hi: 4 }, bar = document.getElementById("pos-cycle");
     const list = patternPlacements(ctx.rootPc, qualityKey, fretWindow.lo, fretWindow.hi, true);   // the primary positions only
     ctx.posCount = list.length;
     if (!list.length) { highlightFretboardVoicing(findChordVoicing(ctx.rootPc, qualityKey, fretWindow.lo, fretWindow.hi)); bar.hidden = true; return; }
+    if (ctx.posIdx == null) ctx.posIdx = defaultPositionIndex(list);
     ctx.posIdx = ((ctx.posIdx % list.length) + list.length) % list.length;
     const cur = list[ctx.posIdx], frets = cur.voicing.filter(Boolean).map((v) => v.fret), lo = Math.min(...frets), hi = Math.max(...frets);
     highlightFretboardVoicing(cur.voicing);
@@ -2495,7 +2503,7 @@ button.mode-chip.active:hover { color: var(--parchment); }
     });
 
     highlightKeyboardVoicing(ctx.rootPc, qualityKey);
-    if (ctx.posQuality !== qualityKey) { ctx.posQuality = qualityKey; ctx.posIdx = 0; }   // a new chord or quality starts on its lowest position
+    if (ctx.posQuality !== qualityKey) { ctx.posQuality = qualityKey; ctx.posIdx = null; }   // a new chord or quality starts on its default position (see defaultPositionIndex)
     showChordPosition(ctx, qualityKey);
 
     document.getElementById("quality-roman").textContent =
@@ -3344,6 +3352,8 @@ button.mode-chip.active:hover { color: var(--parchment); }
       btn.classList.add("pinned");
       emphasizeFretRange(lo, hi);
     }
+    // a chord that is already showing moves to the default position for the new choice (the pinned mode, or the lowest when none is)
+    if (activeChordCtx && !document.getElementById("quality-panel").hidden) { activeChordCtx.posIdx = null; showChordPosition(activeChordCtx, activeChordCtx.selectedQuality); }
   });
 
   // Wrapping the notation to the available width means the very first render
