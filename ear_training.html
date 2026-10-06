@@ -981,7 +981,7 @@ details.settings summary { cursor: pointer; font-size: 11px; letter-spacing: 0.1
     showScore();
   }
   document.addEventListener("pointerdown", () => { gestured = true; }, { once: true });
-  $("int-kbd").addEventListener("pointerdown", (e) => {
+  for (const kbdId of ["int-kbd", "cq-kbd"]) $(kbdId).addEventListener("pointerdown", (e) => {
     const k = e.target.closest && e.target.closest("[data-midi]");
     if (!k) return;
     gestured = true;
