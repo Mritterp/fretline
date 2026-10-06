@@ -4,7 +4,7 @@
 // Patterns from ALTERNATES_FROM (1-based Pos) onward are alternate voicings: shown in the Chord Lab's "Alternate voicings" section
 // and skipped by the position cycling in Sightreading.
 (function () {
-  var DEGREE_IV = { "1": 0, "2": 2, "♭3": 3, "3": 4, "4": 5, "♭5": 6, "5": 7, "°7": 9, "♭7": 10, "7": 11 };
+  var DEGREE_IV = { "1": 0, "2": 2, "♭3": 3, "3": 4, "4": 5, "♭5": 6, "5": 7, "♯5": 8, "°7": 9, "♭7": 10, "7": 11 };
   var OPEN = [40, 45, 50, 55, 59, 64];   // low E .. high e
   var APPROVED = {
     "": [ // major triad
@@ -82,6 +82,15 @@
       ["- - - - - 7","- - - ♭3 5 -","- - - - - -","- - 1 - - -"],   // Pos 4: G-form F = x-x-15-13-13-12
     ],
   };
+  // Augmented triad: the four distinct fingerings found in outside F listings (akordy.kytary.cz /faug, fachords.com f/aug), each once. The chord is stacked major
+  // thirds, so it repeats every 4 frets: the same fingering four frets higher is the same three notes with their roles rotated (a different inversion), which is why the
+  // listings' other shapes (x-8-7-6-6-x, x-x-11-10-10-9, 13-12-11-10-10-x) are left out: they are these moved up 4 or 8 frets. The root is not necessarily the lowest note.
+  APPROVED["+"] = [
+    ["- - - - - 1", "- - - 3 ♯5 -", "- - 1 - - -"],   // Pos 1: D-G-B-e, F = x-x-3-2-2-1
+    ["- - - 3 ♯5 -", "- - 1 - - -", "- ♯5 - - - -"],   // Pos 2: A-D-G-B, F = x-4-3-2-2-x
+    ["- - - 3 - -", "- - 1 - - -", "- ♯5 - - - -", "3 - - - - -"],   // Pos 3: E-A-D-G, F = 5-4-3-2-x-x
+    ["- 1 - - - -", "- - - - - ♯5", "- - - 1 3 -"],   // Pos 4: A + top three strings, F = x-8-x-10-10-9
+  ];
   var ALTERNATES_FROM = { "°7": 4, "Δ7": 6 };
 
   var parsed = {};

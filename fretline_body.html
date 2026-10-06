@@ -1001,11 +1001,12 @@ button.mode-chip.active:hover { color: var(--parchment); }
   // sus2/sus4 have no 3rd at all (bright: null — handled as its own case).
   // Order: major triad, major7, dominant7, minor triad, minor7, sus2, sus4,
   // diminished triad, diminished7, half-diminished7, minor-major7.
-  const QUALITY_ORDER = ["", "Δ7", "7", "-", "-7", "sus2", "sus4", "°", "°7", "ø7", "-Δ7"];
+  const QUALITY_ORDER = ["", "Δ7", "7", "-", "-7", "sus2", "sus4", "°", "+", "°7", "ø7", "-Δ7"];
   const QUALITIES = {
     "":    { desc: "major",             tones: [{ i: 4, role: "third" }, { i: 7, role: "fifth" }], bright: true },
     "-":   { desc: "minor",             tones: [{ i: 3, role: "third" }, { i: 7, role: "fifth" }], bright: false },
     "°":   { desc: "diminished",        tones: [{ i: 3, role: "third" }, { i: 6, role: "fifth" }], bright: false },
+    "+":   { desc: "augmented",         tones: [{ i: 4, role: "third" }, { i: 8, role: "fifth" }], bright: true },
     "sus2":{ desc: "suspended 2nd",     tones: [{ i: 2, role: "second" }, { i: 7, role: "fifth" }], bright: null },
     "sus4":{ desc: "suspended 4th",     tones: [{ i: 5, role: "fourth" }, { i: 7, role: "fifth" }], bright: null },
     "Δ7":  { desc: "major 7",           tones: [{ i: 4, role: "third" }, { i: 7, role: "fifth" }, { i: 11, role: "seventh" }], bright: true },
@@ -1020,7 +1021,7 @@ button.mode-chip.active:hover { color: var(--parchment); }
   // omitted, matching how "[ M3, P5, M7 ]" etc. is conventionally written) —
   // folded into the theory paragraph in describeQuality() instead of a
   // separate static glossary.
-  const INTERVAL_NAME = { 2: "M2", 3: "m3", 4: "M3", 5: "P4", 6: "d5", 7: "P5", 9: "d7", 10: "m7", 11: "M7" };
+  const INTERVAL_NAME = { 2: "M2", 3: "m3", 4: "M3", 5: "P4", 6: "d5", 7: "P5", 8: "A5", 9: "d7", 10: "m7", 11: "M7" };
   function intervalFormula(qualityKey) {
     return "[ " + QUALITIES[qualityKey].tones.map((t) => INTERVAL_NAME[t.i]).join(" / ") + " ]";
   }
@@ -1761,7 +1762,7 @@ button.mode-chip.active:hover { color: var(--parchment); }
   // Grid format: one string per fret row (first row = the pattern's lowest fret),
   // one token per string from low E to high e. A token is a chord-tone degree
   // ("1" "3" "5" "♭3" "♭7" …) or "-" for no note.
-  const DEGREE_IV = { "1": 0, "2": 2, "♭3": 3, "3": 4, "4": 5, "♭5": 6, "5": 7, "°7": 9, "♭7": 10, "7": 11 };
+  const DEGREE_IV = { "1": 0, "2": 2, "♭3": 3, "3": 4, "4": 5, "♭5": 6, "5": 7, "♯5": 8, "°7": 9, "♭7": 10, "7": 11 };
   const APPROVED_PATTERNS = FretlinePatterns.APPROVED;   // the shared list: chord-patterns.js
   const ALTERNATES_FROM = FretlinePatterns.ALTERNATES_FROM;   // the first alternate (1-based Pos) of a quality; the up/down cycling skips those
   const parsedPatterns = {};

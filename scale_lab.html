@@ -253,7 +253,7 @@ main { padding: 14px 24px 50px; max-width: 1500px; margin: 0 auto; }
   // ---- the diatonic chords of the scale, each drawn in its lowest position on the neck ----
   let chordSize = "seventh";
   try { if (localStorage.getItem("fretline-modal-size") === "triad") chordSize = "triad"; } catch (e) {}   // the same choice as the modal chords on the Sightreading page
-  const TRIAD_Q = { "4,7": "", "3,7": "-", "3,6": "°" };
+  const TRIAD_Q = { "4,7": "", "3,7": "-", "3,6": "°", "4,8": "+" };
   const SEVENTH_Q = { "4,7,11": "Δ7", "4,7,10": "7", "3,7,10": "-7", "3,6,10": "ø7", "3,6,9": "°7", "3,7,11": "-Δ7" };
   const OTHER_SYM = { "4,8": "+", "4,8,11": "Δ7♯5", "4,8,10": "7♯5", "4,6,10": "7♭5", "4,6,11": "Δ7♭5", "3,6,11": "°Δ7", "3,8,10": "-7♯5", "3,8,11": "-Δ7♯5", "4,7,9": "6", "3,7,9": "-6" };
   const ROMAN = ["I", "II", "III", "IV", "V", "VI", "VII"];
