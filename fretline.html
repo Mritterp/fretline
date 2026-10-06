@@ -2458,8 +2458,8 @@ button.mode-chip.active:hover { color: var(--parchment); }
     ctx.posIdx = ((ctx.posIdx % list.length) + list.length) % list.length;
     const cur = list[ctx.posIdx], frets = cur.voicing.filter(Boolean).map((v) => v.fret), lo = Math.min(...frets), hi = Math.max(...frets);
     highlightFretboardVoicing(cur.voicing);
-    document.getElementById("pos-label").textContent = "Pos " + (cur.pIdx + 1) + " · " + (lo === hi ? "fret " + lo : "frets " + lo + "–" + hi);
-    document.getElementById("pos-count").textContent = (ctx.posIdx + 1) + " / " + list.length;
+    document.getElementById("pos-label").textContent = "Pos " + (ctx.posIdx + 1) + " · " + (lo === hi ? "fret " + lo : "frets " + lo + "–" + hi);
+    document.getElementById("pos-count").textContent = "of " + list.length;
     bar.hidden = list.length < 2;
   }
   function cycleModalChord(step) {

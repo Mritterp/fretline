@@ -217,11 +217,10 @@ const EXPLICIT_GRIDS = {
 // The map heading notes that each pattern recurs at that interval as another inversion (same shape, the root moves to another note).
 const REPEAT_EVERY = { "Diminished 7": 3 };
 const ALTERNATES_FROM = { "Diminished 7": 4, "Major 7": 6 };
-const MAP_POSITIONS = { "Dominant 7": 5, "Major 7": 5 };   // the map shows only the main positions, not the alternates
 // The map for these qualities uses only the first `positions` patterns and repeats them every `every` frets (roles re-derived from pitch).
 const MAP_REPEAT = { "Diminished 7": { positions: 1, every: 3 } };
 function mapRepeats(rows, rootPc, quality, cfg, maxFret) {
-  return rows.filter((r) => r.pos <= cfg.positions).map((r) => {
+  return rows.filter((r) => r.idx < cfg.positions).map((r) => {
     const base = r.places[0], places = [];
     for (let shift = 0; ; shift += cfg.every) {
       const notes = base.notes.map((n) => {
@@ -405,20 +404,27 @@ function renderPatterns() {
   const templates = explicit ? explicit.map((_, i) => ({ idx: i, form: i < 5 ? POS_TPL[i].form : "X5" })) : POS_TPL;
   templates.forEach((tpl, i) => patternVariants(tpl, quality, opts.stretch).forEach((v) => {
     const places = placements(v, rootPc, opts.maxFret);
-    if (places.length) rows.push({ pos: i + 1, form: tpl.form, label: v.label, places });
+    if (places.length) rows.push({ idx: i, form: tpl.form, label: v.label, places });
   }));
+  // Positions are numbered for this root, from the nut up: Pos 1 is the pattern that sits lowest on the neck (ties keep the order in the data).
+  // Alternate voicings (ALTERNATES_FROM: the data entries from that 1-based number on) come after the primary positions, in the same way.
+  const altFrom = ALTERNATES_FROM[quality.name] ? ALTERNATES_FROM[quality.name] - 1 : Infinity;
+  rows.forEach((r) => { r.primary = r.idx < altFrom; });
+  const byFret = (a, b) => a.places[0].f - b.places[0].f || a.idx - b.idx;
+  const ordered = rows.filter((r) => r.primary).sort(byFret).concat(rows.filter((r) => !r.primary).sort(byFret));
+  ordered.forEach((r, k) => { r.pos = k + 1; });
+  rows.length = 0; ordered.forEach((r) => rows.push(r));
 
   const html = [];
-  const firstPerPos = [], seenPos = new Set();
-  rows.forEach((r) => { if (r.pos <= (MAP_POSITIONS[quality.name] || 99) && !seenPos.has(r.pos)) { seenPos.add(r.pos); firstPerPos.push(r); } });
+  const firstPerPos = rows.filter((r) => r.primary), nPrimary = firstPerPos.length;   // the map shows the primary positions only
   html.push(`<section class="group"><h2>${ROOTS[rootPc]} ${scale[0]} scale<span>the scale this chord sits inside · numbers are scale degrees</span></h2>`);
   rows.forEach((r) => {
-    if (ALTERNATES_FROM[quality.name] === r.pos && !html.some((h) => h.includes("alt-title"))) html.push(`<h3 class="alt-title">Alternate voicings</h3>`);
+    if (!r.primary && !html.some((h) => h.includes("alt-title"))) html.push(`<h3 class="alt-title">Alternate voicings</h3>`);
     html.push(`<div class="row"><div class="rowhead"><div class="title">Pos ${r.pos}.${r.label ? `<span class="order">${r.label}</span>` : ""}</div></div>${patternRowSVG(r, scale, rootPc, opts.maxFret)}</div>`);
   });
   html.push("</section>");
   if (!rows.length) html.push(`<div class="empty">No fingerable patterns with these settings.</div>`);
-  html.push(`<section class="group"><h2>Map up the neck<span>${ROOTS[rootPc]}${quality.sym} · positions in order Pos 1 → ${Math.min(templates.length, MAP_POSITIONS[quality.name] || 99)}</span></h2><div class="row">${overviewSVG(MAP_REPEAT[quality.name] ? mapRepeats(firstPerPos, rootPc, quality, MAP_REPEAT[quality.name], opts.maxFret) : firstPerPos, opts.maxFret)}${REPEAT_EVERY[quality.name] ? `<div class="repeat-note">Each pattern repeats every ${REPEAT_EVERY[quality.name]} frets with a different inversion</div>` : ""}</div></section>`);
+  html.push(`<section class="group"><h2>Map up the neck<span>${ROOTS[rootPc]}${quality.sym} · positions in order Pos 1 → ${nPrimary}</span></h2><div class="row">${overviewSVG(MAP_REPEAT[quality.name] ? mapRepeats(firstPerPos, rootPc, quality, MAP_REPEAT[quality.name], opts.maxFret) : firstPerPos, opts.maxFret)}${REPEAT_EVERY[quality.name] ? `<div class="repeat-note">Each pattern repeats every ${REPEAT_EVERY[quality.name]} frets with a different inversion</div>` : ""}</div></section>`);
   $("out").innerHTML = html.join("");
   const nPlace = rows.reduce((n, r) => n + r.places.length, 0);
   $("summary").textContent = `${ROOTS[rootPc]}${quality.sym} (${quality.name}) — ${rows.length} pattern row${rows.length === 1 ? "" : "s"}, ${nPlace} placements on frets 0–${opts.maxFret}`;
