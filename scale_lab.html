@@ -75,14 +75,16 @@ main { padding: 14px 24px 50px; max-width: 1500px; margin: 0 auto; }
 .chords-head h3 { margin: 0; font-family: var(--font-display); font-weight: 400; font-size: 20px; }
 .chordgrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(290px, 1fr)); gap: 12px; }
 .chordcard { background: #f9f5ee; border: 1px solid #e3dac6; padding: 8px 10px 4px; }
-.chordcard[data-chord]:not([data-chord=""]) { cursor: pointer; }
-.chead { display: flex; align-items: baseline; gap: 10px; margin-bottom: 4px; padding: 2px 0 4px; cursor: pointer; }
-.chead[data-chord=""] { cursor: default; }
+.chead { display: flex; align-items: baseline; gap: 10px; margin-bottom: 4px; padding: 2px 0 4px; }
 .chead:hover .cname { color: var(--root); }
 .cband { fill: #b07a5a; fill-opacity: 0.06; transition: fill-opacity 120ms ease-out; pointer-events: none; }
 .cband.on { fill-opacity: 0.2; }
 .clane { font-size: 8px; letter-spacing: 0.08em; fill: #8A9E7E; pointer-events: none; }
 .cstart { font-size: 10px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--moss); display: inline-flex; align-items: center; gap: 6px; }
+.cstart .step { font: inherit; font-size: 15px; line-height: 1; letter-spacing: 0; padding: 3px 9px; border: 1px solid var(--wheat); background: transparent; color: var(--moss); cursor: pointer; }
+.cstart .step:hover { border-color: var(--sage); color: var(--bark); }
+.cstart input { font: inherit; font-size: 12px; letter-spacing: 0; width: 46px; text-align: center; padding: 4px 4px; background: var(--parchment); border: 1px solid var(--wheat); color: var(--bark); appearance: textfield; -moz-appearance: textfield; }
+.cstart input::-webkit-outer-spin-button, .cstart input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
 .cstart select { font: inherit; font-size: 12px; letter-spacing: 0; text-transform: none; padding: 3px 6px; background: var(--parchment); border: 1px solid var(--wheat); color: var(--bark); }
 .cnum { font-family: var(--font-display); font-size: 15px; color: var(--moss); min-width: 34px; }
 .cname { font: inherit; font-family: var(--font-display); font-size: 18px; border: 0; background: transparent; color: var(--bark); cursor: pointer; padding: 0; }
@@ -130,7 +132,7 @@ main { padding: 14px 24px 50px; max-width: 1500px; margin: 0 auto; }
     <div class="chords-head">
       <h3>Diatonic chords</h3>
       <span class="seg" role="group" aria-label="Chord size"><button type="button" id="size-triad" aria-pressed="false">Triads</button><button type="button" id="size-seventh" aria-pressed="true">7th chords</button></span>
-      <label class="cstart">Start fret <select id="chord-start"></select></label>
+      <span class="cstart">Start fret <button type="button" class="step" id="start-down" aria-label="Start one fret lower" title="One fret lower">‹</button><input id="chord-start" type="number" min="0" max="20" step="1" inputmode="numeric" aria-label="Start fret (0 is the open position)" title="Type a fret, 0 is the open position"><button type="button" class="step" id="start-up" aria-label="Start one fret higher" title="One fret higher">›</button></span>
       <span class="hint" style="font-size:11px;color:var(--moss)">each in its lowest position from the start fret · click a chord title to hear it</span>
     </div>
     <div class="chordgrid" id="chordgrid"></div>
@@ -300,7 +302,7 @@ main { padding: 14px 24px 50px; max-width: 1500px; margin: 0 auto; }
     return `<svg viewBox="0 0 ${W} ${H}" role="img" data-safe="${safe.join(",")}">${p.join("")}</svg>`;
   }
   let chordStart = 0;   // the lowest fret a chord pattern may use (0 = open position)
-  try { const v = parseInt(localStorage.getItem("fretline-scale-chord-start"), 10); if (v >= 0 && v <= 12) chordStart = v; } catch (e) {}
+  try { const v = parseInt(localStorage.getItem("fretline-scale-chord-start"), 10); if (v >= 0 && v <= 20) chordStart = v; } catch (e) {}
   // where each chord sits: its lowest pattern at or above the start fret, plus the fret bands the fretboard shows faintly
   function planChords(rootPc, rootName, sc, maxFret) {
     const chords = diatonicChords(sc, chordSize);
@@ -466,23 +468,33 @@ main { padding: 14px 24px 50px; max-width: 1500px; margin: 0 auto; }
   }
   $("play").addEventListener("click", playScale);
   $("board").addEventListener("pointerdown", (e) => { const d = e.target.closest && e.target.closest("[data-midi]"); if (d) playMidi(+d.dataset.midi); });
-  $("chordgrid").addEventListener("pointerdown", (e) => {   // a note on a chord diagram plays that note; the chord's name plays the whole chord
+  // What a click here would do: a note on a chord diagram plays that note; away from the fretboard (and its margin) anywhere on a card plays the whole chord;
+  // inside the fretboard, off a note, nothing happens
+  function chordClick(e) {
     const n = e.target.closest && e.target.closest(".cdot"), card = e.target.closest && e.target.closest(".chordcard");
-    if (n) { playMidi(+n.dataset.midi); return; }
-    if (!card || !card.dataset.chord) return;
+    if (n) return { note: +n.dataset.midi };
+    if (!card || !card.dataset.chord) return null;
     const svg = e.target.closest("svg");
-    if (svg && svg.dataset.safe) {   // inside the fretboard (plus its margin) only a note plays; everywhere else on the card plays the whole chord
+    if (svg && svg.dataset.safe) {
       const pt = svg.createSVGPoint(); pt.x = e.clientX; pt.y = e.clientY;
       const q = pt.matrixTransform(svg.getScreenCTM().inverse()), [xa, ya, xb, yb] = svg.dataset.safe.split(",").map(Number);
-      if (q.x >= xa && q.x <= xb && q.y >= ya && q.y <= yb) return;
+      if (q.x >= xa && q.x <= xb && q.y >= ya && q.y <= yb) return null;
     }
-    playChordMidis(card.dataset.chord.split(",").map(Number));
-  });
+    return { chord: card.dataset.chord.split(",").map(Number) };
+  }
+  $("chordgrid").addEventListener("pointerdown", (e) => { const c = chordClick(e); if (!c) return; if (c.note !== undefined) playMidi(c.note); else playChordMidis(c.chord); });
+  $("chordgrid").addEventListener("mousemove", (e) => { $("chordgrid").style.cursor = chordClick(e) ? "pointer" : "default"; });   // the pointing hand only where a click makes a sound
   const lightBand = (card, on) => { if (!card) return; document.querySelectorAll("#board .cband").forEach((b) => b.classList.toggle("on", on && b.dataset.c.split(" ").includes(card.dataset.k))); };
   $("chordgrid").addEventListener("mouseover", (e) => lightBand(e.target.closest && e.target.closest(".chordcard"), true));
   $("chordgrid").addEventListener("mouseleave", () => document.querySelectorAll("#board .cband.on").forEach((b) => b.classList.remove("on")));
-  for (let fr = 0; fr <= 12; fr++) { const o = document.createElement("option"); o.value = String(fr); o.textContent = fr === 0 ? "open" : String(fr); $("chord-start").appendChild(o); }
-  $("chord-start").addEventListener("change", () => { chordStart = +$("chord-start").value; try { localStorage.setItem("fretline-scale-chord-start", String(chordStart)); } catch (e) {} render(); });
+  const setStart = (v) => {   // 0 is the open position; anything typed is rounded and kept between 0 and 20
+    v = Math.max(0, Math.min(20, Math.round(+v) || 0));
+    if (v !== chordStart) { chordStart = v; try { localStorage.setItem("fretline-scale-chord-start", String(chordStart)); } catch (e) {} }
+    render();   // also puts a tidied-up number back in the box
+  };
+  $("start-down").addEventListener("click", () => setStart(chordStart - 1));
+  $("start-up").addEventListener("click", () => setStart(chordStart + 1));
+  $("chord-start").addEventListener("change", () => setStart($("chord-start").value));
   const setChordSize = (size) => { chordSize = size; try { localStorage.setItem("fretline-modal-size", size); } catch (e) {} render(); };
   $("size-triad").addEventListener("click", () => setChordSize("triad"));
   $("size-seventh").addEventListener("click", () => setChordSize("seventh"));
