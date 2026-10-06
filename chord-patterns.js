@@ -98,6 +98,13 @@
     ["- 1 - - - -", "- - - 7 - -", "- - - - 3 -", "- - ♯5 - - -"],   // Pos 3: F = x-8-11-9-10-x
     ["- - - - - 7", "- - - - - -", "- - - 3 ♯5 -", "- - 1 - - -"],   // Pos 4: F = x-x-15-14-14-12 (x-x-3-2-2-0)
   ];
+  // Dominant 7sus4: F listings on akordy.kytary.cz /en/chord/f7sus4 and fachords.com f/7sus4 (three shapes both list; the fourth is akordy only).
+  APPROVED["7sus4"] = [
+    ["- - - - 1 -", "- - - - - -", "- 1 4 ♭7 - -"],   // Pos 1: F = x-8-8-8-6-x
+    ["1 - ♭7 - 5 1", "- - - - - -", "- 5 - 4 - -"],   // Pos 2: F = 1-3-1-3-1-1
+    ["- 1 - ♭7 - 5", "- - - - - -", "- - 5 - - -", "- - - - 4 -"],   // Pos 3: F = x-8-10-8-11-8
+    ["- - 5 1 - -", "- - - - 4 ♭7"],   // Pos 4: F = x-x-10-10-11-11
+  ];
   var ALTERNATES_FROM = { "°7": 4, "Δ7": 6 };
 
   var parsed = {};
