@@ -56,7 +56,7 @@ main { max-width: 1100px; margin: 0 auto; padding: 10px 16px 24px; }
 .hint { font-size: 12px; color: var(--sage); }
 
 .answers { display: grid; gap: 6px; margin-top: 6px; }
-#int-answers { grid-template-columns: repeat(6, 1fr); }
+#int-answers, #cq-answers { grid-template-columns: repeat(6, 1fr); }
 .ans { font: inherit; font-size: 11px; letter-spacing: 0.05em; text-transform: uppercase; padding: 10px 4px; border: 1px solid var(--wheat); background: #fff; color: var(--bark); cursor: pointer; border-radius: 18px; }
 .ans:hover:not(:disabled) { border-color: var(--sage); background: var(--linen); }
 .ans.right { background: var(--good-bg); border-color: var(--good); color: var(--good); font-weight: 700; }
@@ -99,11 +99,11 @@ details.settings summary { cursor: pointer; font-size: 11px; letter-spacing: 0.1
 .chips { display: flex; flex-wrap: wrap; gap: 6px; }
 .chip { font: inherit; font-size: 12px; padding: 6px 10px; border: 1px solid var(--wheat); background: transparent; color: var(--sage); cursor: pointer; border-radius: 14px; }
 .chip[aria-pressed="true"] { background: var(--bark); border-color: var(--bark); color: var(--parchment); }
-@media (max-width: 1000px) { #int-answers { grid-template-columns: repeat(4, 1fr); } }
+@media (max-width: 1000px) { #int-answers, #cq-answers { grid-template-columns: repeat(4, 1fr); } }
 @media (max-width: 700px) {
   main { padding: 12px 10px 50px; }
   /* phones: the answer list scrolls inside its own box so the buttons stay a readable, tappable size */
-  #int-answers { grid-template-columns: repeat(2, 1fr); max-height: 38vh; overflow-y: auto; padding: 2px; }
+  #int-answers, #cq-answers { grid-template-columns: repeat(2, 1fr); max-height: 38vh; overflow-y: auto; padding: 2px; }
   .ans { font-size: 12px; padding: 12px 4px; }
   .slot { grid-template-columns: 1fr; }
   .slot .answers { grid-template-columns: repeat(2, 1fr); }
@@ -130,7 +130,8 @@ details.settings summary { cursor: pointer; font-size: 11px; letter-spacing: 0.1
 <main>
   <div class="modes" role="group" aria-label="Exercise">
     <button type="button" class="mode" id="mode-int" aria-pressed="true">Intervals</button>
-    <button type="button" class="mode" id="mode-chd" aria-pressed="false">Chord progressions</button>
+    <button type="button" class="mode" id="mode-cq" aria-pressed="false">Chords</button>
+    <button type="button" class="mode" id="mode-chd" aria-pressed="false">Progressions</button>
   </div>
 
   <div class="scorebar"><span id="score">—</span><button type="button" class="linkbtn" id="reset">Reset score</button></div>
@@ -154,10 +155,29 @@ details.settings summary { cursor: pointer; font-size: 11px; letter-spacing: 0.1
     </div>
   </section>
 
-  <!-- ===== Chord progressions ===== -->
+  <!-- ===== Chords ===== -->
+  <section id="view-cq" hidden>
+    <div class="card">
+      <h2>Chord Identification</h2>
+      <div class="sub" id="cq-sub"></div>
+      <div class="staff" id="cq-staff"></div>
+      <div class="kbd-wrap" id="cq-kbd"></div>
+      <div class="status hint" id="cq-status">Press Play to hear a chord, then pick its quality.</div>
+      <div class="answers" id="cq-answers"></div>
+      <div class="actions">
+        <div class="left">
+          <button type="button" class="btn ghost" id="cq-skip">Skip</button>
+          <button type="button" class="btn ghost" id="cq-repeat">Repeat</button>
+        </div>
+        <div class="right"><span class="hint" id="cq-count"></span><button type="button" class="btn" id="cq-next">Play</button></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== Progressions ===== -->
   <section id="view-chd" hidden>
     <div class="card">
-      <h2>Chord Progression</h2>
+      <h2>Progression Identification</h2>
       <div class="sub" id="chd-sub"></div>
       <div class="status hint" id="chd-status"></div>
       <div id="chd-slots"></div>
@@ -187,6 +207,11 @@ details.settings summary { cursor: pointer; font-size: 11px; letter-spacing: 0.1
       <div class="setrow"><label>Root note register from <select id="reg-lo"></select></label><label>to <select id="reg-hi"></select></label><span class="hint">the lower note of each interval falls from the first C to the last B of these registers (default C2–C5); the upper note can reach C8</span></div>
       <div class="setgroup"><h3>Directions</h3><div class="chips" id="dir-chips"></div></div>
       <div class="setgroup"><h3>Intervals <button type="button" class="linkbtn" id="int-all">all</button><button type="button" class="linkbtn" id="int-none">none</button><button type="button" class="linkbtn" id="int-simple">within an octave</button></h3><div class="chips" id="int-chips"></div></div>
+    </div>
+    <div id="set-cq" hidden>
+      <div class="setrow"><label>Root note register from <select id="cq-lo"></select></label><label>to <select id="cq-hi"></select></label></div>
+      <div class="setgroup"><h3>Playback</h3><div class="chips" id="cq-style-chips"></div></div>
+      <div class="setgroup"><h3>Chord qualities <button type="button" class="linkbtn" id="cq-all">all</button><button type="button" class="linkbtn" id="cq-none">none</button></h3><div class="chips" id="cq-chips"></div></div>
     </div>
     <div id="set-chd" hidden>
       <div class="setrow"><label>Chords per question <select id="n-chords"><option>2</option><option>3</option><option>4</option><option>5</option><option>6</option></select></label>
@@ -257,10 +282,13 @@ details.settings summary { cursor: pointer; font-size: 11px; letter-spacing: 0.1
     tone: "triangle", volume: 80, mode: "int",
     dirs: ["up", "down", "both"], ints: INTERVALS.map((i) => i.n),
     nNotes: 2, regLo: 2, regHi: 5, nChords: 4, diatonic: false, mapProg: false, mapStyle: "jazz", mapLevel: 3, scales: ["major", "minor"], quals: ["maj", "min", "dim", "maj7", "dom7", "min7", "hdim7"],
-    score: { int: { ok: 0, n: 0 }, chd: { ok: 0, n: 0, chordsOk: 0, chords: 0 } },
+    cqLo: 3, cqHi: 5, cqStyles: ["harm", "arp"],
+    cqQuals: ["maj", "min", "dim", "aug", "sus2", "sus4", "maj7", "dom7", "min7", "hdim7", "dim7", "mmaj7", "maj6", "min6", "sus7", "dom7b5"],
+    score: { int: { ok: 0, n: 0 }, cq: { ok: 0, n: 0 }, chd: { ok: 0, n: 0, chordsOk: 0, chords: 0 } },
   });
   let S = defaults();
   try { const raw = JSON.parse(localStorage.getItem("fretline-ear") || "null"); if (raw) S = Object.assign(defaults(), raw); } catch (e) {}
+  if (!S.score.cq) S.score.cq = { ok: 0, n: 0 };
   if (!S.unison) { S.unison = true; if (Array.isArray(S.ints) && !S.ints.includes(0)) S.ints.unshift(0); }
   if (!S.reg25) { S.reg25 = true; if (S.regLo === 1 && S.regHi === 6) { S.regLo = 2; S.regHi = 5; } }   // the old default register (C1–C6) moves to the new one (C2–C5); a register you chose yourself is kept
   const save = () => { try { localStorage.setItem("fretline-ear", JSON.stringify(S)); } catch (e) {} };
@@ -559,6 +587,71 @@ details.settings summary { cursor: pointer; font-size: 11px; letter-spacing: 0.1
     if (Q.multi) { $("int-next").textContent = Q.step < Q.nSteps ? "Next interval" : "Next"; if (Q.step >= Q.nSteps) $("int-status").textContent += " That was the last interval: press Next for new notes."; }
   }
 
+  // ======================= Chords (name the quality of one chord) =======================
+  let CQ = null, cqAnswered = false;
+  const cqBtns = [];
+  const CQ_STYLES = [{ id: "harm", name: "Harmonic (all at once)" }, { id: "arp", name: "Arpeggiated (up)" }];
+  const cqFlat = (root, q) => [1, 3, 5, 8, 10].includes(mod(root)) || ([0, 2, 7].includes(mod(root)) && q.iv[1] === 3);   // spell with flats where that is the usual spelling
+  const cqName = (m) => noteName(m, CQ.flat).replace(/\d/, "");
+  function buildCqButtons() {
+    const host = $("cq-answers"); host.innerHTML = ""; cqBtns.length = 0;
+    ALLQ.filter((q) => S.cqQuals.includes(q.id)).forEach((q) => {
+      const b = document.createElement("button");
+      b.type = "button"; b.className = "ans"; b.textContent = q.name; b.dataset.q = q.id;
+      b.addEventListener("click", () => { if (cqAnswered) auditionCq(q, b); else answerCq(q.id, b); });
+      host.appendChild(b); cqBtns.push(b);
+    });
+  }
+  function updateCqSub() { $("cq-sub").textContent = CQ_STYLES.filter((x) => S.cqStyles.includes(x.id)).map((x) => x.name.toLowerCase()).join(" / ") + " · roots C" + S.cqLo + "–C" + S.cqHi; }
+  function playCqNotes(notes, style, t) {
+    if (style === "arp") notes.forEach((m, i) => tone(m, t + i * 0.45, 1.3, 0.22));
+    else notes.forEach((m) => tone(m, t, 1.8, 0.14));
+  }
+  function playCq() { if (!CQ) return; cancelPlay(); playCqNotes(CQ.notes, CQ.style, audio().currentTime + 0.05); }
+  function drawCqVisuals() {
+    if (!CQ) return;
+    const arp = CQ.style === "arp", n = CQ.notes.length;
+    if (!cqAnswered) {   // only the root is shown until you answer
+      renderStaff($("cq-staff"), [[CQ.root]], CQ.flat, undefined, CQ.notes, arp ? n : 1);
+      renderKeyboard($("cq-kbd"), [{ midi: CQ.root, label: cqName(CQ.root) }]);
+    } else {
+      renderStaff($("cq-staff"), arp ? CQ.notes.map((m) => [m]) : [CQ.notes], CQ.flat, undefined, CQ.notes);
+      renderKeyboard($("cq-kbd"), CQ.notes.map((m) => ({ midi: m, label: cqName(m) })));
+    }
+  }
+  function newChordQ(autoplay) {
+    cancelPlay();
+    const pool = ALLQ.filter((q) => S.cqQuals.includes(q.id));
+    if (!pool.length || !S.cqStyles.length) { $("cq-status").className = "status bad"; $("cq-status").textContent = "Turn on at least one chord quality and one playback style in Settings."; CQ = null; return; }
+    const rootMin = Math.max(LOW, 12 * (S.cqLo + 1)), rootMax = Math.min(HIGH - 12, 12 * (S.cqHi + 1) + 11);
+    const q = pick(pool), root = rootMin + rnd(rootMax - rootMin + 1);
+    CQ = { q, root, style: pick(S.cqStyles), flat: cqFlat(root, q), notes: q.iv.map((i) => root + i) };
+    cqAnswered = false;
+    cqBtns.forEach((b) => { b.className = "ans"; b.disabled = false; });
+    $("cq-status").className = "status hint"; $("cq-status").textContent = "What kind of chord was that?";
+    $("cq-next").textContent = "Next"; $("cq-next").disabled = false;
+    drawCqVisuals();
+    if (autoplay && gestured) playCq(); else $("cq-status").textContent = "Press Repeat to hear the chord, then pick its quality.";
+  }
+  function answerCq(id, btn) {
+    if (!CQ || cqAnswered) return;
+    cqAnswered = true;
+    const ok = id === CQ.q.id;
+    S.score.cq.n++; if (ok) S.score.cq.ok++; save(); showScore();
+    cqBtns.forEach((b) => { if (b.dataset.q === CQ.q.id) b.classList.add("right"); });
+    if (!ok) btn.classList.add("wrong");
+    $("cq-status").className = "status " + (ok ? "good" : "bad");
+    $("cq-status").textContent = (ok ? "Correct! " : "Not quite. ") + "That was " + cqName(CQ.root) + " " + CQ.q.name + " (" + (CQ.style === "arp" ? "arpeggiated" : "harmonic") + "): " + CQ.notes.map(cqName).join(" ") + ". Click any quality to hear it from the same root.";
+    drawCqVisuals();
+    $("cq-next").disabled = false;
+  }
+  function auditionCq(q, btn) {   // after answering, any quality can be heard from the same root, played the same way
+    if (!CQ) return;
+    gestured = true; cancelPlay();
+    cqBtns.forEach((b) => b.classList.remove("heard")); btn.classList.add("heard");
+    playCqNotes(q.iv.map((i) => CQ.root + i), CQ.style, audio().currentTime + 0.05);
+  }
+
   // ======================= Chord progressions =======================
   let C = null, cChecked = false;
   const ROMAN = ["I", "II", "III", "IV", "V", "VI", "VII"], NUM_WORD = ["", "", "two", "three", "four", "five", "six"];
@@ -572,7 +665,8 @@ details.settings summary { cursor: pointer; font-size: 11px; letter-spacing: 0.1
   }
   const rootName = (pc) => NAME_FLAT[mod(pc)];
   const CHROM = ["I", "♭II", "II", "♭III", "III", "IV", "♯IV", "V", "♭VI", "VI", "♭VII", "VII"];   // numerals for the map's progressions: the degree is the number of semitones above the tonic
-  const ALLQ = QUALS.concat([{ id: "sus7", name: "Dominant 7 sus4", sym: "7sus4", iv: [0, 5, 7, 10] }, { id: "dom7b5", name: "Dominant 7♭5", sym: "7♭5", iv: [0, 4, 6, 10] }]);
+  const ALLQ = QUALS.concat([{ id: "sus7", name: "Dominant 7 sus4", sym: "7sus4", iv: [0, 5, 7, 10] }, { id: "dom7b5", name: "Dominant 7♭5", sym: "7♭5", iv: [0, 4, 6, 10] },
+    { id: "aug", name: "Augmented", sym: "+", iv: [0, 4, 8] }, { id: "maj6", name: "Major 6", sym: "6", iv: [0, 4, 7, 9] }, { id: "min6", name: "Minor 6", sym: "-6", iv: [0, 3, 7, 9] }]);
   const qualOf = (id) => ALLQ.find((q) => q.id === id);
   const chordLabel = (ch) => (C && C.map ? CHROM[ch.deg] : ROMAN[ch.deg]) + " · " + rootName(ch.pc) + " " + qualOf(ch.q).name + (ch.fn ? " (" + ch.fn + ")" : "");
 
@@ -847,8 +941,10 @@ details.settings summary { cursor: pointer; font-size: 11px; letter-spacing: 0.1
     const s = S.score;
     $("score").innerHTML = S.mode === "int"
       ? (s.int.n ? `Correct <b>${s.int.ok} / ${s.int.n}</b> · ${Math.round((100 * s.int.ok) / s.int.n)}%` : "No answers yet")
+      : S.mode === "cq" ? (s.cq.n ? `Correct <b>${s.cq.ok} / ${s.cq.n}</b> · ${Math.round((100 * s.cq.ok) / s.cq.n)}%` : "No answers yet")
       : (s.chd.n ? `Progressions <b>${s.chd.ok} / ${s.chd.n}</b> · chords ${s.chd.chordsOk} / ${s.chd.chords} (${Math.round((100 * s.chd.chordsOk) / s.chd.chords)}%)` : "No answers yet");
     $("int-count").textContent = s.int.n ? `${s.int.n} answered` : "";
+    $("cq-count").textContent = s.cq.n ? `${s.cq.n} answered` : "";
   }
   function chipSet(host, items, selected, label, onChange) {
     host.innerHTML = "";
@@ -869,12 +965,13 @@ details.settings summary { cursor: pointer; font-size: 11px; letter-spacing: 0.1
   function onChdSettings() { newChords(false); }
   function setMode(m) {
     S.mode = m; save(); cancelPlay();
-    $("mode-int").setAttribute("aria-pressed", String(m === "int")); $("mode-chd").setAttribute("aria-pressed", String(m === "chd"));
-    $("view-int").hidden = m !== "int"; $("view-chd").hidden = m !== "chd";
-    $("set-int").hidden = m !== "int"; $("set-chd").hidden = m !== "chd";
+    $("mode-int").setAttribute("aria-pressed", String(m === "int")); $("mode-cq").setAttribute("aria-pressed", String(m === "cq")); $("mode-chd").setAttribute("aria-pressed", String(m === "chd"));
+    $("view-int").hidden = m !== "int"; $("view-cq").hidden = m !== "cq"; $("view-chd").hidden = m !== "chd";
+    $("set-int").hidden = m !== "int"; $("set-cq").hidden = m !== "cq"; $("set-chd").hidden = m !== "chd";
     document.querySelectorAll(".keys .chd-only").forEach((el) => { el.hidden = m !== "chd"; });
     if (m === "chd" && !C) newChords(false);
-    if (m === "int") drawIntervalVisuals();                       // sizes are only measurable while the view is visible
+    if (m === "cq") { if (CQ) drawCqVisuals(); else newChordQ(false); }
+    else if (m === "int") drawIntervalVisuals();                  // sizes are only measurable while the view is visible
     else if (C) { drawYouStaff(); drawCorrectStaff(); }
     showScore();
   }
@@ -889,6 +986,7 @@ details.settings summary { cursor: pointer; font-size: 11px; letter-spacing: 0.1
     setTimeout(() => k.setAttribute("fill", was), 180);
   });
   $("mode-int").addEventListener("click", () => setMode("int"));
+  $("mode-cq").addEventListener("click", () => setMode("cq"));
   $("mode-chd").addEventListener("click", () => setMode("chd"));
   $("reset").addEventListener("click", () => { S.score = defaults().score; save(); showScore(); });
   $("tone").value = S.tone; $("volume").value = S.volume;
@@ -897,6 +995,9 @@ details.settings summary { cursor: pointer; font-size: 11px; letter-spacing: 0.1
   $("int-next").addEventListener("click", () => nextInterval());
   $("int-skip").addEventListener("click", () => newInterval(true));
   $("int-repeat").addEventListener("click", () => { gestured = true; playInterval(); });
+  $("cq-next").addEventListener("click", () => newChordQ(true));
+  $("cq-skip").addEventListener("click", () => newChordQ(true));
+  $("cq-repeat").addEventListener("click", () => { gestured = true; playCq(); });
   $("chd-next").addEventListener("click", () => newChords(true));
   $("chd-skip").addEventListener("click", () => newChords(true));
   $("chd-repeat").addEventListener("click", () => { gestured = true; playChords(true); });
@@ -937,6 +1038,22 @@ details.settings summary { cursor: pointer; font-size: 11px; letter-spacing: 0.1
   $("int-all").addEventListener("click", () => { S.ints = INTERVALS.map((i) => i.n); save(); refreshIntervalChips(); onIntSettings(); });
   $("int-none").addEventListener("click", () => { S.ints = []; save(); refreshIntervalChips(); onIntSettings(); });
   $("int-simple").addEventListener("click", () => { S.ints = INTERVALS.filter((i) => i.n <= 12).map((i) => i.n); save(); refreshIntervalChips(); onIntSettings(); });
+  for (const id of ["cq-lo", "cq-hi"]) for (let r = 1; r <= 6; r++) { const o = document.createElement("option"); o.value = r; o.textContent = "C" + r; $(id).appendChild(o); }
+  $("cq-lo").value = String(S.cqLo); $("cq-hi").value = String(S.cqHi);
+  const onCqSettings = () => { updateCqSub(); buildCqButtons(); newChordQ(false); };
+  const onCqRegister = (changed) => {
+    S.cqLo = +$("cq-lo").value; S.cqHi = +$("cq-hi").value;
+    if (S.cqLo > S.cqHi) { if (changed === "lo") S.cqHi = S.cqLo; else S.cqLo = S.cqHi; }
+    $("cq-lo").value = String(S.cqLo); $("cq-hi").value = String(S.cqHi);
+    save(); onCqSettings();
+  };
+  $("cq-lo").addEventListener("change", () => onCqRegister("lo"));
+  $("cq-hi").addEventListener("change", () => onCqRegister("hi"));
+  chipSet($("cq-style-chips"), CQ_STYLES, () => S.cqStyles, (d) => d.name, onCqSettings);
+  const cqChips = () => chipSet($("cq-chips"), ALLQ, () => S.cqQuals, (q) => q.name, onCqSettings);
+  cqChips();
+  $("cq-all").addEventListener("click", () => { S.cqQuals = ALLQ.map((q) => q.id); save(); cqChips(); onCqSettings(); });
+  $("cq-none").addEventListener("click", () => { S.cqQuals = []; save(); cqChips(); onCqSettings(); });
   chipSet($("dir-chips"), DIRS, () => S.dirs, (d) => d.name, onIntSettings);
   refreshIntervalChips();
   chipSet($("scale-chips"), SCALES, () => S.scales, (s) => s.name, onChdSettings);
@@ -950,17 +1067,19 @@ details.settings summary { cursor: pointer; font-size: 11px; letter-spacing: 0.1
     if (e.key.toLowerCase() === "a" && !e.ctrlKey && !e.metaKey && !e.altKey) { aHeld = true; return; }
     if (e.ctrlKey || e.metaKey || e.altKey) return;
     const key = e.key.toLowerCase();
-    if (key === "s") { gestured = true; S.mode === "int" ? newInterval(true) : newChords(true); return; }
+    if (key === "s") { gestured = true; S.mode === "int" ? newInterval(true) : S.mode === "cq" ? newChordQ(true) : newChords(true); return; }
     if (key === "c" && S.mode === "chd") { gestured = true; playChords(false); return; }
-    if (e.key === " " || key === "r") { e.preventDefault(); gestured = true; S.mode === "int" ? playInterval() : playChords(true); }
+    if (e.key === " " || key === "r") { e.preventDefault(); gestured = true; S.mode === "int" ? playInterval() : S.mode === "cq" ? playCq() : playChords(true); }
     else if (e.key === "Enter" || key === "n") {
       gestured = true;
       if (S.mode === "int") nextInterval();
+      else if (S.mode === "cq") newChordQ(true);
       else if (e.key === "Enter" && !cChecked && !$("chd-check").disabled) checkChords();   // Enter checks a finished answer; N (or Enter otherwise) moves on
       else newChords(true);
     }
   });
   updateIntSub(); buildIntervalButtons(); newInterval(false);
-  setMode(S.mode === "chd" ? "chd" : "int");
+  updateCqSub(); buildCqButtons();
+  setMode(S.mode === "chd" ? "chd" : S.mode === "cq" ? "cq" : "int");
 })();
 </script>
