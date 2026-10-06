@@ -80,6 +80,7 @@ main { padding: 14px 24px 50px; max-width: 1500px; margin: 0 auto; }
 .cname { font: inherit; font-family: var(--font-display); font-size: 18px; border: 0; background: transparent; color: var(--bark); cursor: pointer; padding: 0; }
 .cname:hover { color: var(--root); }
 .cpos { margin-left: auto; font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--sage); }
+.chordcard.sus { border-style: dashed; }
 .chordcard svg { display: block; width: 100%; height: auto; }
 .cnone { font-size: 11px; color: var(--sage); padding: 14px 0 12px; }
 .cdot { cursor: pointer; }
@@ -251,7 +252,7 @@ main { padding: 14px 24px 50px; max-width: 1500px; margin: 0 auto; }
   const CHORD_IV = { 0: "1", 2: "2", 3: "♭3", 4: "3", 5: "4", 6: "♭5", 7: "5", 8: "♯5", 9: "°7", 10: "♭7", 11: "7" };
   function diatonicChords(sc, size) {   // a chord stacked in thirds on every degree of a seven-note scale
     if (sc.semis.length !== 7) return null;
-    return sc.semis.map((semi, i) => {
+    const stacked = sc.semis.map((semi, i) => {
       const at = (k) => sc.semis[(i + k) % 7] + 12 * Math.floor((i + k) / 7);
       const rel = [at(2) - semi, at(4) - semi].concat(size === "seventh" ? [at(6) - semi] : []).map(mod), key = rel.join(",");
       const q = (size === "seventh" ? SEVENTH_Q : TRIAD_Q)[key];
@@ -260,6 +261,10 @@ main { padding: 14px 24px 50px; max-width: 1500px; margin: 0 auto; }
       const mark = q === "°" || q === "°7" ? "°" : q === "ø7" ? "ø" : rel[1] === 8 ? "+" : "";
       return { i, semi, rel, q: q === undefined ? null : q, sym: q !== undefined ? q : OTHER_SYM[key] || "?", numeral: acc + roman + mark };
     });
+    // an eighth chord: the tonic with its 3rd swapped for the 4th (sus4), when the scale has a perfect 4th and 5th above the root.
+    // It is made only of scale notes and, like the other suspended chords, wants to resolve to the tonic chord
+    if (sc.semis.indexOf(5) >= 0 && sc.semis.indexOf(7) >= 0) stacked.push({ i: 0, semi: 0, rel: [5, 7], q: "sus4", sym: "sus4", numeral: stacked[0].rel[0] === 3 ? "i" : "I", sus: true });
+    return stacked;
   }
   function chordBoard(place, byPc) {
     const frets = place.notes.map((n) => n.fret), fMin = Math.min(...frets), fMax = Math.max(...frets);
@@ -295,7 +300,7 @@ main { padding: 14px 24px 50px; max-width: 1500px; margin: 0 auto; }
       const place = list[0], frets = place ? place.notes.map((n) => n.fret) : [];
       const midis = place ? place.notes.map((n) => OPEN[n.s] + n.fret).sort((a, b) => a - b) : [];
       const pos = place ? (Math.min(...frets) === Math.max(...frets) ? "fret " + Math.min(...frets) : "frets " + Math.min(...frets) + "–" + Math.max(...frets)) : "";
-      return `<div class="chordcard"><div class="chead"><span class="cnum">${c.numeral}</span><button type="button" class="cname" data-chord="${midis.join(",")}"${place ? "" : " disabled"}>${name}</button><span class="cpos">${pos}</span></div>${place ? chordBoard(place, byPc) : '<div class="cnone">no approved pattern for this chord yet</div>'}</div>`;
+      return `<div class="chordcard${c.sus ? " sus" : ""}"><div class="chead"><span class="cnum">${c.numeral}</span><button type="button" class="cname" data-chord="${midis.join(",")}"${place ? "" : " disabled"}>${name}</button><span class="cpos">${pos}</span></div>${place ? chordBoard(place, byPc) : '<div class="cnone">no approved pattern for this chord yet</div>'}</div>`;
     }).join("");
   }
   function playChordMidis(midis) {   // low to high, a little apart, like a strum

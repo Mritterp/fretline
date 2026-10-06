@@ -158,7 +158,7 @@ details.diff th { color: var(--bark); font-weight: 600; }
       <span><kbd>Backspace</kbd> remove last chord</span>
       <span><kbd>Esc</kbd> clear</span>
       <span><kbd>↑</kbd> <kbd>↓</kbd> basic / medium / advanced</span>
-      <span><kbd>M</kbd> traditional / jazz</span>
+      <span><kbd>M</kbd> <kbd>7</kbd> traditional (triads) / jazz (7ths)</span>
       <span>Click a chord to add it to the progression.</span>
       <span><kbd>Ctrl</kbd> + click a chord to hear it without adding it</span>
     </div></div>
@@ -1116,7 +1116,7 @@ details.diff th { color: var(--bark); font-weight: 600; }
     else if (k === "Escape") clearProg();
     else if (k === "ArrowUp") { e.preventDefault(); level = Math.min(3, level + 1); relevel(); }
     else if (k === "ArrowDown") { e.preventDefault(); level = Math.max(1, level - 1); relevel(); }
-    else if (k.toLowerCase() === "m") { mapType = jazz() ? "trad" : "jazz"; relevel(); }
+    else if (k.toLowerCase() === "m" || k === "7") { mapType = jazz() ? "trad" : "jazz"; relevel(); }   // M or 7: traditional (triads) / jazz (7th chords)
   });
   window.__harmony = { treeParts, GEO, MAIN_PATHS, mainCurve, arrowClear, enharmonic, enh, byId, followers, voicing, Q, MAIN, CLUSTERS, boxOf, get state() { return { mapType, level, prog, current }; }, set(t, l) { mapType = t; level = l; relevel(); } };
   drawCircleKey(); applyGroups(); relevel();
