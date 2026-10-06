@@ -105,7 +105,16 @@
     ["- 1 - ♭7 - 5", "- - - - - -", "- - 5 - - -", "- - - - 4 -"],   // Pos 3: F = x-8-10-8-11-8
     ["- - 5 1 - -", "- - - - 4 ♭7"],   // Pos 4: F = x-x-10-10-11-11
   ];
-  var ALTERNATES_FROM = { "°7": 4, "Δ7": 6 };
+  // Dominant 7♭5: F listings on akordy.kytary.cz /en/chord/f7b5 and fachords.com f/7b5. It is symmetrical (F7♭5 = B7♭5), so it repeats every 6 frets with a
+  // different inversion. The six-string open voicing (F = 1-0-1-2-0-1) is an alternate: it needs a capo-like barre.
+  APPROVED["7♭5"] = [
+    ["1 - ♭7 - - -", "- ♭5 - 3 - -"],   // Pos 1: F = 1-2-1-2-x-x
+    ["- - 1 - - -", "- - - ♭5 ♭7 -", "- - - - - 3"],   // Pos 2: F = x-x-3-4-4-5
+    ["- - - - 1 -", "- - 3 - - ♭5", "- - - ♭7 - -"],   // Pos 3: F = x-x-7-8-6-7
+    ["- 1 - ♭7 - -", "- - ♭5 - - -", "- - - - 3 -"],   // Pos 4: F = x-8-9-8-10-x
+    ["- 3 - - ♭5 -", "1 - ♭7 - - 1", "- - - 3 - -"],   // Pos 5 (alternate): F = 1-0-1-2-0-1
+  ];
+  var ALTERNATES_FROM = { "°7": 4, "Δ7": 6, "7♭5": 5 };
 
   var parsed = {};
   function parse(key) {

@@ -1006,13 +1006,14 @@ button.mode-chip.active:hover { color: var(--parchment); }
   // sus2/sus4 have no 3rd at all (bright: null — handled as its own case).
   // Order: major triad, major7, dominant7, minor triad, minor7, sus2, sus4,
   // diminished triad, diminished7, half-diminished7, minor-major7.
-  const QUALITY_ORDER = ["", "Δ7", "7", "-", "-7", "sus2", "sus4", "7sus4", "°", "+", "°7", "ø7", "-Δ7", "Δ7♯5"];
+  const QUALITY_ORDER = ["", "Δ7", "7", "-", "-7", "sus2", "sus4", "7sus4", "°", "+", "°7", "ø7", "-Δ7", "Δ7♯5", "7♭5"];
   const QUALITIES = {
     "":    { desc: "major",             tones: [{ i: 4, role: "third" }, { i: 7, role: "fifth" }], bright: true },
     "-":   { desc: "minor",             tones: [{ i: 3, role: "third" }, { i: 7, role: "fifth" }], bright: false },
     "°":   { desc: "diminished",        tones: [{ i: 3, role: "third" }, { i: 6, role: "fifth" }], bright: false },
     "+":   { desc: "augmented",         tones: [{ i: 4, role: "third" }, { i: 8, role: "fifth" }], bright: true },
     "7sus4": { desc: "suspended 4th with a minor 7th", tones: [{ i: 5, role: "fourth" }, { i: 7, role: "fifth" }, { i: 10, role: "seventh" }], bright: null },
+    "7♭5": { desc: "dominant 7 flat 5", tones: [{ i: 4, role: "third" }, { i: 6, role: "fifth" }, { i: 10, role: "seventh" }], bright: true },
     "Δ7♯5": { desc: "major 7 sharp 5",  tones: [{ i: 4, role: "third" }, { i: 8, role: "fifth" }, { i: 11, role: "seventh" }], bright: true },
     "sus2":{ desc: "suspended 2nd",     tones: [{ i: 2, role: "second" }, { i: 7, role: "fifth" }], bright: null },
     "sus4":{ desc: "suspended 4th",     tones: [{ i: 5, role: "fourth" }, { i: 7, role: "fifth" }], bright: null },

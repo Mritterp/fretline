@@ -213,13 +213,13 @@ const EXPLICIT_GRIDS = {
   ],
   // Dominant 7♭5 — CANDIDATES for review, not yet in the app. F listings: akordy.kytary.cz /en/chord/f7b5 (4 shapes) and fachords.com f/7b5 (3 shapes).
   // The tritone splits the octave evenly, so F7♭5 and B7♭5 are the same four notes: the chord repeats every 6 frets with a different inversion (like dim7 every 3).
-  // None of the five shapes is another one moved 6 frets. Shapes 1 and 2 are both E-string versions that the two sources list differently.
+  // None of the five shapes is another one moved 6 frets. The six-string open voicing (1-0-1-2-0-1) needs a capo-like barre to play, so it is an alternate.
   "Dominant 7♭5": [
-    ["- 3 - - ♭5 -","1 - ♭7 - - 1","- - - 3 - -"],                 // Pos 1: F = 1-0-1-2-0-1  (akordy)
-    ["1 - ♭7 - - -","- ♭5 - 3 - -"],                                 // Pos 2: F = 1-2-1-2-x-x  (fachords)
-    ["- - 1 - - -","- - - ♭5 ♭7 -","- - - - - 3"],                   // Pos 3: F = x-x-3-4-4-5  (akordy, fachords)
-    ["- - - - 1 -","- - 3 - - ♭5","- - - ♭7 - -"],                   // Pos 4: F = x-x-7-8-6-7  (akordy)
-    ["- 1 - ♭7 - -","- - ♭5 - - -","- - - - 3 -"],                   // Pos 5: F = x-8-9-8-10-x  (akordy, fachords)
+    ["1 - ♭7 - - -","- ♭5 - 3 - -"],                                 // Pos 1: F = 1-2-1-2-x-x  (fachords)
+    ["- - 1 - - -","- - - ♭5 ♭7 -","- - - - - 3"],                   // Pos 2: F = x-x-3-4-4-5  (akordy, fachords)
+    ["- - - - 1 -","- - 3 - - ♭5","- - - ♭7 - -"],                   // Pos 3: F = x-x-7-8-6-7  (akordy)
+    ["- 1 - ♭7 - -","- - ♭5 - - -","- - - - 3 -"],                   // Pos 4: F = x-8-9-8-10-x  (akordy, fachords)
+    ["- 3 - - ♭5 -","1 - ♭7 - - 1","- - - 3 - -"],                   // Alternate: F = 1-0-1-2-0-1  (akordy)
   ],
   // Suspended 2nd — akordy.kytary.cz /fsus2, fachords.com f/sus2 — few movable shapes listed.
   "Suspended 2nd": [
@@ -256,7 +256,7 @@ const EXPLICIT_GRIDS = {
 // Symmetric chords whose fingerings recur at a fixed fret interval (dim7 = stacked minor thirds = every 3 frets).
 // The map heading notes that each pattern recurs at that interval as another inversion (same shape, the root moves to another note).
 const REPEAT_EVERY = { "Diminished 7": 3, "Augmented triad": 4, "Dominant 7♭5": 6 };
-const ALTERNATES_FROM = { "Diminished 7": 4, "Major 7": 6 };
+const ALTERNATES_FROM = { "Diminished 7": 4, "Major 7": 6, "Dominant 7♭5": 5 };
 // The map for these qualities uses only the first `positions` patterns and repeats them every `every` frets (roles re-derived from pitch).
 const MAP_REPEAT = { "Diminished 7": { positions: 1, every: 3 }, "Augmented triad": { positions: 1, every: 4 }, "Dominant 7♭5": { positions: 1, every: 6 } };
 function mapRepeats(rows, rootPc, quality, cfg, maxFret) {
