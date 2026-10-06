@@ -662,9 +662,10 @@ details.diff th { color: var(--bark); font-weight: 600; }
     for (let dx = -84; dx <= 84; dx += 2) for (let dy = -46; dy <= 46; dy += 2) offs.push([dx, dy, dx * dx + 3 * dy * dy]);
     offs.sort((a, b) => a[2] - b[2]);
     const dims = (n, k) => { const nat = textW(n.label, fontOf(n)), w = n.wd ? Math.min(n.wd, nat) : nat; return [(w * k) / 2 + 5, fontOf(n) * 0.45 + 5]; };
+    const inDiscLabel = (id) => { const nn = byId.get(id); return !!nn && nn.kind === "main" && nn.ring === "in"; };   // chords inside a big disc stay where they are put: the map’s own arrows are meant to cross the disc
     let L = { pts, exempt, placed };   // the obstacles near the label being placed
     const near = (n) => { const px = n.pos[0], py = n.pos[1], close = (a) => Math.abs(a[0] - px) < 190 && Math.abs(a[1] - py) < 130; L = { pts: pts.filter(close), exempt: exempt.filter(close), placed: placed.filter(close) }; };
-    const clash = (x, y, tw, th, id) => { const nn = byId.get(id); return !!(nn && !(nn.kind === "main" && nn.ring === "in") && boxHitsDisc(x, y, tw, th)); }, clash0 = (x, y, tw, th, id) => L.exempt.some((p) => Math.abs(p[0] - x) < tw && Math.abs(p[1] - y) < th && !p[2].has(id)) || L.pts.some((p) => Math.abs(p[0] - x) < tw && Math.abs(p[1] - y) < th) || L.placed.some((q) => Math.abs(q[0] - x) < tw + q[2] + 2 && Math.abs(q[1] - y) < th + q[3] + 1) || x + tw > 1992 || x - tw < 4 || y - th < 8 || y + th > 1392;
+    const clash = (x, y, tw, th, id) => { const nn = byId.get(id); return !!(nn && !(nn.kind === "main" && nn.ring === "in") && boxHitsDisc(x, y, tw, th)); }, clash0 = (x, y, tw, th, id) => (!inDiscLabel(id) && L.exempt.some((p) => Math.abs(p[0] - x) < tw && Math.abs(p[1] - y) < th && !p[2].has(id))) || L.pts.some((p) => Math.abs(p[0] - x) < tw && Math.abs(p[1] - y) < th) || L.placed.some((q) => Math.abs(q[0] - x) < tw + q[2] + 2 && Math.abs(q[1] - y) < th + q[3] + 1) || x + tw > 1992 || x - tw < 4 || y - th < 8 || y + th > 1392;
     const clashAll = (x, y, tw, th, id) => clash(x, y, tw, th, id) || clash0(x, y, tw, th, id);
     const settle = (n) => {
       near(n);
