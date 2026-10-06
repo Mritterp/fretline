@@ -368,6 +368,13 @@ button.mode-chip.active:hover { color: var(--parchment); }
   display: block; font-size: 9px; letter-spacing: 0.2em; text-transform: uppercase; color: var(--sage);
   margin-bottom: 8px;
 }
+.mode-panel .chord-panel-head { display: flex; align-items: center; gap: 14px; margin-bottom: 8px; }
+.mode-panel .chord-panel-head .chord-panel-label { margin-bottom: 0; }
+.size-toggle { display: inline-flex; }
+.size-toggle button { appearance: none; -webkit-appearance: none; font-family: inherit; cursor: pointer; font-size: 9px; letter-spacing: 0.16em; text-transform: uppercase; padding: 4px 9px; border: 1px solid var(--wheat); background: transparent; color: var(--sage); }
+.size-toggle button + button { border-left: 0; }
+.size-toggle button:hover { color: var(--bark); border-color: var(--sage); }
+.size-toggle button[aria-pressed="true"] { background: var(--bark); border-color: var(--bark); color: var(--parchment); }
 .mode-panel .chord-chips { margin-top: 4px; }
 .mode-panel .chord-legend { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 8px; }
 .mode-panel .chord-legend-item {
@@ -688,7 +695,12 @@ button.mode-chip.active:hover { color: var(--parchment); }
             <h2 id="mode-name"></h2>
             <div class="mode-chips" id="mode-chips"></div>
             <div class="chord-panel">
-              <span class="chord-panel-label">Modal chords</span>
+              <div class="chord-panel-head">
+                <span class="chord-panel-label">Modal chords</span>
+                <span class="size-toggle" role="group" aria-label="Chord size">
+                  <button type="button" id="size-triad" aria-pressed="false">Triads</button><button type="button" id="size-seventh" aria-pressed="true">7th chords</button>
+                </span>
+              </div>
               <div class="mode-chips chord-chips" id="mode-chords"></div>
             </div>
           </div>
@@ -2293,7 +2305,11 @@ button.mode-chip.active:hover { color: var(--parchment); }
       const btn = document.createElement("button");
       btn.type = "button";
       btn.className = "mode-chip chord-chip";
-      btn.textContent = chord.name;
+      // triads or 7th chords as the default: the chip names the triad and selecting it starts on the triad;
+      // dataset.quality stays the native seventh chord, which the theory text and the "native" ring are worked out from
+      const triad = { "Δ7": "", "7": "", "-7": "-", "ø7": "°" }[chord.quality];
+      btn.dataset.defaultQuality = modalChordSize === "triad" ? triad : chord.quality;
+      btn.textContent = modalChordSize === "triad" ? pcToName(chord.root, settings.keyObj) + triad : chord.name;
       btn.dataset.tones = JSON.stringify(chord.tones);
       btn.dataset.root = chord.root;
       btn.dataset.quality = chord.quality;
@@ -2550,8 +2566,29 @@ button.mode-chip.active:hover { color: var(--parchment); }
     };
     // Selecting a new modal chord always resets the quality override back
     // to that chord's own native, diatonic quality.
-    renderQualityPanel(activeChordCtx, nativeQuality);
+    renderQualityPanel(activeChordCtx, btn.dataset.defaultQuality !== undefined ? btn.dataset.defaultQuality : nativeQuality);   // "" (the major triad) is a real value
   });
+
+  // Triads / 7th chords: which one the modal chords start as. Remembered between visits.
+  let modalChordSize = "seventh";
+  try { if (localStorage.getItem("fretline-modal-size") === "triad") modalChordSize = "triad"; } catch (e) {}
+  function syncSizeToggle() {
+    document.getElementById("size-triad").setAttribute("aria-pressed", String(modalChordSize === "triad"));
+    document.getElementById("size-seventh").setAttribute("aria-pressed", String(modalChordSize === "seventh"));
+  }
+  function setModalChordSize(size) {
+    if (size === modalChordSize) return;
+    modalChordSize = size;
+    try { localStorage.setItem("fretline-modal-size", size); } catch (e) {}
+    syncSizeToggle();
+    if (!lastSettings || !currentModeInfo) return;
+    const chips = [...document.querySelectorAll("#mode-chords .chord-chip")], at = chips.findIndex((c) => c.classList.contains("active"));
+    renderModePanel(lastSettings);   // rebuilds the chips with the new default
+    if (at >= 0) document.querySelectorAll("#mode-chords .chord-chip")[at].click();   // a chord that was selected stays selected
+  }
+  document.getElementById("size-triad").addEventListener("click", () => setModalChordSize("triad"));
+  document.getElementById("size-seventh").addEventListener("click", () => setModalChordSize("seventh"));
+  syncSizeToggle();
 
   document.getElementById("quality-chips").addEventListener("click", (e) => {
     const btn = e.target.closest(".quality-chip");
