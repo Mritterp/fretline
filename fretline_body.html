@@ -402,6 +402,11 @@ button.mode-chip.active:hover { color: var(--parchment); }
    — so "what's native" and "what's currently selected" stay visually
    distinct even when they're different chips. */
 .quality-chips .mode-chip.native { box-shadow: inset 0 0 0 1.5px var(--moss); }
+.pos-cycle { display: flex; align-items: center; justify-content: center; gap: 12px; margin-top: 14px; font-size: 12px; letter-spacing: 0.08em; color: var(--bark); }
+.pos-cycle[hidden] { display: none; }
+.pos-cycle .pos-btn { font: inherit; font-size: 16px; line-height: 1; padding: 4px 12px; border: 1px solid var(--wheat); background: transparent; color: var(--bark); cursor: pointer; }
+.pos-cycle .pos-btn:hover { border-color: var(--sage); }
+.pos-cycle .pos-count { color: var(--sage); }
 .quality-legend { display: flex; flex-wrap: wrap; gap: 14px; justify-content: center; margin-top: 14px; }
 .quality-legend.chord-legend .chord-legend-item { font-size: 12px; letter-spacing: 0.08em; color: var(--bark); }
 .quality-legend .chord-legend-swatch { width: 10px; height: 10px; }
@@ -490,7 +495,7 @@ button.mode-chip.active:hover { color: var(--parchment); }
           <button type="button" class="btn btn-outline" id="play-btn">Play back</button>
           <button type="button" class="btn btn-outline" id="stop-btn" disabled>Stop</button>
         </div>
-        <p class="shortcuts-hint">Space play/pause · Esc stop · G new line · M metronome · N note names · C chords</p>
+        <p class="shortcuts-hint">Space play/pause · Esc stop · G new line · M metronome · N note names · C chords · [ ] chord position</p>
       </div>
 
       <div id="panel-body">
@@ -690,6 +695,11 @@ button.mode-chip.active:hover { color: var(--parchment); }
         <div class="quality-panel" id="quality-panel" hidden>
           <span class="diagram-caption" id="quality-roman">Chord quality</span>
           <div class="mode-chips quality-chips" id="quality-chips"></div>
+          <div class="pos-cycle" id="pos-cycle" hidden>
+            <button type="button" class="pos-btn" id="pos-prev" aria-label="Previous position (lower on the neck)" title="Previous position ( [ )">‹</button>
+            <span id="pos-label"></span><span class="pos-count" id="pos-count"></span>
+            <button type="button" class="pos-btn" id="pos-next" aria-label="Next position (higher on the neck)" title="Next position ( ] )">›</button>
+          </div>
           <div class="chord-legend quality-legend">
             <span class="chord-legend-item"><i class="chord-legend-swatch" style="--tone-color: var(--tone-root)"></i>Root</span>
             <span class="chord-legend-item"><i class="chord-legend-swatch" style="--tone-color: var(--tone-second)"></i>2nd</span>
@@ -1827,6 +1837,24 @@ button.mode-chip.active:hover { color: var(--parchment); }
     return parsedPatterns[qualityKey];
   }
 
+  // Every place the quality's approved patterns fit inside fretLo..fretHi for this root, lowest first
+  // (ties keep the pattern order): [{ f, pIdx, voicing }]. The first entry is what patternVoicing() returns.
+  function patternPlacements(rootPc, qualityKey, fretLo, fretHi) {
+    const patterns = patternsFor(qualityKey), out = [];
+    if (!patterns) return out;
+    patterns.forEach((p, pIdx) => {
+      const rn = p.notes.find((n) => n.iv === 0);
+      const first = ((((rootPc - OPEN_STRING_MIDI[rn.s] - rn.row) % 12) + 12) % 12);
+      for (let f = first; f <= fretHi; f += 12) {
+        if (!p.notes.every((n) => f + n.row >= fretLo && f + n.row <= fretHi)) continue;
+        const voicing = new Array(6).fill(null);
+        p.notes.forEach((n) => { voicing[n.s] = { fret: f + n.row, role: n.iv === 0 ? "root" : QUALITIES[qualityKey].tones.find((t) => t.i === n.iv).role }; });
+        out.push({ f, pIdx, voicing });
+      }
+    });
+    return out.map((o, i) => [o, i]).sort((a, b) => a[0].f - b[0].f || a[1] - b[1]).map((x) => x[0]);
+  }
+
   // The lowest approved pattern whose notes all fall inside fretLo..fretHi, as a
   // per-string {fret, role} array (null = muted) — same shape searchVoicing returns.
   function patternVoicing(rootPc, qualityKey, fretLo, fretHi) {
@@ -2410,6 +2438,28 @@ button.mode-chip.active:hover { color: var(--parchment); }
     });
   }
 
+  // Draws one placement of the chord's patterns on the fretboard (ctx.posIdx) and keeps the position control in step.
+  function showChordPosition(ctx, qualityKey) {
+    const fretWindow = currentFretWindow || { lo: 0, hi: 4 }, bar = document.getElementById("pos-cycle");
+    const list = patternPlacements(ctx.rootPc, qualityKey, fretWindow.lo, fretWindow.hi);
+    ctx.posCount = list.length;
+    if (!list.length) { highlightFretboardVoicing(findChordVoicing(ctx.rootPc, qualityKey, fretWindow.lo, fretWindow.hi)); bar.hidden = true; return; }
+    ctx.posIdx = ((ctx.posIdx % list.length) + list.length) % list.length;
+    const cur = list[ctx.posIdx], frets = cur.voicing.filter(Boolean).map((v) => v.fret), lo = Math.min(...frets), hi = Math.max(...frets);
+    highlightFretboardVoicing(cur.voicing);
+    document.getElementById("pos-label").textContent = "Pos " + (cur.pIdx + 1) + " · " + (lo === hi ? "fret " + lo : "frets " + lo + "–" + hi);
+    document.getElementById("pos-count").textContent = (ctx.posIdx + 1) + " / " + list.length;
+    bar.hidden = list.length < 2;
+  }
+  function cycleChordPosition(step) {
+    const ctx = activeChordCtx;
+    if (!ctx || !ctx.posCount || document.getElementById("quality-panel").hidden) return;
+    ctx.posIdx += step;
+    showChordPosition(ctx, ctx.selectedQuality);
+  }
+  document.getElementById("pos-prev").addEventListener("click", () => cycleChordPosition(-1));
+  document.getElementById("pos-next").addEventListener("click", () => cycleChordPosition(1));
+
   // Builds/refreshes the chord-quality override panel for the given
   // context, selecting `qualityKey` among the 6 quality buttons and
   // highlighting the diagrams + theory text to match.
@@ -2432,8 +2482,8 @@ button.mode-chip.active:hover { color: var(--parchment); }
     });
 
     highlightKeyboardVoicing(ctx.rootPc, qualityKey);
-    const fretWindow = currentFretWindow || { lo: 0, hi: 4 };
-    highlightFretboardVoicing(findChordVoicing(ctx.rootPc, qualityKey, fretWindow.lo, fretWindow.hi));
+    if (ctx.posQuality !== qualityKey) { ctx.posQuality = qualityKey; ctx.posIdx = 0; }   // a new chord or quality starts on its lowest position
+    showChordPosition(ctx, qualityKey);
 
     document.getElementById("quality-roman").textContent =
       bareRomanForDegree(ctx.modeDegree, qualityKey) + " Chord Quality";
@@ -3202,6 +3252,9 @@ button.mode-chip.active:hover { color: var(--parchment); }
       e.preventDefault();
       showChords.checked = !showChords.checked;
       showChords.dispatchEvent(new Event("change"));
+    } else if (e.key === "[" || e.key === "]") {
+      e.preventDefault();
+      cycleChordPosition(e.key === "]" ? 1 : -1);
     }
   });
 
