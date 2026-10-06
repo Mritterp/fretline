@@ -329,7 +329,7 @@ details.settings summary { cursor: pointer; font-size: 11px; letter-spacing: 0.1
   function renderStaff(el, moments, flat, onChord, basis, slots) {   // basis: every pitch the question can show, so the octave signs never change between steps
     el.innerHTML = "";
     const nSlots = Math.max(moments.length, slots || 0);
-    const W = 150 + Math.max(2, nSlots) * (onChord ? (moments.length < 4 ? 280 : 200) : 130);   // drawing units; the SVG scales to its box
+    const W = 150 + Math.max(2, nSlots) * (onChord && el.classList.contains("chd") ? (moments.length < 4 ? 280 : 200) : 130);   // drawing units; the SVG scales to its box
     const renderer = new Renderer(el, Renderer.Backends.SVG);
     // ledger lines need room: measure how far the notes sit above the treble staff / below the bass staff
     const step = (m) => 7 * Math.floor(m / 12) + [0, 0, 1, 1, 2, 3, 3, 4, 4, 5, 5, 6][mod(m)];   // diatonic steps (5px each)
@@ -611,11 +611,13 @@ details.settings summary { cursor: pointer; font-size: 11px; letter-spacing: 0.1
   function drawCqVisuals() {
     if (!CQ) return;
     const arp = CQ.style === "arp", n = CQ.notes.length;
+    const hear = (moments) => (i) => { gestured = true; cancelPlay(); const t = audio().currentTime + 0.02; (moments[i] || []).forEach((m) => tone(m, t, 1.5, moments[i].length > 1 ? 0.14 : 0.24)); };   // pressing a note or chord on the staff plays it
     if (!cqAnswered) {   // only the root is shown until you answer
-      renderStaff($("cq-staff"), [[CQ.root]], CQ.flat, undefined, CQ.notes, arp ? n : 1);
+      renderStaff($("cq-staff"), [[CQ.root]], CQ.flat, hear([[CQ.root]]), CQ.notes, arp ? n : 1);
       renderKeyboard($("cq-kbd"), [{ midi: CQ.root, label: cqName(CQ.root) }]);
     } else {
-      renderStaff($("cq-staff"), arp ? CQ.notes.map((m) => [m]) : [CQ.notes], CQ.flat, undefined, CQ.notes);
+      const moms = arp ? CQ.notes.map((m) => [m]) : [CQ.notes];
+      renderStaff($("cq-staff"), moms, CQ.flat, hear(moms), CQ.notes);
       renderKeyboard($("cq-kbd"), CQ.notes.map((m) => ({ midi: m, label: cqName(m) })));
     }
   }
