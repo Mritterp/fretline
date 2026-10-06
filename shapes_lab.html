@@ -235,7 +235,7 @@ function mapRepeats(rows, rootPc, quality, cfg, maxFret) {
   });
 }   // 1-based Pos where the "Alternate voicings" title goes
 function explicitVariant(entry, q) {
-  const rows = Array.isArray(entry) ? entry : entry.rows, label = Array.isArray(entry) ? "" : entry.label || "";
+  const rows = Array.isArray(entry) ? entry : entry.rows, label = "";   // the shape names in the entries (E-shape, G-form, ...) are kept as notes in the data but not shown
   const notes = [];
   rows.forEach((line, row) => line.trim().split(/\s+/).forEach((tok, s) => {
     if (tok === "-") return;
