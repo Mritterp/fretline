@@ -1,5 +1,6 @@
 <meta charset="UTF-8">
 <script src="embed.js"></script>
+<script src="fl-audio.js"></script>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Fretline — Ear Training</title>
 <link rel="manifest" href="manifest.webmanifest">
@@ -304,9 +305,7 @@ details.settings summary { cursor: pointer; font-size: 11px; letter-spacing: 0.1
   function audio() {
     if (!ctx) {
       ctx = new (window.AudioContext || window.webkitAudioContext)();
-      master = ctx.createGain();
-      master.gain.value = S.volume / 100;
-      master.connect(ctx.destination);
+      master = FretlineAudio.out(ctx);   // the shared volume (and limiter), the same on every page
     }
     if (ctx.state === "suspended") ctx.resume();
     return ctx;
@@ -315,7 +314,7 @@ details.settings summary { cursor: pointer; font-size: 11px; letter-spacing: 0.1
   function tone(midi, t, dur, level) {
     const c = audio();
     const osc = c.createOscillator(), g = c.createGain();
-    osc.type = S.tone;
+    osc.type = FretlineAudio.get().tone;
     osc.frequency.value = freq(midi);
     // quieter for low notes and for stacked chord tones so nothing clips
     g.gain.setValueAtTime(0.0001, t);
@@ -997,9 +996,11 @@ details.settings summary { cursor: pointer; font-size: 11px; letter-spacing: 0.1
   $("mode-cq").addEventListener("click", () => setMode("cq"));
   $("mode-chd").addEventListener("click", () => setMode("chd"));
   $("reset").addEventListener("click", () => { S.score = defaults().score; save(); showScore(); });
-  $("tone").value = S.tone; $("volume").value = S.volume;
-  $("tone").addEventListener("change", () => { S.tone = $("tone").value; save(); });
-  $("volume").addEventListener("input", () => { S.volume = +$("volume").value; if (master) master.gain.value = S.volume / 100; save(); });
+  // the volume and tone are shared with every other page (fl-audio.js): these controls show them and change them
+  const showSharedAudio = (v) => { $("tone").value = v.tone; $("volume").value = String(Math.round(v.volume)); };
+  showSharedAudio(FretlineAudio.get()); FretlineAudio.onChange(showSharedAudio);
+  $("tone").addEventListener("change", () => FretlineAudio.set({ tone: $("tone").value }));
+  $("volume").addEventListener("input", () => FretlineAudio.set({ volume: +$("volume").value }));
   $("int-next").addEventListener("click", () => nextInterval());
   $("int-skip").addEventListener("click", () => newInterval(true));
   $("int-repeat").addEventListener("click", () => { gestured = true; playInterval(); });

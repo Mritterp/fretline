@@ -1,5 +1,6 @@
 <meta charset="UTF-8">
 <script src="embed.js"></script>
+<script src="fl-audio.js"></script>
 <title>Fretline</title>
 <link rel="manifest" href="manifest.webmanifest">
 <meta name="theme-color" content="#3D3A30">
@@ -2633,18 +2634,10 @@ button.mode-chip.active:hover { color: var(--parchment); }
           audioCtx.resume().catch(() => {});
         }
       };
-      masterGainNode = audioCtx.createGain();
-      masterGainNode.gain.value = volumeGain();
-      // a limiter between the volume and the speakers: peaks above about -3 dBFS are squashed instead of clipping
-      const limiter = audioCtx.createDynamicsCompressor();
-      limiter.threshold.value = -3; limiter.knee.value = 0; limiter.ratio.value = 20; limiter.attack.value = 0.003; limiter.release.value = 0.1;
-      masterGainNode.connect(limiter);
-      limiter.connect(audioCtx.destination);
+      masterGainNode = FretlineAudio.out(audioCtx);   // the shared volume (and limiter), the same on every page
     }
     return audioCtx;
   }
-  // the slider runs 0-100%, and 100% is four times the raw level (the notes and clicks are scheduled at low levels)
-  function volumeGain() { return (parseFloat(document.getElementById("volume-range").value) / 100) * 4; }
   function midiToFreq(m) {
     return 440 * Math.pow(2, (m - 69) / 12);
   }
@@ -3040,10 +3033,15 @@ button.mode-chip.active:hover { color: var(--parchment); }
   // already-sounding and future notes) — see masterGainNode in
   // ensureAudioCtx(), which every oscillator chain routes through instead
   // of connecting straight to ctx.destination.
-  volumeRange.addEventListener("input", () => {
-    volumeValue.textContent = volumeRange.value;
-    if (masterGainNode) masterGainNode.gain.value = volumeGain();
-  });
+  // The volume and tone are shared with every other page (fl-audio.js): this page's controls show them and change them.
+  function showSharedAudio(v) {
+    volumeRange.value = String(Math.round(v.volume)); volumeValue.textContent = volumeRange.value;
+    toneSelect.value = v.tone;
+  }
+  showSharedAudio(FretlineAudio.get());
+  FretlineAudio.onChange(showSharedAudio);
+  volumeRange.addEventListener("input", () => FretlineAudio.set({ volume: +volumeRange.value }));
+  toneSelect.addEventListener("change", () => FretlineAudio.set({ tone: toneSelect.value }));
 
   let sessionCount = 0;
   function getTotalCount() {

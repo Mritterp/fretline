@@ -3,6 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <script src="embed.js"></script>
+<script src="fl-audio.js"></script>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Chord Shapes Lab</title>
 <link rel="manifest" href="manifest.webmanifest">
@@ -436,12 +437,12 @@ function playMidi(m) {
   if (!audioCtx) { audioCtx = new (window.AudioContext || window.webkitAudioContext)(); }
   if (audioCtx.state === "suspended") audioCtx.resume();
   const t = audioCtx.currentTime + 0.01, dur = 1.4, osc = audioCtx.createOscillator(), gain = audioCtx.createGain();
-  osc.type = "triangle";
+  osc.type = FretlineAudio.get().tone;
   osc.frequency.value = 440 * Math.pow(2, (m - 69) / 12);
   gain.gain.setValueAtTime(0.0001, t);
-  gain.gain.linearRampToValueAtTime(0.22 * 0.8, t + 0.012);
+  gain.gain.linearRampToValueAtTime(0.22, t + 0.012);
   gain.gain.exponentialRampToValueAtTime(0.0001, t + dur);
-  osc.connect(gain).connect(audioCtx.destination);
+  osc.connect(gain).connect(FretlineAudio.out(audioCtx));
   osc.start(t); osc.stop(t + dur + 0.02);
 }
 $("out").addEventListener("pointerdown", (e) => {

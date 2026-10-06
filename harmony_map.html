@@ -3,6 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <script src="embed.js"></script>
+<script src="fl-audio.js"></script>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Fretline — Harmony Map</title>
 <link rel="manifest" href="manifest.webmanifest">
@@ -1000,9 +1001,9 @@ details.diff th { color: var(--bark); font-weight: 600; }
   function ensureAudio() { if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)(); if (audioCtx.state === "suspended") audioCtx.resume(); }
   function tone(m, t, dur, g) {
     const osc = audioCtx.createOscillator(), gain = audioCtx.createGain();
-    osc.type = "triangle"; osc.frequency.value = 440 * Math.pow(2, (m - 69) / 12);
+    osc.type = FretlineAudio.get().tone; osc.frequency.value = 440 * Math.pow(2, (m - 69) / 12);
     gain.gain.setValueAtTime(0.0001, t); gain.gain.linearRampToValueAtTime(g, t + 0.015); gain.gain.exponentialRampToValueAtTime(0.0001, t + dur);
-    osc.connect(gain).connect(audioCtx.destination); osc.start(t); osc.stop(t + dur + 0.03); oscs.push(osc);
+    osc.connect(gain).connect(FretlineAudio.out(audioCtx)); osc.start(t); osc.stop(t + dur + 0.03); oscs.push(osc);
   }
   function voicing(n, prevMean) {   // bass low; the other tones voiced as close as possible to the previous chord
     const rootPc = mod(n.off), pcs = Q[n.q].map((i) => mod(rootPc + i)), bassPc = n.bass !== undefined ? mod(rootPc + n.bass) : rootPc;
