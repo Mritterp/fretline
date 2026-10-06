@@ -636,24 +636,35 @@ details.settings summary { cursor: pointer; font-size: 11px; letter-spacing: 0.1
     nodes.forEach((n) => { if (n.kind === "member") { const k = out.get(n.target); if (k === "strong" || k === "alt") out.set(n.id, "approach"); } });
     return out;
   }
-  function mapProgression(N) {   // a walk along the map's suggestions, preferring to end on a main chord
-    const nodes = mapNodes(), starts = ["I", "I", "I", "vi", "IV", "i"].filter((x) => nodes.has(x)), W = { strong: 6, alt: 2, flow: 1 };
+  const MAP_IN = new Set(["i", "bIII", "vio", "iv", "iio", "bVI", "bII", "bVII", "V", "V7in"]);   // the minor-mode (inner ring) chords of the map
+  function mapProgression(N) {   // a walk along the map's suggestions
+    // kept varied and functional: it starts in a major or a minor mode and mostly stays there (the other mode's chords are borrowed, so rarer),
+    // favours the ii-V-type approach chords, avoids repeating a sound, and usually lands on the tonic
+    const nodes = mapNodes(), starts = ["I", "I", "I", "I", "vi", "IV", "ii", "iii", "i", "i"].filter((x) => nodes.has(x)), W = { strong: 6, alt: 2.5, flow: 1.5 }, K = (+S.mapLevel || 3) >= 3 ? 3.4 : 2.2, wantTonic = Math.random() < 0.6;
+    const sound = (n) => n.off + "/" + n.q, isTonic = (n) => n.kind === "main" && n.off === 0 && ["I", "i"].includes(n.id);
     let best = null;
-    for (let attempt = 0; attempt < 300; attempt++) {
-      let cur = nodes.get(pick(starts)); const seq = [cur];
+    for (let attempt = 0; attempt < 400; attempt++) {
+      const start = nodes.get(pick(starts)), home = MAP_IN.has(start.id);
+      let cur = start; const seq = [cur], used = new Set([sound(cur)]);
       while (seq.length < N) {
         const fol = mapFollowers(cur, nodes), opts = [], perTarget = new Map();
         fol.forEach((kind, tid) => { const n = nodes.get(tid); if (kind === "approach") perTarget.set(n.target, (perTarget.get(n.target) || 0) + 1); });
         fol.forEach((kind, tid) => {
-          const n = nodes.get(tid); if (n.off === cur.off && n.q === cur.q) return;   // not the same sound twice in a row
-          opts.push([n, kind === "approach" ? (W[fol.get(n.target)] * 0.7) / perTarget.get(n.target) : W[kind]]);
+          const n = nodes.get(tid); if (sound(n) === sound(cur)) return;   // not the same sound twice in a row
+          let w = kind === "approach" ? (W[fol.get(n.target)] * K) / perTarget.get(n.target) : W[kind];
+          if (n.kind === "main" && n.id !== "V7in" && n.id !== "bVII" && MAP_IN.has(n.id) !== home) w *= 0.15;   // borrowed from the other mode
+          if (used.has(sound(n))) w *= 0.08;
+          opts.push([n, w]);
         });
         if (!opts.length) break;
         let r = Math.random() * opts.reduce((t, o) => t + o[1], 0), nx = opts[opts.length - 1][0];
         for (const o of opts) { r -= o[1]; if (r <= 0) { nx = o[0]; break; } }
-        seq.push(nx); cur = nx;
+        seq.push(nx); cur = nx; used.add(sound(nx));
       }
-      if (seq.length === N) { best = seq; if (seq[N - 1].kind === "main") break; }
+      if (seq.length !== N) continue;
+      const last = seq[N - 1];
+      if (!best || (last.kind === "main" && best[N - 1].kind !== "main")) best = seq;
+      if ((wantTonic ? isTonic(last) : last.kind === "main") || (attempt > 150 && last.kind === "main")) { best = seq; break; }   // about 60% end on the tonic, the rest on any main chord
     }
     return best;
   }
