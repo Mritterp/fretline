@@ -179,6 +179,7 @@ details.settings summary { cursor: pointer; font-size: 11px; letter-spacing: 0.1
       <label>Volume <input type="range" id="volume" min="0" max="100" value="80"></label>
     </div>
     <div id="set-int">
+      <div class="setrow"><label>Notes per question <select id="int-notes"><option value="2">2 (one interval)</option><option value="3">3</option><option value="4">4</option><option value="5">5</option></select></label><span class="hint">with 3 to 5 notes the notes play one after another and you name each interval in turn (harmonic is used for 2 notes only)</span></div>
       <div class="setrow"><label>Root note register from <select id="reg-lo"></select></label><label>to <select id="reg-hi"></select></label><span class="hint">the lower note of each interval falls from the first C to the last B of these registers (default C1–C6); the upper note can reach C8</span></div>
       <div class="setgroup"><h3>Directions</h3><div class="chips" id="dir-chips"></div></div>
       <div class="setgroup"><h3>Intervals <button type="button" class="linkbtn" id="int-all">all</button><button type="button" class="linkbtn" id="int-none">none</button><button type="button" class="linkbtn" id="int-simple">within an octave</button></h3><div class="chips" id="int-chips"></div></div>
@@ -252,7 +253,7 @@ details.settings summary { cursor: pointer; font-size: 11px; letter-spacing: 0.1
   const defaults = () => ({
     tone: "triangle", volume: 80, mode: "int",
     dirs: ["up", "down", "both"], ints: INTERVALS.map((i) => i.n),
-    regLo: 1, regHi: 6, nChords: 4, diatonic: false, scales: ["major", "minor"], quals: ["maj", "min", "dim", "maj7", "dom7", "min7", "hdim7"],
+    nNotes: 2, regLo: 1, regHi: 6, nChords: 4, diatonic: false, scales: ["major", "minor"], quals: ["maj", "min", "dim", "maj7", "dom7", "min7", "hdim7"],
     score: { int: { ok: 0, n: 0 }, chd: { ok: 0, n: 0, chordsOk: 0, chords: 0 } },
   });
   let S = defaults();
@@ -293,9 +294,10 @@ details.settings summary { cursor: pointer; font-size: 11px; letter-spacing: 0.1
   function cancelPlay() { stopAll(); timers.forEach(clearTimeout); timers = []; playToken++; }
 
   // ---------- staff + keyboard ----------
-  function renderStaff(el, moments, flat, onChord, basis) {   // basis: every pitch the question can show, so the octave signs never change between steps
+  function renderStaff(el, moments, flat, onChord, basis, slots) {   // basis: every pitch the question can show, so the octave signs never change between steps
     el.innerHTML = "";
-    const W = 150 + Math.max(2, moments.length) * (onChord ? (moments.length < 4 ? 280 : 200) : 130);   // drawing units; the SVG scales to its box
+    const nSlots = Math.max(moments.length, slots || 0);
+    const W = 150 + Math.max(2, nSlots) * (onChord ? (moments.length < 4 ? 280 : 200) : 130);   // drawing units; the SVG scales to its box
     const renderer = new Renderer(el, Renderer.Backends.SVG);
     // ledger lines need room: measure how far the notes sit above the treble staff / below the bass staff
     const step = (m) => 7 * Math.floor(m / 12) + [0, 0, 1, 1, 2, 3, 3, 4, 4, 5, 5, 6][mod(m)];   // diatonic steps (5px each)
@@ -355,7 +357,7 @@ details.settings summary { cursor: pointer; font-size: 11px; letter-spacing: 0.1
     const vb = new Voice({ num_beats: beats, beat_value: 4 }).setStrict(false).addTickables(bn);
     new Formatter().joinVoices([vt]).joinVoices([vb]).format([vt, vb], W - 120);
     // space the columns evenly: each moment sits in the middle of an equal share of the bar (accidentals would otherwise skew the spacing)
-    const barStart = treble.getNoteStartX(), barEnd = treble.getNoteEndX(), cellW = (barEnd - barStart) / moments.length;
+    const barStart = treble.getNoteStartX(), barEnd = treble.getNoteEndX(), cellW = (barEnd - barStart) / nSlots;
     tn.forEach((n, i) => { const x = (i + 0.5) * cellW - 8; n.getTickContext().setX(x); bn[i].getTickContext().setX(x); });
     vt.draw(c, treble); vb.draw(c, bass);
     // octave sign: a label plus a dashed bracket over (or under) the notes it applies to
@@ -363,7 +365,7 @@ details.settings summary { cursor: pointer; font-size: 11px; letter-spacing: 0.1
     const mark = (text, notes, y, hook) => {
       const xs = notes.map((n) => n.getAbsoluteX());
       if (!xs.length) return;
-      const x0 = Math.min(...xs) - 30, x1 = Math.max(...xs) + 18;   // clear of accidentals and stems
+      const x0 = barStart + 4, x1 = Math.max(...xs) + 18;   // the sign sits at the start of the bar, so no note or accidental can run into it
       const t = document.createElementNS(NS, "text");
       t.setAttribute("x", x0); t.setAttribute("y", y); t.setAttribute("font-size", "12"); t.setAttribute("font-style", "italic");
       t.setAttribute("font-family", "Georgia,serif"); t.setAttribute("fill", "#3d3a30"); t.setAttribute("stroke", "none"); t.setAttribute("font-weight", "normal"); t.textContent = text;
@@ -432,11 +434,17 @@ details.settings summary { cursor: pointer; font-size: 11px; letter-spacing: 0.1
   function updateIntSub() {
     const d = S.dirs.length === DIRS.length ? "any direction" : DIRS.filter((x) => S.dirs.includes(x.id)).map((x) => x.name.toLowerCase()).join(" / ");
     const maxN = Math.max(0, ...S.ints);
-    $("int-sub").textContent = `${d} · up to ${maxN <= 12 ? "an octave" : maxN === 24 ? "two octaves" : maxN + " semitones"} · roots C${S.regLo}–C${S.regHi}`;
+    $("int-sub").textContent = `${S.nNotes > 2 ? S.nNotes + " notes · " : ""}${d} · up to ${maxN <= 12 ? "an octave" : maxN === 24 ? "two octaves" : maxN + " semitones"} · roots C${S.regLo}–C${S.regHi}`;
   }
   function drawIntervalVisuals() {
     if (!Q) return;
     const label = (m) => noteName(m).replace(/\d/, "");
+    if (Q.multi) {   // the notes heard so far are shown; the next one appears when you answer
+      const shown = Q.notes.slice(0, qAnswered ? Q.step + 1 : Q.step);
+      renderStaff($("int-staff"), shown.map((m) => [m]), false, undefined, Q.notes, Q.notes.length);
+      renderKeyboard($("int-kbd"), [...new Set(shown)].map((m) => ({ midi: m, label: label(m) })));
+      return;
+    }
     if (!qAnswered) {   // only the first note is shown until you answer (for a harmonic interval, its lower note)
       renderStaff($("int-staff"), [[Q.first]], false, undefined, [Q.first, Q.second]);
       renderKeyboard($("int-kbd"), [{ midi: Q.first, label: label(Q.first) }]);
@@ -445,9 +453,47 @@ details.settings summary { cursor: pointer; font-size: 11px; letter-spacing: 0.1
       renderKeyboard($("int-kbd"), [...new Set([Q.first, Q.second])].map((m) => ({ midi: m, label: label(m) })));
     }
   }
+  function setStep(k) {   // the interval being asked is the one between notes k-1 and k
+    Q.step = k; Q.first = Q.notes[k - 1]; Q.second = Q.notes[k]; Q.n = Math.abs(Q.second - Q.first);
+    Q.dir = Q.second >= Q.first ? "up" : "down"; Q.lo = Math.min(Q.first, Q.second); Q.hi = Math.max(Q.first, Q.second);
+  }
+  function stepHint() { return "Interval " + Q.step + " of " + Q.nSteps + ": which interval was that?"; }
+  function newMelody(autoplay) {
+    const N = Math.min(5, Math.max(3, S.nNotes));
+    const rootMin = Math.max(LOW, 12 * (S.regLo + 1)), rootMax = Math.min(HIGH, 12 * (S.regHi + 1) + 11);
+    const dirs = S.dirs.filter((d) => d !== "both"), useDirs = dirs.length ? dirs : ["up", "down"];
+    let notes = null;
+    for (let attempt = 0; attempt < 80 && !notes; attempt++) {
+      const seq = [rootMin + rnd(rootMax - rootMin + 1)]; let ok = true;
+      for (let k = 1; k < N && ok; k++) {
+        const cur = seq[seq.length - 1], opts = [];
+        S.ints.forEach((n) => useDirs.forEach((d) => { const to = d === "down" ? cur - n : cur + n; if (to >= LOW && to <= HIGH) opts.push(to); }));
+        if (!opts.length) ok = false; else seq.push(pick(opts));
+      }
+      if (ok) notes = seq;
+    }
+    if (!notes) { $("int-status").className = "status bad"; $("int-status").textContent = "None of the selected intervals fit in that register: lower the register or pick smaller intervals."; Q = null; return; }
+    Q = { multi: true, notes, nSteps: N - 1 }; setStep(1);
+    qAnswered = false;
+    intBtns.forEach((b) => { b.className = "ans"; b.disabled = false; });
+    $("int-status").className = "status hint"; $("int-status").textContent = stepHint();
+    $("int-next").textContent = "Next"; $("int-next").disabled = false;
+    drawIntervalVisuals();
+    if (autoplay && gestured) playInterval(); else $("int-status").textContent = "Press Repeat to hear the notes, then name each interval in turn.";
+  }
+  function advanceStep() {
+    cancelPlay(); setStep(Q.step + 1); qAnswered = false;
+    intBtns.forEach((b) => { b.className = "ans"; b.disabled = false; });
+    $("int-status").className = "status hint"; $("int-status").textContent = stepHint();
+    $("int-next").textContent = "Next";
+    drawIntervalVisuals();
+    if (gestured) playInterval();
+  }
+  function nextInterval() { if (Q && Q.multi && qAnswered && Q.step < Q.nSteps) advanceStep(); else newInterval(true); }
   function newInterval(autoplay) {
     cancelPlay();
     if (!S.ints.length || !S.dirs.length) { $("int-status").className = "status bad"; $("int-status").textContent = "Turn on at least one interval and one direction in Settings."; Q = null; return; }
+    if (S.nNotes > 2) { newMelody(autoplay); return; }
     // root (lower) note: from C{regLo} up to B{regHi}, and the upper note must still fit on the piano
     const rootMin = Math.max(LOW, 12 * (S.regLo + 1)), rootMax = Math.min(HIGH, 12 * (S.regHi + 1) + 11);
     const usable = S.ints.filter((i) => rootMin + i <= HIGH);
@@ -467,6 +513,7 @@ details.settings summary { cursor: pointer; font-size: 11px; letter-spacing: 0.1
     if (!Q) return;
     cancelPlay();
     const c = audio(), t = c.currentTime + 0.05;
+    if (Q.multi) { for (let i = 0; i <= Q.step; i++) tone(Q.notes[i], t + i * 0.8, 1.0, 0.24); return; }
     if (Q.dir === "both") { tone(Q.lo, t, 1.7, 0.2); if (Q.hi !== Q.lo) tone(Q.hi, t, 1.7, 0.2); }
     else { tone(Q.first, t, 1.0, 0.24); tone(Q.second, t + 1.0, 1.4, 0.24); }
   }
@@ -505,6 +552,7 @@ details.settings summary { cursor: pointer; font-size: 11px; letter-spacing: 0.1
     const mom = Q.dir === "both" ? [[Q.lo, Q.hi]] : [[Q.first], [Q.second]];
     drawIntervalVisuals();
     $("int-next").disabled = false;
+    if (Q.multi) { $("int-next").textContent = Q.step < Q.nSteps ? "Next interval" : "Next"; if (Q.step >= Q.nSteps) $("int-status").textContent += " That was the last interval: press Next for new notes."; }
   }
 
   // ======================= Chord progressions =======================
@@ -740,7 +788,7 @@ details.settings summary { cursor: pointer; font-size: 11px; letter-spacing: 0.1
   $("tone").value = S.tone; $("volume").value = S.volume;
   $("tone").addEventListener("change", () => { S.tone = $("tone").value; save(); });
   $("volume").addEventListener("input", () => { S.volume = +$("volume").value; if (master) master.gain.value = S.volume / 100; save(); });
-  $("int-next").addEventListener("click", () => newInterval(true));
+  $("int-next").addEventListener("click", () => nextInterval());
   $("int-skip").addEventListener("click", () => newInterval(true));
   $("int-repeat").addEventListener("click", () => { gestured = true; playInterval(); });
   $("chd-next").addEventListener("click", () => newChords(true));
@@ -759,6 +807,8 @@ details.settings summary { cursor: pointer; font-size: 11px; letter-spacing: 0.1
   $("chd-check").addEventListener("click", checkChords);
   for (const id of ["reg-lo", "reg-hi"]) for (let r = 1; r <= 6; r++) { const o = document.createElement("option"); o.value = r; o.textContent = "C" + r; $(id).appendChild(o); }
   $("reg-lo").value = String(S.regLo); $("reg-hi").value = String(S.regHi);
+  $("int-notes").value = String(S.nNotes || 2);
+  $("int-notes").addEventListener("change", () => { S.nNotes = +$("int-notes").value; save(); updateIntSub(); newInterval(false); });
   const onRegister = (changed) => {
     S.regLo = +$("reg-lo").value; S.regHi = +$("reg-hi").value;
     if (S.regLo > S.regHi) { if (changed === "lo") S.regHi = S.regLo; else S.regLo = S.regHi; }   // keep the range valid
@@ -788,7 +838,7 @@ details.settings summary { cursor: pointer; font-size: 11px; letter-spacing: 0.1
     if (e.key === " " || key === "r") { e.preventDefault(); gestured = true; S.mode === "int" ? playInterval() : playChords(true); }
     else if (e.key === "Enter" || key === "n") {
       gestured = true;
-      if (S.mode === "int") newInterval(true);
+      if (S.mode === "int") nextInterval();
       else if (e.key === "Enter" && !cChecked && !$("chd-check").disabled) checkChords();   // Enter checks a finished answer; N (or Enter otherwise) moves on
       else newChords(true);
     }
