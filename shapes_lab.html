@@ -428,7 +428,7 @@ function renderPatterns() {
 
   const html = [];
   const firstPerPos = rows.filter((r) => r.primary), nPrimary = firstPerPos.length;   // the map shows the primary positions only
-  html.push(`<section class="group"><h2>${ROOTS[rootPc]} ${scale[0]} scale${REPEAT_EVERY[quality.name] ? `<span>every pattern repeats every ${REPEAT_EVERY[quality.name]} frets with a different inversion</span>` : ""}</h2>`);
+  html.push(`<section class="group"><h2>${ROOTS[rootPc]} ${scale[0]} scale${REPEAT_EVERY[quality.name] ? `<span>${quality.name} is a symmetrical chord. Its pattern repeats every ${REPEAT_EVERY[quality.name]} frets with a different inversion</span>` : ""}</h2>`);
   rows.forEach((r) => {
     if (!r.primary && !html.some((h) => h.includes("alt-title"))) html.push(`<h3 class="alt-title">Alternate voicings</h3>`);
     html.push(`<div class="row"><div class="rowhead"><div class="title">Pos ${r.pos}.${r.label ? `<span class="order">${r.label}</span>` : ""}</div></div>${patternRowSVG(r, scale, rootPc, opts.maxFret)}</div>`);
