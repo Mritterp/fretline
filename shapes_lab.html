@@ -82,13 +82,14 @@ const MAX_STRETCH = 4;   // widest fingerable span, in frets (open strings don't
 const ROOTS = ["C", "D♭", "D", "E♭", "E", "F", "G♭", "G", "A♭", "A", "B♭", "B"]; // index = pitch class
 const ROLE_COLOR = { root: "#a6433d", second: "#b8763f", third: "#b5982c", fourth: "#6e8f4c", fifth: "#3e6d8e", seventh: "#7a5c9e" };
 const ROLE_NAME = { root: "Root", second: "2nd", third: "3rd", fourth: "4th", fifth: "5th", seventh: "7th" };
-const IV_LABEL = { 0: "R", 2: "2", 3: "♭3", 4: "3", 5: "4", 6: "♭5", 7: "5", 9: "°7", 10: "♭7", 11: "7" };
+const IV_LABEL = { 0: "R", 2: "2", 3: "♭3", 4: "3", 5: "4", 6: "♭5", 7: "5", 8: "♯5", 9: "°7", 10: "♭7", 11: "7" };
 
 // Adding a chord quality = adding one line here; nothing else is chord-specific.
 const QUALITIES = [
   { name: "Major triad",       sym: "",    tones: [[0, "root"], [4, "third"], [7, "fifth"]] },
   { name: "Minor triad",       sym: "-",   tones: [[0, "root"], [3, "third"], [7, "fifth"]] },
   { name: "Diminished triad",  sym: "°",   tones: [[0, "root"], [3, "third"], [6, "fifth"]] },
+  { name: "Augmented triad",   sym: "+",   tones: [[0, "root"], [4, "third"], [8, "fifth"]] },
   { name: "Suspended 2nd",     sym: "sus2", tones: [[0, "root"], [2, "second"], [7, "fifth"]] },
   { name: "Suspended 4th",     sym: "sus4", tones: [[0, "root"], [5, "fourth"], [7, "fifth"]] },
   { name: "Major 7",           sym: "Δ7",  tones: [[0, "root"], [4, "third"], [7, "fifth"], [11, "seventh"]] },
@@ -132,7 +133,7 @@ const POS_TPL = POS_GRIDS.map((p, idx) => {
 
 // Hand-edited sets. A quality listed here uses exactly these grids instead of the draft derived from the
 // major triad. Same format as above, but any degree is allowed: "1" "2" "♭3" "3" "4" "♭5" "5" "°7" "♭7" "7".
-const DEGREE_IV = { "1": 0, "2": 2, "♭3": 3, "3": 4, "4": 5, "♭5": 6, "5": 7, "°7": 9, "♭7": 10, "7": 11 };
+const DEGREE_IV = { "1": 0, "2": 2, "♭3": 3, "3": 4, "4": 5, "♭5": 6, "5": 7, "♯5": 8, "°7": 9, "♭7": 10, "7": 11 };
 const EXPLICIT_GRIDS = {
   // Worked out on F minor, where Pos 1 is the easy 6-string starting shape (1-3-3-1-1-1).
   "Minor triad": [
@@ -181,6 +182,17 @@ const EXPLICIT_GRIDS = {
     { label: "C-form (F: x-8-8-5-6-x)", rows: ["- - - 5 - -","- - - - 1 -","- - - - - -","- 1 4 - - -"] },
     { label: "A-shape (F: x-8-10-10-11-8)", rows: ["- 1 - - - 5","- - - - - -","- - 5 1 - -","- - - - 4 -"] },
     { label: "G-shape (user-specified top e root) (F: x-x-10-10-11-13)", rows: ["- - 5 1 - -","- - - - 4 -","- - - - - -","- - - - - 1"] },
+  ],
+  // Augmented triad — CANDIDATES for review, not yet in the app. F listings: akordy.kytary.cz /en/chord/faug (4 shapes) and fachords.com f/aug (3 shapes).
+  // The chord repeats every 4 frets (stacked major thirds), so the same notes recur as a new inversion: each shape below is one voicing of those notes.
+  "Augmented triad": [
+    ["- - - - - 1","- - - 3 ♯5 -","- - 1 - - -"],                       // F: x-x-3-2-2-1  (akordy)
+    ["- - - 3 ♯5 -","- - 1 - - -","- ♯5 - - - -"],                    // F: x-4-3-2-2-x  (fachords)
+    ["- - - 3 - -","- - 1 - - -","- ♯5 - - - -","3 - - - - -"],       // F: 5-4-3-2-x-x  (fachords)
+    ["- - - ♯5 1 -","- - 3 - - -","- 1 - - - -"],                    // F: x-8-7-6-6-x  (akordy)
+    ["- 1 - - - -","- - - - - ♯5","- - - 1 3 -"],                    // F: x-8-x-10-10-9  (akordy)
+    ["- - - - - ♯5","- - - 1 3 -","- - ♯5 - - -"],                   // F: x-x-11-10-10-9  (fachords)
+    ["- - - 1 3 -","- - ♯5 - - -","- 3 - - - -","1 - - - - -"],       // F: 13-12-11-10-10-x  (akordy)
   ],
   // Suspended 2nd — akordy.kytary.cz /fsus2, fachords.com f/sus2 — few movable shapes listed.
   "Suspended 2nd": [
@@ -251,7 +263,7 @@ function explicitVariant(entry, q) {
 // The scale each chord sits in — the "modal pattern" shown behind it.
 const SCALE_FOR = {
   "Major triad": ["Ionian", [0, 2, 4, 5, 7, 9, 11]], "Minor triad": ["Aeolian", [0, 2, 3, 5, 7, 8, 10]],
-  "Diminished triad": ["Locrian", [0, 1, 3, 5, 6, 8, 10]], "Suspended 2nd": ["Ionian", [0, 2, 4, 5, 7, 9, 11]],
+  "Diminished triad": ["Locrian", [0, 1, 3, 5, 6, 8, 10]], "Suspended 2nd": ["Ionian", [0, 2, 4, 5, 7, 9, 11]], "Augmented triad": ["Whole tone", [0, 2, 4, 6, 8, 10]],
   "Suspended 4th": ["Mixolydian", [0, 2, 4, 5, 7, 9, 10]], "Major 7": ["Ionian", [0, 2, 4, 5, 7, 9, 11]],
   "Dominant 7": ["Mixolydian", [0, 2, 4, 5, 7, 9, 10]], "Minor 7": ["Dorian", [0, 2, 3, 5, 7, 9, 10]],
   "Half-diminished 7": ["Locrian", [0, 1, 3, 5, 6, 8, 10]], "Diminished 7": ["Whole-half diminished", [0, 2, 3, 5, 6, 8, 9, 11]],
