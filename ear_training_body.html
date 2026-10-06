@@ -694,6 +694,8 @@ details.settings summary { cursor: pointer; font-size: 11px; letter-spacing: 0.1
     });
     return out;
   }
+  let lastTonic = -1;
+  const newTonic = () => { let t; do { t = rnd(12); } while (t === lastTonic); lastTonic = t; return t; };   // every new progression is in a different key from the one before
   function newChords(autoplay) {
     cancelPlay();
     cChecked = false; resetPicks();
@@ -701,10 +703,10 @@ details.settings summary { cursor: pointer; font-size: 11px; letter-spacing: 0.1
     const scales = SCALES.filter((s) => S.scales.includes(s.id));
     let made = null;
     if (S.mapProg) {
-      const seq = mapProgression(N_CHORDS), tonic = rnd(12);
+      const seq = mapProgression(N_CHORDS), tonic = seq ? newTonic() : 0;
       if (seq) made = { scale: SCALES[0], tonic, map: true, chords: seq.map((n) => ({ deg: n.off, pc: mod(tonic + n.off), q: n.q, fn: n.label })) };
     } else for (let tries = 0; tries < 80 && scales.length && S.quals.length && !made; tries++) {
-      const scale = pick(scales), tonic = rnd(12), pl = pool(scale, tonic);
+      const scale = pick(scales), tonic = newTonic(), pl = pool(scale, tonic);
       if (pl.length < 2) continue;
       const seq = [pick(pl)];   // any chord in the key can open the progression
       for (let i = 1; i < N_CHORDS; i++) {
