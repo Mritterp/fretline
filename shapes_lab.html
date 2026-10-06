@@ -100,6 +100,7 @@ const QUALITIES = [
   { name: "Minor-major 7",     sym: "-Δ7", tones: [[0, "root"], [3, "third"], [7, "fifth"], [11, "seventh"]] },
   { name: "Major 7♯5",         sym: "Δ7♯5", tones: [[0, "root"], [4, "third"], [8, "fifth"], [11, "seventh"]] },
   { name: "Dominant 7sus4",    sym: "7sus4", tones: [[0, "root"], [5, "fourth"], [7, "fifth"], [10, "seventh"]] },
+  { name: "Dominant 7♭5",      sym: "7♭5", tones: [[0, "root"], [4, "third"], [6, "fifth"], [10, "seventh"]] },
 ].map((q) => ({ ...q, tones: q.tones.map(([i, role]) => ({ i, role })) }));
 
 const $ = (id) => document.getElementById(id);
@@ -210,6 +211,16 @@ const EXPLICIT_GRIDS = {
     ["- 1 - ♭7 - 5","- - - - - -","- - 5 - - -","- - - - 4 -"],       // F: x-8-10-8-11-8  (fachords; akordy 8-8-10-8-11-8)
     ["- - 5 1 - -","- - - - 4 ♭7"],                                   // F: x-x-10-10-11-11  (akordy only)
   ],
+  // Dominant 7♭5 — CANDIDATES for review, not yet in the app. F listings: akordy.kytary.cz /en/chord/f7b5 (4 shapes) and fachords.com f/7b5 (3 shapes).
+  // The tritone splits the octave evenly, so F7♭5 and B7♭5 are the same four notes: the chord repeats every 6 frets with a different inversion (like dim7 every 3).
+  // None of the five shapes is another one moved 6 frets. Shapes 1 and 2 are both E-string versions that the two sources list differently.
+  "Dominant 7♭5": [
+    ["- 3 - - ♭5 -","1 - ♭7 - - 1","- - - 3 - -"],                 // Pos 1: F = 1-0-1-2-0-1  (akordy)
+    ["1 - ♭7 - - -","- ♭5 - 3 - -"],                                 // Pos 2: F = 1-2-1-2-x-x  (fachords)
+    ["- - 1 - - -","- - - ♭5 ♭7 -","- - - - - 3"],                   // Pos 3: F = x-x-3-4-4-5  (akordy, fachords)
+    ["- - - - 1 -","- - 3 - - ♭5","- - - ♭7 - -"],                   // Pos 4: F = x-x-7-8-6-7  (akordy)
+    ["- 1 - ♭7 - -","- - ♭5 - - -","- - - - 3 -"],                   // Pos 5: F = x-8-9-8-10-x  (akordy, fachords)
+  ],
   // Suspended 2nd — akordy.kytary.cz /fsus2, fachords.com f/sus2 — few movable shapes listed.
   "Suspended 2nd": [
     { label: "E-form (F: 1-3-3-x-1-3)", rows: ["1 - - - 5 -","- - - - - -","- 5 1 - - 2"] },
@@ -244,10 +255,10 @@ const EXPLICIT_GRIDS = {
 };
 // Symmetric chords whose fingerings recur at a fixed fret interval (dim7 = stacked minor thirds = every 3 frets).
 // The map heading notes that each pattern recurs at that interval as another inversion (same shape, the root moves to another note).
-const REPEAT_EVERY = { "Diminished 7": 3, "Augmented triad": 4 };
+const REPEAT_EVERY = { "Diminished 7": 3, "Augmented triad": 4, "Dominant 7♭5": 6 };
 const ALTERNATES_FROM = { "Diminished 7": 4, "Major 7": 6 };
 // The map for these qualities uses only the first `positions` patterns and repeats them every `every` frets (roles re-derived from pitch).
-const MAP_REPEAT = { "Diminished 7": { positions: 1, every: 3 }, "Augmented triad": { positions: 1, every: 4 } };
+const MAP_REPEAT = { "Diminished 7": { positions: 1, every: 3 }, "Augmented triad": { positions: 1, every: 4 }, "Dominant 7♭5": { positions: 1, every: 6 } };
 function mapRepeats(rows, rootPc, quality, cfg, maxFret) {
   return rows.filter((r) => r.idx < cfg.positions).map((r) => {
     const base = r.places[0], places = [];
@@ -279,7 +290,7 @@ function explicitVariant(entry, q) {
 // The scale each chord sits in — the "modal pattern" shown behind it.
 const SCALE_FOR = {
   "Major triad": ["Ionian", [0, 2, 4, 5, 7, 9, 11]], "Minor triad": ["Aeolian", [0, 2, 3, 5, 7, 8, 10]],
-  "Diminished triad": ["Locrian", [0, 1, 3, 5, 6, 8, 10]], "Suspended 2nd": ["Ionian", [0, 2, 4, 5, 7, 9, 11]], "Augmented triad": ["Whole tone", [0, 2, 4, 6, 8, 10]], "Major 7♯5": ["Lydian augmented", [0, 2, 4, 6, 8, 9, 11]], "Dominant 7sus4": ["Mixolydian", [0, 2, 4, 5, 7, 9, 10]],
+  "Diminished triad": ["Locrian", [0, 1, 3, 5, 6, 8, 10]], "Suspended 2nd": ["Ionian", [0, 2, 4, 5, 7, 9, 11]], "Augmented triad": ["Whole tone", [0, 2, 4, 6, 8, 10]], "Major 7♯5": ["Lydian augmented", [0, 2, 4, 6, 8, 9, 11]], "Dominant 7sus4": ["Mixolydian", [0, 2, 4, 5, 7, 9, 10]], "Dominant 7♭5": ["Whole tone", [0, 2, 4, 6, 8, 10]],
   "Suspended 4th": ["Mixolydian", [0, 2, 4, 5, 7, 9, 10]], "Major 7": ["Ionian", [0, 2, 4, 5, 7, 9, 11]],
   "Dominant 7": ["Mixolydian", [0, 2, 4, 5, 7, 9, 10]], "Minor 7": ["Dorian", [0, 2, 3, 5, 7, 9, 10]],
   "Half-diminished 7": ["Locrian", [0, 1, 3, 5, 6, 8, 10]], "Diminished 7": ["Whole-half diminished", [0, 2, 3, 5, 6, 8, 9, 11]],
