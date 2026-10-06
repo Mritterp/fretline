@@ -91,6 +91,13 @@
     ["- - - 3 - -", "- - 1 - - -", "- ♯5 - - - -", "3 - - - - -"],   // Pos 3: E-A-D-G, F = 5-4-3-2-x-x
     ["- 1 - - - -", "- - - - - ♯5", "- - - 1 3 -"],   // Pos 4: A + top three strings, F = x-8-x-10-10-9
   ];
+  // Major 7♯5: the four F fingerings on akordy.kytary.cz /en/chord/fmaj7-sharp5 (fachords.com lists none); shape 4 is its x-x-15-14-14-12 an octave lower.
+  APPROVED["Δ7♯5"] = [
+    ["- 3 - - - 7", "1 - - - - -", "- - 7 3 ♯5 -"],   // Pos 1: F = 1-0-2-2-2-0
+    ["3 - - - 7 3", "- - - ♯5 - -", "- - 3 - - -", "- 1 - - - -"],   // Pos 2: F = 5-8-7-6-5-5
+    ["- 1 - - - -", "- - - 7 - -", "- - - - 3 -", "- - ♯5 - - -"],   // Pos 3: F = x-8-11-9-10-x
+    ["- - - - - 7", "- - - - - -", "- - - 3 ♯5 -", "- - 1 - - -"],   // Pos 4: F = x-x-15-14-14-12 (x-x-3-2-2-0)
+  ];
   var ALTERNATES_FROM = { "°7": 4, "Δ7": 6 };
 
   var parsed = {};

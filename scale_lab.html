@@ -75,6 +75,7 @@ main { padding: 14px 24px 50px; max-width: 1500px; margin: 0 auto; }
 .chords-head h3 { margin: 0; font-family: var(--font-display); font-weight: 400; font-size: 20px; }
 .chordgrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(290px, 1fr)); gap: 12px; }
 .chordcard { background: #f9f5ee; border: 1px solid #e3dac6; padding: 8px 10px 4px; }
+.chordcard[data-chord]:not([data-chord=""]) { cursor: pointer; }
 .chead { display: flex; align-items: baseline; gap: 10px; margin-bottom: 4px; padding: 2px 0 4px; cursor: pointer; }
 .chead[data-chord=""] { cursor: default; }
 .chead:hover .cname { color: var(--root); }
@@ -254,7 +255,7 @@ main { padding: 14px 24px 50px; max-width: 1500px; margin: 0 auto; }
   let chordSize = "seventh";
   try { if (localStorage.getItem("fretline-modal-size") === "triad") chordSize = "triad"; } catch (e) {}   // the same choice as the modal chords on the Sightreading page
   const TRIAD_Q = { "4,7": "", "3,7": "-", "3,6": "°", "4,8": "+" };
-  const SEVENTH_Q = { "4,7,11": "Δ7", "4,7,10": "7", "3,7,10": "-7", "3,6,10": "ø7", "3,6,9": "°7", "3,7,11": "-Δ7" };
+  const SEVENTH_Q = { "4,7,11": "Δ7", "4,7,10": "7", "3,7,10": "-7", "3,6,10": "ø7", "3,6,9": "°7", "3,7,11": "-Δ7", "4,8,11": "Δ7♯5" };
   const OTHER_SYM = { "4,8": "+", "4,8,11": "Δ7♯5", "4,8,10": "7♯5", "4,6,10": "7♭5", "4,6,11": "Δ7♭5", "3,6,11": "°Δ7", "3,8,10": "-7♯5", "3,8,11": "-Δ7♯5", "4,7,9": "6", "3,7,9": "-6" };
   const ROMAN = ["I", "II", "III", "IV", "V", "VI", "VII"];
   const CHORD_IV = { 0: "1", 2: "2", 3: "♭3", 4: "3", 5: "4", 6: "♭5", 7: "5", 8: "♯5", 9: "°7", 10: "♭7", 11: "7" };
@@ -294,7 +295,9 @@ main { padding: 14px 24px 50px; max-width: 1500px; margin: 0 auto; }
       const cx = xOf(n.fret), cy = yOf(n.s);
       p.push(`<g class="cdot" data-midi="${m}"><title>${noteName(m)}</title><circle cx="${cx}" cy="${cy}" r="7.5" fill="${n.iv === 0 ? "var(--root)" : "var(--moss)"}"/><text x="${cx}" y="${cy + 3}" text-anchor="middle" font-size="${label.length > 2 ? 7 : 8.5}" font-weight="700" fill="#F5F0E8" font-family="Helvetica,Arial,sans-serif">${label}</text></g>`);
     });
-    return `<svg viewBox="0 0 ${W} ${H}" role="img">${p.join("")}</svg>`;
+    // the fretboard itself, with a margin that protects the notes poking out above and below the strings: a click there is not a click on the card
+    const safe = [x0 - 26, y0 - 16, x0 + cols * cw + 6, y0 + 5 * rh + 16];
+    return `<svg viewBox="0 0 ${W} ${H}" role="img" data-safe="${safe.join(",")}">${p.join("")}</svg>`;
   }
   let chordStart = 0;   // the lowest fret a chord pattern may use (0 = open position)
   try { const v = parseInt(localStorage.getItem("fretline-scale-chord-start"), 10); if (v >= 0 && v <= 12) chordStart = v; } catch (e) {}
@@ -337,7 +340,7 @@ main { padding: 14px 24px 50px; max-width: 1500px; margin: 0 auto; }
     if (!plan) { $("chordgrid").innerHTML = ""; return; }
     $("chordgrid").innerHTML = plan.items.map((it, k) => {
       const pos = it.place ? (it.lo === it.hi ? "fret " + it.lo : "frets " + it.lo + "–" + it.hi) : "";
-      return `<div class="chordcard${it.c.sus ? " sus" : ""}" data-k="${k}"><div class="chead" data-chord="${it.midis.join(",")}"><span class="cnum">${it.c.numeral}</span><button type="button" class="cname"${it.place ? "" : " disabled"}>${it.name}</button><span class="cpos">${pos}</span></div>${it.place ? chordBoard(it.place, byPc) : '<div class="cnone">no approved pattern for this chord yet</div>'}</div>`;
+      return `<div class="chordcard${it.c.sus ? " sus" : ""}" data-k="${k}" data-chord="${it.midis.join(",")}"><div class="chead" data-chord="${it.midis.join(",")}"><span class="cnum">${it.c.numeral}</span><button type="button" class="cname"${it.place ? "" : " disabled"}>${it.name}</button><span class="cpos">${pos}</span></div>${it.place ? chordBoard(it.place, byPc) : '<div class="cnone">no approved pattern for this chord yet</div>'}</div>`;
     }).join("");
   }
   function playChordMidis(midis) {   // low to high, a little apart, like a strum
@@ -464,9 +467,16 @@ main { padding: 14px 24px 50px; max-width: 1500px; margin: 0 auto; }
   $("play").addEventListener("click", playScale);
   $("board").addEventListener("pointerdown", (e) => { const d = e.target.closest && e.target.closest("[data-midi]"); if (d) playMidi(+d.dataset.midi); });
   $("chordgrid").addEventListener("pointerdown", (e) => {   // a note on a chord diagram plays that note; the chord's name plays the whole chord
-    const n = e.target.closest && e.target.closest(".cdot"), c = e.target.closest && e.target.closest(".chead");
-    if (n) playMidi(+n.dataset.midi);
-    else if (c && c.dataset.chord) playChordMidis(c.dataset.chord.split(",").map(Number));
+    const n = e.target.closest && e.target.closest(".cdot"), card = e.target.closest && e.target.closest(".chordcard");
+    if (n) { playMidi(+n.dataset.midi); return; }
+    if (!card || !card.dataset.chord) return;
+    const svg = e.target.closest("svg");
+    if (svg && svg.dataset.safe) {   // inside the fretboard (plus its margin) only a note plays; everywhere else on the card plays the whole chord
+      const pt = svg.createSVGPoint(); pt.x = e.clientX; pt.y = e.clientY;
+      const q = pt.matrixTransform(svg.getScreenCTM().inverse()), [xa, ya, xb, yb] = svg.dataset.safe.split(",").map(Number);
+      if (q.x >= xa && q.x <= xb && q.y >= ya && q.y <= yb) return;
+    }
+    playChordMidis(card.dataset.chord.split(",").map(Number));
   });
   const lightBand = (card, on) => { if (!card) return; document.querySelectorAll("#board .cband").forEach((b) => b.classList.toggle("on", on && b.dataset.c.split(" ").includes(card.dataset.k))); };
   $("chordgrid").addEventListener("mouseover", (e) => lightBand(e.target.closest && e.target.closest(".chordcard"), true));
