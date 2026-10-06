@@ -496,7 +496,7 @@ button.mode-chip.active:hover { color: var(--parchment); }
           <button type="button" class="btn btn-outline" id="play-btn">Play back</button>
           <button type="button" class="btn btn-outline" id="stop-btn" disabled>Stop</button>
         </div>
-        <p class="shortcuts-hint">Space play/pause · Esc stop · G new line · M metronome · N note names · C chords · ← → modal chord · ↑ ↓ chord position</p>
+        <p class="shortcuts-hint">Space play/pause · Esc stop · G new line · M metronome · N note names · C chords · ← → modal chord · ↑ ↓ chord position · Ctrl ← → chord quality</p>
       </div>
 
       <div id="panel-body">
@@ -2465,6 +2465,12 @@ button.mode-chip.active:hover { color: var(--parchment); }
     document.getElementById("pos-count").textContent = "of " + list.length;
     bar.hidden = list.length < 2;
   }
+  function cycleChordQuality(step) {
+    const chips = [...document.querySelectorAll("#quality-chips .quality-chip")];
+    if (!chips.length) return;
+    const at = chips.findIndex((c) => c.classList.contains("active"));
+    chips[((at < 0 ? 0 : at) + step + chips.length) % chips.length].click();   // the same path as clicking the chip
+  }
   function cycleModalChord(step) {
     const chips = [...document.querySelectorAll("#mode-chords .chord-chip")];
     if (!chips.length) return;
@@ -3249,6 +3255,15 @@ button.mode-chip.active:hover { color: var(--parchment); }
   //    browser's default (e.g. page-scroll on Space) — this is exactly the
   //    bug that exclusion would reintroduce.
   document.addEventListener("keydown", (e) => {
+    if (e.ctrlKey && !e.metaKey && !e.altKey && !e.shiftKey && (e.key === "ArrowLeft" || e.key === "ArrowRight")) {
+      // Ctrl + left / right step through the selected chord's qualities (the chips under the diagrams)
+      const t = (e.target.tagName || "").toLowerCase();
+      if (!["input", "select", "textarea"].includes(t) && activeChordCtx && !document.getElementById("quality-panel").hidden) {
+        e.preventDefault();
+        if (!e.repeat) cycleChordQuality(e.key === "ArrowRight" ? 1 : -1);
+      }
+      return;
+    }
     if (e.ctrlKey || e.metaKey || e.altKey) return;
     const tag = (e.target.tagName || "").toLowerCase();
     if (["input", "select", "textarea"].includes(tag)) return;
