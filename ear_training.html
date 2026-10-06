@@ -595,7 +595,7 @@ details.settings summary { cursor: pointer; font-size: 11px; letter-spacing: 0.1
   // ======================= Chords (name the quality of one chord) =======================
   let CQ = null, cqAnswered = false;
   const cqBtns = [];
-  const CQ_STYLES = [{ id: "harm", name: "Harmonic (all at once)" }, { id: "arp", name: "Arpeggiated (up)" }];
+  const CQ_STYLES = [{ id: "harm", name: "Harmonic" }, { id: "arp", name: "Arpeggiated" }];
   const cqFlat = (root, q) => [1, 3, 5, 8, 10].includes(mod(root)) || ([0, 2, 7].includes(mod(root)) && q.iv[1] === 3);   // spell with flats where that is the usual spelling
   const cqName = (m) => noteName(m, CQ.flat).replace(/\d/, "");
   function buildCqButtons() {
