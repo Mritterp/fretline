@@ -2,15 +2,51 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Fretline</title>
-<meta http-equiv="refresh" content="0; url=fretline.html">
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#3D3A30">
+<link rel="icon" href="icons/favicon-32.png" sizes="32x32">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon-180.png">
 <style>
-  body { margin: 0; min-height: 100vh; display: flex; align-items: center; justify-content: center;
-    background: #f5f0e8; color: #3d3a30; font-family: Helvetica, Arial, sans-serif; }
-  a { color: #3d3a30; border-bottom: 1px solid #b07a5a; text-decoration: none; }
+  html, body { margin: 0; height: 100%; overflow: hidden; background: #f5f0e8; }
+  /* every page that has been opened stays loaded, stacked on top of each other; only the current one is visible */
+  iframe { position: fixed; inset: 0; width: 100%; height: 100%; border: 0; background: #f5f0e8; visibility: hidden; pointer-events: none; }
+  iframe.on { visibility: visible; pointer-events: auto; }
 </style>
 </head>
 <body>
-  <p>Redirecting to <a href="fretline.html">Fretline</a>&hellip;</p>
+<noscript><p style="font-family:Helvetica,Arial,sans-serif;padding:24px"><a href="fretline.html?standalone">Open Fretline</a></p></noscript>
+<script>
+(function () {
+  var PAGES = ["fretline", "ear_training", "shapes_lab", "scale_lab", "harmony_map"], frames = {}, current = null;
+  var query = location.search;   // passed on to every page (harmony_map.html?edit still works through here)
+  function post(name, what) { try { frames[name].contentWindow.postMessage({ fretline: what }, location.origin); } catch (e) {} }
+  function focusPage(name) { try { frames[name].contentWindow.focus(); } catch (e) {} }   // so the page's keyboard shortcuts work straight away
+  function retitle(name) { try { document.title = frames[name].contentDocument.title || "Fretline"; } catch (e) {} }
+  function go(name) {
+    if (PAGES.indexOf(name) < 0) name = "fretline";
+    if (name === current) { focusPage(name); return; }
+    if (current) post(current, "hide");
+    if (!frames[name]) {
+      var f = document.createElement("iframe");
+      f.title = name; f.src = name + ".html" + query;
+      f.addEventListener("load", function () { if (current === name) { retitle(name); focusPage(name); } });
+      document.body.appendChild(f); frames[name] = f;
+    }
+    PAGES.forEach(function (p) { if (frames[p]) frames[p].classList.toggle("on", p === name); });
+    current = name;
+    if (location.hash !== "#" + name) location.hash = name;
+    post(name, "show"); retitle(name); focusPage(name);
+  }
+  window.addEventListener("message", function (e) {
+    if (e.origin !== location.origin || !e.data || e.data.fretline !== "go") return;
+    go(e.data.page);
+  });
+  window.addEventListener("hashchange", function () { go(location.hash.slice(1)); });
+  go(location.hash.slice(1));
+  if ("serviceWorker" in navigator) window.addEventListener("load", function () { navigator.serviceWorker.register("sw.js").catch(function () {}); });
+})();
+</script>
 </body>
 </html>

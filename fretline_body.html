@@ -1,4 +1,5 @@
 <meta charset="UTF-8">
+<script src="embed.js"></script>
 <title>Fretline</title>
 <link rel="manifest" href="manifest.webmanifest">
 <meta name="theme-color" content="#3D3A30">
@@ -2573,7 +2574,7 @@ button.mode-chip.active:hover { color: var(--parchment); }
       // A context the browser/OS suspends out from under a running metronome
       // (device switch, power-saving) would otherwise stay silent indefinitely.
       audioCtx.onstatechange = () => {
-        if (metronomeSource && audioCtx.state !== "running" && audioCtx.state !== "closed") {
+        if (metronomeSource && !window.__fretlineHidden && audioCtx.state !== "running" && audioCtx.state !== "closed") {
           audioCtx.resume().catch(() => {});
         }
       };

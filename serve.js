@@ -5,7 +5,7 @@ const root = __dirname;
 const port = 8934;
 http.createServer((req, res) => {
   let p = decodeURIComponent(req.url.split('?')[0]);
-  if (p === '/') p = '/fretline.html';
+  if (p === '/') p = '/index.html';
   const full = path.join(root, p);
   fs.readFile(full, (err, data) => {
     if (err) { res.writeHead(404); res.end('not found'); return; }

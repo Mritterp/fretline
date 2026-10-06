@@ -2,7 +2,7 @@
   "name": "Fretline",
   "short_name": "Fretline",
   "description": "A random melodic-line generator for guitar sightreading practice.",
-  "start_url": "./fretline.html",
+  "start_url": "./index.html",
   "scope": "./",
   "display": "standalone",
   "background_color": "#f5f0e8",

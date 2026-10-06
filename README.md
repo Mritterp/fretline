@@ -26,6 +26,10 @@ Live app: https://claude.ai/code/artifact/b0f71811-d152-4e1b-a595-7abeb8a99003
   (click a note to hear it). Standalone page, no build step.
 - `harmony_map.html` — the Harmony Map: an interactive Tonal Harmony Map (traditional or jazz, basic or advanced) in Roman
   numerals. Click chords to hear them, build a progression, and see which chords can follow. Standalone page, no build step.
+- `index.html` — the page you open. It keeps all five pages loaded in stacked iframes and shows one at a time, so switching tabs
+  keeps whatever you were doing (the generated line, the current question, a progression, lab settings).
+- `embed.js` — loaded first by every page: opened on its own, a page redirects into `index.html` (add `?standalone` to see it by
+  itself); inside it, the tab links switch pages instead of navigating, and sound is paused while a page is hidden.
 - `fretline.html` — the built, publish-ready file. **Generated — don't edit
   directly**, run `node splice.js` after editing `fretline_body.html` instead.
 - `serve.js` — a tiny static file server for local preview (no dependencies).
