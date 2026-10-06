@@ -634,9 +634,9 @@ button.mode-chip.active:hover { color: var(--parchment); }
         <div class="field">
           <div class="tempo-head">
             <label style="padding-bottom:0;">Volume</label>
-            <span class="tempo-value"><span id="volume-value">40</span><span class="unit">%</span></span>
+            <span class="tempo-value"><span id="volume-value">100</span><span class="unit">%</span></span>
           </div>
-          <input type="range" id="volume-range" min="0" max="100" value="40" step="1">
+          <input type="range" id="volume-range" min="0" max="100" value="100" step="1">
           <p class="hint">Note playback and metronome clicks together.</p>
         </div>
       </div>
@@ -2583,12 +2583,16 @@ button.mode-chip.active:hover { color: var(--parchment); }
       };
       masterGainNode = audioCtx.createGain();
       masterGainNode.gain.value = volumeGain();
-      masterGainNode.connect(audioCtx.destination);
+      // a limiter between the volume and the speakers: peaks above about -3 dBFS are squashed instead of clipping
+      const limiter = audioCtx.createDynamicsCompressor();
+      limiter.threshold.value = -3; limiter.knee.value = 0; limiter.ratio.value = 20; limiter.attack.value = 0.003; limiter.release.value = 0.1;
+      masterGainNode.connect(limiter);
+      limiter.connect(audioCtx.destination);
     }
     return audioCtx;
   }
-  // the slider runs 0-100%, and 100% is three times the raw level (the notes and clicks are scheduled at low levels)
-  function volumeGain() { return (parseFloat(document.getElementById("volume-range").value) / 100) * 3; }
+  // the slider runs 0-100%, and 100% is four times the raw level (the notes and clicks are scheduled at low levels)
+  function volumeGain() { return (parseFloat(document.getElementById("volume-range").value) / 100) * 4; }
   function midiToFreq(m) {
     return 440 * Math.pow(2, (m - 69) / 12);
   }
