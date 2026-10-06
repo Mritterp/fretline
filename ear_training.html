@@ -932,7 +932,7 @@ details.settings summary { cursor: pointer; font-size: 11px; letter-spacing: 0.1
   chipSet($("dir-chips"), DIRS, () => S.dirs, (d) => d.name, onIntSettings);
   refreshIntervalChips();
   chipSet($("scale-chips"), SCALES, () => S.scales, (s) => s.name, onChdSettings);
-  chipSet($("qual-chips"), QUALS, () => S.quals, (q) => q.name + (q.sym && q.sym.toLowerCase() !== q.name.toLowerCase() ? "  " + q.sym : ""), onChdSettings);
+  chipSet($("qual-chips"), QUALS, () => S.quals, (q) => q.name, onChdSettings);
   let resizeTimer = null;
   window.addEventListener("resize", () => { clearTimeout(resizeTimer); resizeTimer = setTimeout(() => { if (C && S.mode === "chd") { drawYouStaff(); drawCorrectStaff(); } }, 150); });
   document.addEventListener("keyup", (e) => { if (e.key.toLowerCase() === "a") aHeld = false; });
