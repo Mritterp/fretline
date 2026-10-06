@@ -31,6 +31,12 @@ h1 a:hover { color: var(--moss); }
 .controls { display: flex; flex-wrap: wrap; gap: 14px 22px; align-items: center; }
 .controls label { font-size: 10px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--moss); display: flex; align-items: center; gap: 8px; }
 .controls select { font: inherit; font-size: 13px; letter-spacing: 0; text-transform: none; padding: 5px 8px; background: var(--parchment); border: 1px solid var(--wheat); color: var(--bark); }
+.chordbar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 22px; margin-top: 12px; }
+.cgroup { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 4px; }
+.clabel { font-size: 9px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--sage); margin-right: 6px; }
+.cbtn { font: inherit; font-size: 12px; padding: 5px 10px; border: 1px solid var(--wheat); background: transparent; color: var(--moss); cursor: pointer; }
+.cbtn:hover { border-color: var(--sage); color: var(--bark); }
+.cbtn[aria-pressed="true"] { background: var(--bark); border-color: var(--bark); color: var(--parchment); }
 #summary { margin-top: 8px; font-size: 12px; color: var(--sage); }
 .legend { display: inline-flex; gap: 12px; margin-left: 6px; }
 .legend i { display: inline-block; width: 9px; height: 9px; border-radius: 50%; margin-right: 4px; vertical-align: -1px; }
@@ -65,10 +71,11 @@ svg { display: block; }
   </div>
   <div class="controls">
     <label>Root <select id="root"></select></label>
-    <label>Chord <select id="quality"></select></label>
+    <select id="quality" hidden aria-hidden="true"></select>
     <label>Frets shown <select id="frets"><option>12</option><option selected>15</option><option>17</option></select></label>
     <span class="legend" id="legend"></span>
   </div>
+  <div class="chordbar" id="chordbar" role="group" aria-label="Chord"></div>
   <div id="summary"></div>
 </header>
 <main id="out"></main>
@@ -108,6 +115,27 @@ ROOTS.forEach((n, pc) => { const o = document.createElement("option"); o.value =
 QUALITIES.forEach((q, i) => { const o = document.createElement("option"); o.value = i; o.textContent = q.name; $("quality").appendChild(o); });
 $("root").value = 5;                                                       // F
 $("quality").value = QUALITIES.findIndex((q) => q.name === "Dominant 7");   // the set currently being approved
+// The chord picker: buttons grouped by kind. The hidden select above still holds the choice, so everything else reads it as before.
+const CHORD_GROUPS = [
+  ["Triads", ["Major triad", "Minor triad", "Diminished triad", "Augmented triad"]],
+  ["Suspended", ["Suspended 2nd", "Suspended 4th", "Dominant 7sus4"]],
+  ["7th chords", ["Major 7", "Dominant 7", "Minor 7", "Half-diminished 7", "Diminished 7", "Minor-major 7"]],
+  ["Altered", ["Major 7♯5", "Dominant 7♭5"]],
+];
+const CHORD_SHORT = { "Major triad": "Major", "Minor triad": "Minor", "Diminished triad": "Dim", "Augmented triad": "Aug", "Suspended 2nd": "sus2", "Suspended 4th": "sus4", "Dominant 7sus4": "7sus4",
+  "Major 7": "Maj7", "Dominant 7": "Dom7", "Minor 7": "Min7", "Half-diminished 7": "Half-dim 7", "Diminished 7": "Dim7", "Minor-major 7": "Min-maj7", "Major 7♯5": "Maj7♯5", "Dominant 7♭5": "7♭5" };
+(function buildChordBar() {
+  const bar = $("chordbar"), listed = new Set(CHORD_GROUPS.flatMap((g) => g[1])), groups = CHORD_GROUPS.concat([["More", QUALITIES.filter((q) => !listed.has(q.name)).map((q) => q.name)]]);
+  groups.forEach(([label, names]) => {
+    if (!names.length) return;
+    const g = document.createElement("span"); g.className = "cgroup";
+    g.innerHTML = `<span class="clabel">${label}</span>` + names.map((n) => { const i = QUALITIES.findIndex((q) => q.name === n); return `<button type="button" class="cbtn" data-q="${i}" title="${n}" aria-pressed="false">${CHORD_SHORT[n] || n}</button>`; }).join("");
+    bar.appendChild(g);
+  });
+  bar.addEventListener("click", (e) => { const b = e.target.closest("button[data-q]"); if (!b) return; $("quality").value = b.dataset.q; $("quality").dispatchEvent(new Event("change", { bubbles: true })); });
+})();
+const syncChordBar = () => document.querySelectorAll("#chordbar .cbtn").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.q === $("quality").value)));
+$("quality").addEventListener("change", syncChordBar); syncChordBar();
 $("legend").innerHTML =Object.keys(ROLE_COLOR).map((r) => `<span><i style="background:${ROLE_COLOR[r]}"></i>${ROLE_NAME[r]}</span>`).join("");
 
 // ===================== Movable patterns on the neck =====================
