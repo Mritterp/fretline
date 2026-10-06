@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <script src="embed.js"></script>
 <script src="fl-audio.js"></script>
+<script src="chord-patterns.js"></script>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Fretline — Scale Lab</title>
 <link rel="manifest" href="manifest.webmanifest">
@@ -68,6 +69,21 @@ main { padding: 14px 24px 50px; max-width: 1500px; margin: 0 auto; }
 .dot:hover circle { stroke: #3d3a30; stroke-width: 2; }
 .legend { margin-top: 10px; font-size: 11px; color: var(--moss); display: flex; flex-wrap: wrap; gap: 6px 18px; }
 .legend i { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 6px; vertical-align: -1px; }
+.chords { margin-top: 18px; }
+.chords[hidden] { display: none; }
+.chords-head { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 18px; margin: 0 0 10px; }
+.chords-head h3 { margin: 0; font-family: var(--font-display); font-weight: 400; font-size: 20px; }
+.chordgrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(290px, 1fr)); gap: 12px; }
+.chordcard { background: #f9f5ee; border: 1px solid #e3dac6; padding: 8px 10px 4px; }
+.chead { display: flex; align-items: baseline; gap: 10px; margin-bottom: 4px; }
+.cnum { font-family: var(--font-display); font-size: 15px; color: var(--moss); min-width: 34px; }
+.cname { font: inherit; font-family: var(--font-display); font-size: 18px; border: 0; background: transparent; color: var(--bark); cursor: pointer; padding: 0; }
+.cname:hover { color: var(--root); }
+.cpos { margin-left: auto; font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--sage); }
+.chordcard svg { display: block; width: 100%; height: auto; }
+.cnone { font-size: 11px; color: var(--sage); padding: 14px 0 12px; }
+.cdot { cursor: pointer; }
+.cdot:hover circle { stroke: #3d3a30; stroke-width: 2; }
 @media (max-width: 700px) { main { padding: 12px 10px 40px; } .board { overflow-x: auto; } .board svg { width: 900px; } }
 </style>
 </head>
@@ -101,10 +117,19 @@ main { padding: 14px 24px 50px; max-width: 1500px; margin: 0 auto; }
   <div class="title-row"><h2 id="title"></h2><div class="facts" id="facts"></div></div>
   <div class="board" id="board"></div>
   <div class="segnote" id="segnote" hidden></div>
+  <section class="chords" id="chords" aria-label="Diatonic chords" hidden>
+    <div class="chords-head">
+      <h3>Diatonic chords</h3>
+      <span class="seg" role="group" aria-label="Chord size"><button type="button" id="size-triad" aria-pressed="false">Triads</button><button type="button" id="size-seventh" aria-pressed="true">7th chords</button></span>
+      <span class="hint" style="font-size:11px;color:var(--moss)">each in its lowest position on the neck · click a chord name to hear it</span>
+    </div>
+    <div class="chordgrid" id="chordgrid"></div>
+  </section>
   <p class="keys" aria-label="Keyboard shortcuts">
     <span><kbd>Space</kbd> play / stop</span>
     <span><kbd>K</kbd> key: intervals / notes</span>
     <span><kbd>↑</kbd> <kbd>↓</kbd> <kbd>←</kbd> <kbd>→</kbd> scale (rows / along the row)</span>
+    <span><kbd>7</kbd> chords: triads / 7ths</span>
     <span>click a note to hear it</span>
   </p>
   <div class="legend"><span><i style="background:var(--root)"></i>root</span><span><i style="background:var(--moss)"></i>other scale notes</span><span id="hint">Click any note to hear it.</span></div>
@@ -216,6 +241,68 @@ main { padding: 14px 24px 50px; max-width: 1500px; margin: 0 auto; }
     const ghost = kind === "minor" && !natural ? rows.filter(lowered).map((r) => Object.assign({ s: r[0], f: r[1] - 1 }, label(r))) : [];
     return { up, down, ghost };
   }
+  // ---- the diatonic chords of the scale, each drawn in its lowest position on the neck ----
+  let chordSize = "seventh";
+  try { if (localStorage.getItem("fretline-modal-size") === "triad") chordSize = "triad"; } catch (e) {}   // the same choice as the modal chords on the Sightreading page
+  const TRIAD_Q = { "4,7": "", "3,7": "-", "3,6": "°" };
+  const SEVENTH_Q = { "4,7,11": "Δ7", "4,7,10": "7", "3,7,10": "-7", "3,6,10": "ø7", "3,6,9": "°7", "3,7,11": "-Δ7" };
+  const OTHER_SYM = { "4,8": "+", "4,8,11": "Δ7♯5", "4,8,10": "7♯5", "4,6,10": "7♭5", "4,6,11": "Δ7♭5", "3,6,11": "°Δ7", "3,8,10": "-7♯5", "3,8,11": "-Δ7♯5", "4,7,9": "6", "3,7,9": "-6" };
+  const ROMAN = ["I", "II", "III", "IV", "V", "VI", "VII"];
+  const CHORD_IV = { 0: "1", 2: "2", 3: "♭3", 4: "3", 5: "4", 6: "♭5", 7: "5", 8: "♯5", 9: "°7", 10: "♭7", 11: "7" };
+  function diatonicChords(sc, size) {   // a chord stacked in thirds on every degree of a seven-note scale
+    if (sc.semis.length !== 7) return null;
+    return sc.semis.map((semi, i) => {
+      const at = (k) => sc.semis[(i + k) % 7] + 12 * Math.floor((i + k) / 7);
+      const rel = [at(2) - semi, at(4) - semi].concat(size === "seventh" ? [at(6) - semi] : []).map(mod), key = rel.join(",");
+      const q = (size === "seventh" ? SEVENTH_Q : TRIAD_Q)[key];
+      const label = sc.deg[i], num = +label.replace(/[^0-9]/g, ""), acc = label.replace(/[0-9]/g, "");
+      const minorish = rel[0] === 3, roman = minorish ? ROMAN[num - 1].toLowerCase() : ROMAN[num - 1];
+      const mark = q === "°" || q === "°7" ? "°" : q === "ø7" ? "ø" : rel[1] === 8 ? "+" : "";
+      return { i, semi, rel, q: q === undefined ? null : q, sym: q !== undefined ? q : OTHER_SYM[key] || "?", numeral: acc + roman + mark };
+    });
+  }
+  function chordBoard(place, byPc) {
+    const frets = place.notes.map((n) => n.fret), fMin = Math.min(...frets), fMax = Math.max(...frets);
+    const lo = fMin === 0 ? 1 : fMin, hi = Math.max(lo + 3, fMax), cols = hi - lo + 1;   // fret columns lo..hi; open strings sit left of the nut
+    const cw = 40, x0 = 30, y0 = 14, rh = 16, W = x0 + cols * cw + 12, H = y0 + 5 * rh + 26;
+    const yOf = (st) => y0 + (5 - st) * rh, xOf = (fr) => (fr === 0 ? x0 - 14 : x0 + (fr - lo + 0.5) * cw);
+    const p = [];
+    for (let st = 0; st < 6; st++) {
+      p.push(`<line x1="${x0}" x2="${x0 + cols * cw}" y1="${yOf(st)}" y2="${yOf(st)}" stroke="#3D3A30" stroke-width="${0.7 + (5 - st) * 0.14}" opacity="0.75"/>`);
+      p.push(`<text x="9" y="${yOf(st) + 3.5}" font-size="9" fill="#8A9E7E" font-family="Helvetica,Arial,sans-serif">${STRING_NAME[st]}</text>`);
+    }
+    for (let c = 0; c <= cols; c++) {
+      const x = x0 + c * cw;
+      p.push(`<line x1="${x}" x2="${x}" y1="${y0}" y2="${y0 + 5 * rh}" stroke="#C4B89A" stroke-width="${c === 0 && lo === 1 ? 3 : 0.9}"/>`);
+      if (c < cols) p.push(`<text x="${x + cw / 2}" y="${H - 8}" text-anchor="middle" font-size="10" fill="#8A9E7E" font-family="Helvetica,Arial,sans-serif">${lo + c}</text>`);
+    }
+    place.notes.forEach((n) => {
+      const m = OPEN[n.s] + n.fret, info = byPc.get(mod(m)), label = showNotes ? (info ? info.note : "") : CHORD_IV[n.iv];
+      const cx = xOf(n.fret), cy = yOf(n.s);
+      p.push(`<g class="cdot" data-midi="${m}"><title>${noteName(m)}</title><circle cx="${cx}" cy="${cy}" r="7.5" fill="${n.iv === 0 ? "var(--root)" : "var(--moss)"}"/><text x="${cx}" y="${cy + 3}" text-anchor="middle" font-size="${label.length > 2 ? 7 : 8.5}" font-weight="700" fill="#F5F0E8" font-family="Helvetica,Arial,sans-serif">${label}</text></g>`);
+    });
+    return `<svg viewBox="0 0 ${W} ${H}" role="img">${p.join("")}</svg>`;
+  }
+  function renderChords(rootPc, rootName, sc, byPc, maxFret) {
+    const host = $("chords"), chords = diatonicChords(sc, chordSize);
+    host.hidden = !chords;
+    $("size-triad").setAttribute("aria-pressed", String(chordSize === "triad")); $("size-seventh").setAttribute("aria-pressed", String(chordSize === "seventh"));
+    if (!chords) { $("chordgrid").innerHTML = ""; return; }
+    $("chordgrid").innerHTML = chords.map((c) => {
+      const chordRoot = mod(rootPc + c.semi), name = spell(rootName, rootPc, c.semi, sc.deg[c.i]) + c.sym;
+      let list = c.q === null ? [] : FretlinePatterns.placements(chordRoot, c.q, 0, maxFret, true);
+      if (!list.length && c.q !== null) list = FretlinePatterns.placements(chordRoot, c.q, 0, maxFret, false);
+      const place = list[0], frets = place ? place.notes.map((n) => n.fret) : [];
+      const midis = place ? place.notes.map((n) => OPEN[n.s] + n.fret).sort((a, b) => a - b) : [];
+      const pos = place ? (Math.min(...frets) === Math.max(...frets) ? "fret " + Math.min(...frets) : "frets " + Math.min(...frets) + "–" + Math.max(...frets)) : "";
+      return `<div class="chordcard"><div class="chead"><span class="cnum">${c.numeral}</span><button type="button" class="cname" data-chord="${midis.join(",")}"${place ? "" : " disabled"}>${name}</button><span class="cpos">${pos}</span></div>${place ? chordBoard(place, byPc) : '<div class="cnone">no approved pattern for this chord yet</div>'}</div>`;
+    }).join("");
+  }
+  function playChordMidis(midis) {   // low to high, a little apart, like a strum
+    ensureAudio(); stopScale();
+    const t0 = audioCtx.currentTime + 0.02;
+    midis.forEach((m, k) => tone(m, t0 + k * 0.05, 1.8));
+  }
   function render() {
     if (typeof stopScale === "function") stopScale();
     const rootPc = +$("root").value, rootName = ROOTS.find((r) => r[1] === rootPc)[0], sc = SCALES[+$("scale").value];
@@ -271,6 +358,7 @@ main { padding: 14px 24px 50px; max-width: 1500px; margin: 0 auto; }
     note.hidden = !segOn;
     if (segOn) note.textContent = "Segovia's fingering from his Diatonic Major and Minor Scales (ascending, " + seg.up.length + " notes starting on " + noteName(OPEN[seg.up[0].s] + seg.up[0].f) + "): the full-colour notes are the ones his pattern uses; the others are dimmed." + (seg.ghost.length ? " Dashed notes are the lowered 6th and 7th used coming back down (natural minor)." : "") + " Hover a note for its finger. Coming down, the book keeps these positions with small changes where it crosses strings.";
     $("board").innerHTML = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${rootName} ${sc.name} on the guitar fretboard">${p.join("")}</svg>`;
+    renderChords(rootPc, rootName, sc, byPc, Math.max(+$("frets").value, 12));
     $("show-int").setAttribute("aria-pressed", String(!showNotes)); $("show-note").setAttribute("aria-pressed", String(showNotes));
   }
 
@@ -332,6 +420,15 @@ main { padding: 14px 24px 50px; max-width: 1500px; margin: 0 auto; }
   }
   $("play").addEventListener("click", playScale);
   $("board").addEventListener("pointerdown", (e) => { const d = e.target.closest && e.target.closest("[data-midi]"); if (d) playMidi(+d.dataset.midi); });
+  $("chordgrid").addEventListener("pointerdown", (e) => {   // a note on a chord diagram plays that note; the chord's name plays the whole chord
+    const n = e.target.closest && e.target.closest(".cdot"), c = e.target.closest && e.target.closest(".cname");
+    if (n) playMidi(+n.dataset.midi);
+    else if (c && c.dataset.chord) playChordMidis(c.dataset.chord.split(",").map(Number));
+  });
+  const setChordSize = (size) => { chordSize = size; try { localStorage.setItem("fretline-modal-size", size); } catch (e) {} render(); };
+  $("size-triad").addEventListener("click", () => setChordSize("triad"));
+  $("size-seventh").addEventListener("click", () => setChordSize("seventh"));
+  window.addEventListener("storage", (e) => { if (e.key === "fretline-modal-size") { chordSize = e.newValue === "triad" ? "triad" : "seventh"; render(); } });
 
   ["root", "scale", "frets"].forEach((id) => $(id).addEventListener("change", render));
   const setShow = (notes) => { showNotes = notes; try { localStorage.setItem("fretline-scale-show", notes ? "notes" : "intervals"); } catch (e) {} render(); };
@@ -344,6 +441,7 @@ main { padding: 14px 24px 50px; max-width: 1500px; margin: 0 auto; }
     if (k === " " || k === "Spacebar") { if (tag === "BUTTON") return; e.preventDefault(); playScale(); return; }
     const key = k.length === 1 ? k.toLowerCase() : k;
     if (key === "k") setShow(!showNotes);   // K = key: flip between intervals and note names
+    else if (key === "7") setChordSize(chordSize === "triad" ? "seventh" : "triad");   // 7 = triads / 7th chords for the chords below
     else if (key === "ArrowDown" || key === "ArrowUp" || key === "ArrowLeft" || key === "ArrowRight") {
       // navigate the picker as a grid: left/right move along a row (mode, then its variations); up/down move to the nearest scale in the row above or below
       e.preventDefault();

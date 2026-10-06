@@ -32,6 +32,8 @@ Live app: https://claude.ai/code/artifact/b0f71811-d152-4e1b-a595-7abeb8a99003
   itself); inside it, the tab links switch pages instead of navigating, and sound is paused while a page is hidden.
 - `fl-audio.js` — the volume and tone shared by every page (stored in the browser, so a change on one page applies everywhere);
   pages connect their notes to `FretlineAudio.out(ctx)`, which applies the volume and a limiter.
+- `chord-patterns.js` — the approved chord patterns (grids per quality, which ones are alternates, and a helper that lists where a pattern
+  fits on the neck for a root). The Sightreading page and the Scale Lab both read it, so it is the one place to edit them.
 - `fretline.html` — the built, publish-ready file. **Generated — don't edit
   directly**, run `node splice.js` after editing `fretline_body.html` instead.
 - `serve.js` — a tiny static file server for local preview (no dependencies).
