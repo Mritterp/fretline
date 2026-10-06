@@ -157,7 +157,8 @@ details.diff th { color: var(--bark); font-weight: 600; }
       <span><kbd>Esc</kbd> clear</span>
       <span><kbd>↑</kbd> <kbd>↓</kbd> basic / medium / advanced</span>
       <span><kbd>M</kbd> traditional / jazz</span>
-      <span>click a chord to hear it and add it (plays based on a root key of C)</span>
+      <span>Click a chord to add it to the progression.</span>
+      <span><kbd>Ctrl</kbd> + click a chord to hear it without adding it</span>
     </div></div>
   </div>
   <details class="cof" open>
@@ -1087,6 +1088,7 @@ details.diff th { color: var(--bark); font-weight: 600; }
     if (editing) return;
     const g = e.target.closest && e.target.closest(".node"); if (!g) return;
     const n = byId.get(g.dataset.id); if (!n) return;
+    if (e.ctrlKey || e.metaKey) { stopAudio(); const keep = lastMean; playChord(n); lastMean = keep; return; }   // Ctrl (or Cmd) + click: hear it, nothing is added or selected
     stopAudio(); current = n.id; prog.push(n.id); playChord(n); render();
   });
   const panel = $("enh-panel");
