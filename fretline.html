@@ -503,7 +503,7 @@ button.mode-chip.active:hover { color: var(--parchment); }
           <button type="button" class="btn btn-outline" id="play-btn">Play back</button>
           <button type="button" class="btn btn-outline" id="stop-btn" disabled>Stop</button>
         </div>
-        <p class="shortcuts-hint">Space play/pause · Esc stop · G new line · M metronome · N note names · C chords · ← → modal chord · ↑ ↓ chord position · Ctrl ← → chord quality</p>
+        <p class="shortcuts-hint">Space play/pause · Esc stop · G new line · M metronome · N note names · C chords · ← → modal chord · ↑ ↓ chord position · Ctrl ← → chord quality · 7 triads / 7ths</p>
       </div>
 
       <div id="panel-body">
@@ -3336,6 +3336,9 @@ button.mode-chip.active:hover { color: var(--parchment); }
       e.preventDefault();
       showChords.checked = !showChords.checked;
       showChords.dispatchEvent(new Event("change"));
+    } else if (e.key === "7") {
+      e.preventDefault();
+      setModalChordSize(modalChordSize === "triad" ? "seventh" : "triad");   // 7: triads <-> 7th chords for the modal chords
     } else if (e.key === "[" || e.key === "]") {
       e.preventDefault();
       cycleChordPosition(e.key === "]" ? 1 : -1);
