@@ -310,9 +310,9 @@ details.settings summary { cursor: pointer; font-size: 11px; letter-spacing: 0.1
     const shiftB = pick(every.filter((x) => x < 60), 33, 67, 1);    // bass: A1 .. G4
     const trebleDisp = trebleSet.map((m) => m.map((x) => x - shiftT)), bassDisp = bassSet.map((m) => m.map((x) => x + shiftB));
     const ledgerUp = 30, ledgerDown = 30;                  // room for three ledger lines each way, always reserved
-    const above = ledgerUp + 8 + 20, below = ledgerDown + 8 + 20;
+    const above = ledgerUp + 8 + 8, below = ledgerDown + 8 + 20;
     const trebleY = 20 + above, bassY = trebleY + 40 + 56;
-    const H = bassY + 40 + below + 20;
+    const H = bassY + 80 + ledgerDown + 24 + 14;   // the stave's y is above its top line: its bottom line is at y + 80
     renderer.resize(W, H);
     const svgEl = el.querySelector("svg");
     svgEl.setAttribute("viewBox", "0 0 " + W + " " + H);
@@ -373,12 +373,12 @@ details.settings summary { cursor: pointer; font-size: 11px; letter-spacing: 0.1
     };
     // notes with real pitches are the non-ghost ones
     const real = (arr, sets) => arr.filter((n, i) => sets[i].length);
-    if (shiftT) mark(shiftT === 24 ? "15ma" : "8va", real(tn, trebleDisp), trebleY - ledgerUp - 14, 1);
-    if (shiftB) mark(shiftB === 24 ? "15mb" : "8vb", real(bn, bassDisp), bassY + 40 + ledgerDown + 18, -1);
+    if (shiftT) mark(shiftT === 24 ? "15ma" : "8va", real(tn, trebleDisp), trebleY + 40 - ledgerUp - 18, 1);   // the sign and its dashed line clear every note, accidental and ledger line
+    if (shiftB) mark(shiftB === 24 ? "15mb" : "8vb", real(bn, bassDisp), bassY + 80 + ledgerDown + 24, -1);
     // clickable columns: pressing a chord on the staff plays it
     if (onChord) tn.forEach((n, i) => {
       const r = document.createElementNS(NS, "rect");
-      r.setAttribute("x", barStart + i * cellW); r.setAttribute("y", trebleY - 14); r.setAttribute("width", cellW); r.setAttribute("height", bassY + 40 - trebleY + 28);
+      r.setAttribute("x", barStart + i * cellW); r.setAttribute("y", trebleY - 14); r.setAttribute("width", cellW); r.setAttribute("height", bassY + 80 - trebleY + 28);
       r.setAttribute("rx", 0); r.setAttribute("stroke", "none"); r.setAttribute("fill", "transparent"); r.setAttribute("pointer-events", "all"); r.style.cursor = "pointer";
       r.addEventListener("mouseenter", () => r.setAttribute("fill", "rgba(176,122,90,0.12)"));
       r.addEventListener("mouseleave", () => r.setAttribute("fill", "transparent"));
