@@ -218,7 +218,7 @@ details.settings summary { cursor: pointer; font-size: 11px; letter-spacing: 0.1
   // ---------- data ----------
   const LOW = 21, HIGH = 108;   // A0 .. C8, a standard 88-key piano
   const INTERVALS = [
-    [1, "Minor Second"], [2, "Major Second"], [3, "Minor Third"], [4, "Major Third"], [5, "Perfect Fourth"], [6, "Dim Fifth"],
+    [0, "Unison"], [1, "Minor Second"], [2, "Major Second"], [3, "Minor Third"], [4, "Major Third"], [5, "Perfect Fourth"], [6, "Dim Fifth"],
     [7, "Perfect Fifth"], [8, "Minor Sixth"], [9, "Major Sixth"], [10, "Minor Seventh"], [11, "Major Seventh"], [12, "Octave"],
     [13, "Minor Ninth"], [14, "Major Ninth"], [15, "Minor Tenth"], [16, "Major Tenth"], [17, "Perfect Eleventh"], [18, "Aug Eleventh"],
     [19, "Perfect Twelfth"], [20, "Minor Thirteenth"], [21, "Major Thirteenth"], [22, "Minor Fourteenth"], [23, "Major Fourteenth"], [24, "Double Octave"],
@@ -252,6 +252,7 @@ details.settings summary { cursor: pointer; font-size: 11px; letter-spacing: 0.1
   });
   let S = defaults();
   try { const raw = JSON.parse(localStorage.getItem("fretline-ear") || "null"); if (raw) S = Object.assign(defaults(), raw); } catch (e) {}
+  if (!S.unison) { S.unison = true; if (Array.isArray(S.ints) && !S.ints.includes(0)) S.ints.unshift(0); }
   const save = () => { try { localStorage.setItem("fretline-ear", JSON.stringify(S)); } catch (e) {} };
 
   // ---------- audio ----------
@@ -425,12 +426,12 @@ details.settings summary { cursor: pointer; font-size: 11px; letter-spacing: 0.1
   function drawIntervalVisuals() {
     if (!Q) return;
     const label = (m) => noteName(m).replace(/\d/, "");
-    if (!qAnswered) {   // only the first note is shown until you answer (nothing at all for a harmonic interval)
-      renderStaff($("int-staff"), Q.dir === "both" ? [] : [[Q.first]], false);
-      renderKeyboard($("int-kbd"), Q.dir === "both" ? [] : [{ midi: Q.first, label: label(Q.first) }]);
+    if (!qAnswered) {   // only the first note is shown until you answer (for a harmonic interval, its lower note)
+      renderStaff($("int-staff"), [[Q.first]], false);
+      renderKeyboard($("int-kbd"), [{ midi: Q.first, label: label(Q.first) }]);
     } else {
-      renderStaff($("int-staff"), Q.dir === "both" ? [[Q.lo, Q.hi]] : [[Q.first], [Q.second]], false);
-      renderKeyboard($("int-kbd"), [Q.first, Q.second].map((m) => ({ midi: m, label: label(m) })));
+      renderStaff($("int-staff"), Q.dir === "both" ? [Q.lo === Q.hi ? [Q.lo] : [Q.lo, Q.hi]] : [[Q.first], [Q.second]], false);
+      renderKeyboard($("int-kbd"), [...new Set([Q.first, Q.second])].map((m) => ({ midi: m, label: label(m) })));
     }
   }
   function newInterval(autoplay) {
@@ -455,7 +456,7 @@ details.settings summary { cursor: pointer; font-size: 11px; letter-spacing: 0.1
     if (!Q) return;
     cancelPlay();
     const c = audio(), t = c.currentTime + 0.05;
-    if (Q.dir === "both") { tone(Q.lo, t, 1.7, 0.2); tone(Q.hi, t, 1.7, 0.2); }
+    if (Q.dir === "both") { tone(Q.lo, t, 1.7, 0.2); if (Q.hi !== Q.lo) tone(Q.hi, t, 1.7, 0.2); }
     else { tone(Q.first, t, 1.0, 0.24); tone(Q.second, t + 1.0, 1.4, 0.24); }
   }
   // Plays interval n above (or below) the question's first note, in the question's direction; if that runs off the keyboard it goes the other way.
@@ -470,7 +471,7 @@ details.settings summary { cursor: pointer; font-size: 11px; letter-spacing: 0.1
     if (Q.dir === "both") {
       let lo = from, hi = from + n;
       if (!fits(hi)) { hi = from; lo = from - n; }
-      tone(lo, t, 1.7, 0.2); tone(hi, t, 1.7, 0.2);
+      tone(lo, t, 1.7, 0.2); if (hi !== lo) tone(hi, t, 1.7, 0.2);
     } else {
       let to = Q.dir === "down" ? from - n : from + n;
       if (!fits(to)) to = Q.dir === "down" ? from + n : from - n;
