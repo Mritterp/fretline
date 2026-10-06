@@ -428,14 +428,14 @@ function renderPatterns() {
 
   const html = [];
   const firstPerPos = rows.filter((r) => r.primary), nPrimary = firstPerPos.length;   // the map shows the primary positions only
-  html.push(`<section class="group"><h2>${ROOTS[rootPc]} ${scale[0]} scale<span>the scale this chord sits inside · numbers are scale degrees</span></h2>`);
+  html.push(`<section class="group"><h2>${ROOTS[rootPc]} ${scale[0]} scale${REPEAT_EVERY[quality.name] ? `<span>every pattern repeats every ${REPEAT_EVERY[quality.name]} frets with a different inversion</span>` : ""}</h2>`);
   rows.forEach((r) => {
     if (!r.primary && !html.some((h) => h.includes("alt-title"))) html.push(`<h3 class="alt-title">Alternate voicings</h3>`);
     html.push(`<div class="row"><div class="rowhead"><div class="title">Pos ${r.pos}.${r.label ? `<span class="order">${r.label}</span>` : ""}</div></div>${patternRowSVG(r, scale, rootPc, opts.maxFret)}</div>`);
   });
   html.push("</section>");
   if (!rows.length) html.push(`<div class="empty">No fingerable patterns with these settings.</div>`);
-  html.push(`<section class="group"><h2>Map up the neck<span>${ROOTS[rootPc]}${quality.sym} · positions in order Pos 1 → ${nPrimary}</span></h2><div class="row">${overviewSVG(MAP_REPEAT[quality.name] ? mapRepeats(firstPerPos, rootPc, quality, MAP_REPEAT[quality.name], opts.maxFret) : firstPerPos, opts.maxFret)}${REPEAT_EVERY[quality.name] ? `<div class="repeat-note">Each pattern repeats every ${REPEAT_EVERY[quality.name]} frets with a different inversion</div>` : ""}</div></section>`);
+  html.push(`<section class="group"><h2>Map up the neck<span>${ROOTS[rootPc]}${quality.sym} · positions in order Pos 1 → ${nPrimary}</span></h2><div class="row">${overviewSVG(MAP_REPEAT[quality.name] ? mapRepeats(firstPerPos, rootPc, quality, MAP_REPEAT[quality.name], opts.maxFret) : firstPerPos, opts.maxFret)}</div></section>`);
   $("out").innerHTML = html.join("");
   const nPlace = rows.reduce((n, r) => n + r.places.length, 0);
   $("summary").textContent = `${ROOTS[rootPc]}${quality.sym} (${quality.name}) — ${rows.length} pattern row${rows.length === 1 ? "" : "s"}, ${nPlace} placements on frets 0–${opts.maxFret}`;
