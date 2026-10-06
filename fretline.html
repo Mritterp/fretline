@@ -634,9 +634,9 @@ button.mode-chip.active:hover { color: var(--parchment); }
         <div class="field">
           <div class="tempo-head">
             <label style="padding-bottom:0;">Volume</label>
-            <span class="tempo-value"><span id="volume-value">120</span><span class="unit">%</span></span>
+            <span class="tempo-value"><span id="volume-value">40</span><span class="unit">%</span></span>
           </div>
-          <input type="range" id="volume-range" min="0" max="300" value="120" step="1">
+          <input type="range" id="volume-range" min="0" max="100" value="40" step="1">
           <p class="hint">Note playback and metronome clicks together.</p>
         </div>
       </div>
@@ -2575,15 +2575,13 @@ button.mode-chip.active:hover { color: var(--parchment); }
         }
       };
       masterGainNode = audioCtx.createGain();
-      masterGainNode.gain.value = parseFloat(document.getElementById("volume-range").value) / 100;
-      // the volume slider goes past 100%, so a limiter sits between it and the speakers: loud peaks are squashed instead of clipping
-      const limiter = audioCtx.createDynamicsCompressor();
-      limiter.threshold.value = -6; limiter.knee.value = 0; limiter.ratio.value = 20; limiter.attack.value = 0.003; limiter.release.value = 0.1;
-      masterGainNode.connect(limiter);
-      limiter.connect(audioCtx.destination);
+      masterGainNode.gain.value = volumeGain();
+      masterGainNode.connect(audioCtx.destination);
     }
     return audioCtx;
   }
+  // the slider runs 0-100%, and 100% is three times the raw level (the notes and clicks are scheduled at low levels)
+  function volumeGain() { return (parseFloat(document.getElementById("volume-range").value) / 100) * 3; }
   function midiToFreq(m) {
     return 440 * Math.pow(2, (m - 69) / 12);
   }
@@ -2981,7 +2979,7 @@ button.mode-chip.active:hover { color: var(--parchment); }
   // of connecting straight to ctx.destination.
   volumeRange.addEventListener("input", () => {
     volumeValue.textContent = volumeRange.value;
-    if (masterGainNode) masterGainNode.gain.value = parseFloat(volumeRange.value) / 100;
+    if (masterGainNode) masterGainNode.gain.value = volumeGain();
   });
 
   let sessionCount = 0;
