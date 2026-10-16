@@ -1,6 +1,6 @@
 // Bump this on every release so installed clients pick up the new fretline.html
 // (activate clears any cache under an older name and re-precaches).
-const CACHE_NAME = "fretline-v12";
+const CACHE_NAME = "fretline-v14";
 
 const PRECACHE_URLS = [
   "./index.html",
@@ -37,10 +37,13 @@ self.addEventListener("activate", (event) => {
 // refreshing the cache from a successful network response) — so an online
 // viewer always gets the current fretline.html, never a stale precached
 // copy, while offline use still works from whatever was last cached.
+// cache: "no-cache" makes the browser check with the server every time instead of reusing its own HTTP cache: GitHub
+// Pages sends max-age=600, so a plain fetch() kept serving the previous release for up to 10 minutes after a push.
+// When nothing changed, the check is a tiny 304 (Pages sends an ETag), so this costs almost nothing.
 self.addEventListener("fetch", (event) => {
   if (event.request.method !== "GET") return;
   event.respondWith(
-    fetch(event.request)
+    fetch(event.request, { cache: "no-cache" })
       .then((response) => {
         if (response.ok) {
           const copy = response.clone();
