@@ -104,8 +104,14 @@ details.settings summary { cursor: pointer; font-size: 11px; letter-spacing: 0.1
 @media (max-width: 1000px) { #int-answers, #cq-answers { grid-template-columns: repeat(4, 1fr); } }
 @media (max-width: 700px) {
   main { padding: 12px 10px 50px; }
-  /* phones: the answer list scrolls inside its own box so the buttons stay a readable, tappable size */
-  #int-answers, #cq-answers { grid-template-columns: repeat(2, 1fr); max-height: 38vh; overflow-y: auto; padding: 2px; }
+  header { padding: 10px 12px 10px; }
+  h1 { font-size: 26px; }
+  .site-tabs { display: grid; grid-template-columns: repeat(3, 1fr); gap: 5px; width: 100%; }
+  .site-tab { min-width: 0; font-size: 9px; letter-spacing: 0.1em; padding: 6px 2px; }
+  /* the staff box matches the (cropped) drawing, so there's no empty band above the staff */
+  .staff:not(.chd) { height: calc((100vw - 50px) * 0.6); }
+  /* phones: the answer buttons flow with the page (no scroll box inside a scrolling page) */
+  #int-answers, #cq-answers { grid-template-columns: repeat(2, 1fr); padding: 2px; }
   .ans { font-size: 12px; padding: 12px 4px; }
   .slot { grid-template-columns: 1fr; }
   .slot .answers { grid-template-columns: repeat(2, 1fr); }
@@ -114,6 +120,8 @@ details.settings summary { cursor: pointer; font-size: 11px; letter-spacing: 0.1
   .kbd-wrap { overflow-x: auto; }
   .kbd-wrap svg { width: 900px; }
 }
+/* touch screens: the keyboard-shortcut hints are no use without a keyboard */
+@media (hover: none) and (pointer: coarse) { .keys { display: none; } }
 </style>
 
 <header>
@@ -326,6 +334,7 @@ details.settings summary { cursor: pointer; font-size: 11px; letter-spacing: 0.1
   function cancelPlay() { stopAll(); timers.forEach(clearTimeout); timers = []; playToken++; }
 
   // ---------- staff + keyboard ----------
+  const PHONE = window.matchMedia("(max-width: 700px)");   // same breakpoint as the phone CSS
   function renderStaff(el, moments, flat, onChord, basis, slots) {   // basis: every pitch the question can show, so the octave signs never change between steps
     el.innerHTML = "";
     const nSlots = Math.max(moments.length, slots || 0);
@@ -368,7 +377,12 @@ details.settings summary { cursor: pointer; font-size: 11px; letter-spacing: 0.1
       try {
         const b = svgEl.getBBox();   // zero while the view is hidden; redrawn when shown
         if (b.width > 0 && b.height > 0) {
-          const pad = 6; svgEl.setAttribute("viewBox", [b.x - pad, 0, b.width + 2 * pad, H].join(" "));
+          const pad = 6;
+          // phones: drop the empty band VexFlow leaves above the ledger-line room (and a little below), never cutting into
+          // anything drawn, so the staff isn't floating in white space; the crop is the same every question unless a note needs more
+          let top = 0, bottom = H;
+          if (!el.classList.contains("chd") && PHONE.matches) { top = Math.min(50, b.y - pad); bottom = Math.max(H - 15, b.y + b.height + pad); }
+          svgEl.setAttribute("viewBox", [b.x - pad, top, b.width + 2 * pad, bottom - top].join(" "));
           // chord staves: size the box to the bar so the staff fills the full width instead of leaving side margins
           if (el.classList.contains("chd") && el.clientWidth) el.style.height = Math.round((el.clientWidth * H) / (b.width + 2 * pad)) + "px";
         }
