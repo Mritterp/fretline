@@ -650,6 +650,11 @@ button.mode-chip.active:hover { color: var(--parchment); }
           </div>
           <input type="range" id="volume-range" min="0" max="100" value="100" step="1">
           <p class="hint">Note playback and metronome clicks together.</p>
+          <label class="checkbox-row" style="margin-top:8px;">
+            <input type="checkbox" id="loudness-eq" checked>
+            Equal-loudness EQ
+          </label>
+          <p class="hint">Lifts low notes and evens out the highs to match how the ear hears, so every note sounds about as loud as the others. Applies on every page.</p>
         </div>
       </div>
 
@@ -2973,11 +2978,14 @@ button.mode-chip.active:hover { color: var(--parchment); }
   function showSharedAudio(v) {
     volumeRange.value = String(Math.round(v.volume)); volumeValue.textContent = volumeRange.value;
     toneSelect.value = v.tone;
+    loudnessEq.checked = v.eq;
   }
+  const loudnessEq = document.getElementById("loudness-eq");
   showSharedAudio(FretlineAudio.get());
   FretlineAudio.onChange(showSharedAudio);
   volumeRange.addEventListener("input", () => FretlineAudio.set({ volume: +volumeRange.value }));
   toneSelect.addEventListener("change", () => FretlineAudio.set({ tone: toneSelect.value }));
+  loudnessEq.addEventListener("change", () => FretlineAudio.set({ eq: loudnessEq.checked }));
 
   let sessionCount = 0;
   function getTotalCount() {
