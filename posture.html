@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<script src="embed.js"></script>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Fretline — Posture</title>
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#3D3A30">
+<link rel="icon" href="icons/favicon-32.png" sizes="32x32">
+<style>
+:root {
+  --parchment: #f5f0e8; --linen: #e8e0d0; --linen-hover: #e0d7c4; --wheat: #c4b89a; --sage: #8a9e7e;
+  --moss: #5c6b52; --clay: #b07a5a; --bark: #3d3a30;
+  --font-display: Georgia, 'Times New Roman', serif;
+  --font-body: Helvetica, Arial, sans-serif;
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--parchment); color: var(--bark); font-family: var(--font-body); -webkit-font-smoothing: antialiased; }
+header { background: var(--parchment); border-bottom: 1px solid var(--wheat); padding: 14px 24px 12px; }
+.brand { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 8px 22px; margin-bottom: 10px; }
+h1 { margin: 0; font-family: var(--font-display); font-weight: 400; font-size: 30px; letter-spacing: -0.015em; line-height: 1; }
+.site-tabs { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 4px; }
+.site-tab { box-sizing: border-box; min-width: 126px; text-align: center; font-family: var(--font-body); font-size: 10px; line-height: 1.3; letter-spacing: 0.18em; text-transform: uppercase; text-decoration: none; white-space: nowrap; padding: 7px 12px; border: 1px solid var(--wheat); color: var(--sage); }
+.site-tab:hover { border-color: var(--sage); color: var(--bark); }
+.site-tab.current { border-color: var(--bark); background: var(--bark); color: var(--parchment); }
+.tagline { margin: 0; font-size: 10px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--moss); }
+
+main { display: flex; flex-wrap: wrap; align-items: stretch; max-width: 1500px; margin: 0 auto; }
+
+/* checklist column */
+.panel { flex: 0 1 300px; min-width: 260px; background: var(--linen); border-right: 1px solid var(--wheat); padding: 26px 24px 36px; display: flex; flex-direction: column; gap: 18px; }
+.panel-head { display: flex; align-items: baseline; justify-content: space-between; border-bottom: 1px solid var(--wheat); padding-bottom: 10px; }
+.panel-head span:first-child { font-size: 9px; letter-spacing: 0.2em; text-transform: uppercase; color: var(--bark); }
+.panel-head span:last-child { font-size: 9px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--sage); }
+.panel .intro { margin: 0; font-size: 12px; line-height: 1.55; color: var(--moss); }
+.checklist { margin: 0; padding: 0; list-style: none; }
+.checklist li { border-bottom: 1px solid var(--wheat); }
+.checklist label { display: flex; align-items: flex-start; gap: 10px; padding: 11px 0; cursor: pointer; font-size: 12px; line-height: 1.45; color: var(--bark); }
+.checklist input[type="checkbox"] { width: 14px; height: 14px; margin: 1px 0 0; flex-shrink: 0; accent-color: var(--bark); cursor: pointer; }
+.checklist input:checked + span { color: var(--sage); text-decoration: line-through; text-decoration-color: var(--wheat); }
+.btn-outline { font: inherit; font-size: 10px; letter-spacing: 0.2em; text-transform: uppercase; padding: 12px 20px; border: 1px solid var(--bark); background: transparent; color: var(--bark); cursor: pointer; transition: background-color 200ms ease-out; }
+.btn-outline:hover { background: var(--linen-hover); }
+
+/* content column */
+.stage { flex: 1 1 560px; min-width: 0; padding: 26px 32px 48px; display: flex; flex-direction: column; gap: 24px; }
+.stage-head { display: flex; align-items: baseline; justify-content: space-between; gap: 20px; }
+.stage-head span { font-size: 9px; letter-spacing: 0.2em; text-transform: uppercase; color: var(--sage); }
+.stage-head span:last-child { color: var(--moss); }
+.card { background: #f9f5ee; border: 1px solid #e3dac6; padding: 22px; }
+.figure { display: flex; flex-wrap: wrap; gap: 24px 36px; align-items: center; }
+.figure svg { flex: 1 1 340px; max-width: 460px; height: auto; display: block; }
+.contact-legend { flex: 1 1 220px; margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 14px; }
+.contact-legend li { display: flex; gap: 12px; align-items: baseline; font-size: 12px; line-height: 1.5; color: var(--moss); }
+.contact-legend strong { display: block; color: var(--bark); font-weight: 400; font-family: var(--font-display); font-size: 16px; }
+.contact-num { flex-shrink: 0; width: 20px; height: 20px; border-radius: 50%; background: var(--moss); color: var(--parchment); font-size: 10px; display: inline-flex; align-items: center; justify-content: center; transform: translateY(-2px); }
+.test-line { border-top: 1px solid var(--wheat); padding-top: 14px; font-size: 10px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--moss); }
+
+.steps { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); border-top: 1px solid var(--wheat); border-left: 1px solid var(--wheat); }
+.step { padding: 20px 22px 22px; border-right: 1px solid var(--wheat); border-bottom: 1px solid var(--wheat); }
+.step-num { font-family: var(--font-display); font-size: 13px; color: var(--clay); }
+.step h3 { margin: 6px 0 10px; font-family: var(--font-display); font-weight: 400; font-size: 21px; line-height: 1.15; letter-spacing: -0.01em; }
+.step p { margin: 0 0 8px; font-size: 13px; line-height: 1.6; text-wrap: pretty; }
+.step p:last-child { margin-bottom: 0; }
+.step .aside { font-size: 12px; color: var(--moss); }
+
+.section-label { font-size: 9px; letter-spacing: 0.2em; text-transform: uppercase; color: var(--sage); }
+.faults { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 14px 32px; margin: 14px 0 0; padding: 0; list-style: none; }
+.faults li { font-size: 13px; line-height: 1.55; padding-left: 14px; border-left: 2px solid var(--clay); }
+.faults strong { display: block; font-weight: 400; font-family: var(--font-display); font-size: 15px; margin-bottom: 2px; }
+.faults span { color: var(--moss); }
+
+/* illustration */
+#posture-svg .pf-floor { stroke: var(--wheat); stroke-width: 1; }
+#posture-svg .pf-line { stroke: var(--wheat); stroke-width: 2; fill: none; }
+#posture-svg .pf-chair { fill: var(--linen); stroke: var(--wheat); stroke-width: 1; }
+#posture-svg .pf-support { fill: none; stroke: var(--bark); stroke-width: 3.5; stroke-linecap: round; }
+#posture-svg .pf-support-plate { fill: var(--bark); stroke: var(--bark); stroke-width: 1; stroke-linejoin: round; }
+#posture-svg .pf-cup { fill: var(--moss); }
+#posture-svg .pf-limb-o.pf-thigh { stroke-width: 28; }
+#posture-svg .pf-limb.pf-thigh { stroke-width: 25.6; }
+#posture-svg .pf-limb-o.pf-leg { stroke-width: 20; }
+#posture-svg .pf-limb.pf-leg { stroke-width: 17.6; }
+#posture-svg .pf-body { fill: var(--parchment); stroke: var(--bark); stroke-width: 1.2; stroke-linejoin: round; }
+#posture-svg .pf-limb-o { fill: none; stroke: var(--bark); stroke-width: 13; stroke-linecap: round; stroke-linejoin: round; }
+#posture-svg .pf-limb { fill: none; stroke: var(--parchment); stroke-width: 10.6; stroke-linecap: round; stroke-linejoin: round; }
+#posture-svg .pf-guitar { fill: color-mix(in srgb, var(--clay) 30%, var(--parchment)); stroke: var(--clay); stroke-width: 1.4; }
+#posture-svg .pf-neck { fill: var(--wheat); stroke: var(--bark); stroke-width: 1; }
+#posture-svg .pf-hole, #posture-svg .pf-bridge { fill: var(--bark); }
+#posture-svg .pf-strings { stroke: var(--bark); stroke-width: 0.4; opacity: 0.7; }
+#posture-svg .pf-frets { stroke: var(--bark); stroke-width: 0.6; opacity: 0.5; }
+#posture-svg .pf-guide { fill: none; stroke: var(--sage); stroke-width: 1; stroke-dasharray: 3 3; }
+#posture-svg .pf-note { fill: var(--moss); font-family: var(--font-body); font-size: 10px; letter-spacing: 0.06em; }
+#posture-svg .pf-leader { stroke: var(--moss); stroke-width: 1; }
+#posture-svg .pf-marker circle { fill: var(--moss); }
+#posture-svg .pf-marker text { fill: var(--parchment); font-family: var(--font-body); font-size: 10px; text-anchor: middle; }
+
+@media (max-width: 860px) {
+  .panel { flex: 1 1 100%; border-right: none; border-bottom: 1px solid var(--wheat); padding: 20px 16px 24px; }
+  .stage { padding: 20px 16px 36px; }
+  .card { padding: 14px; }
+}
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+</head>
+<body>
+<header>
+  <div class="brand">
+    <h1>Fretline</h1>
+    <nav class="site-tabs" aria-label="Pages">
+      <a class="site-tab" href="fretline.html">Sightreading</a>
+      <a class="site-tab" href="ear_training.html">Ear Training</a>
+      <a class="site-tab" href="shapes_lab.html">Chord Lab</a>
+      <a class="site-tab" href="scale_lab.html">Scale Lab</a>
+      <a class="site-tab" href="harmony_map.html">Harmony Map</a>
+      <a class="site-tab current" href="posture.html" aria-current="page">Posture</a>
+    </nav>
+  </div>
+  <p class="tagline">Classical guitar posture</p>
+</header>
+
+<main>
+  <section class="panel" aria-label="Posture checklist">
+    <div class="panel-head">
+      <span>Before you play</span>
+      <span id="check-count">0 / 8</span>
+    </div>
+    <p class="intro">A thirty-second check to run at the start of each session, and again whenever something starts to ache.</p>
+    <ul class="checklist" id="checklist">
+      <li><label><input type="checkbox"><span>Sitting on the front half of the chair, feet grounded</span></label></li>
+      <li><label><input type="checkbox"><span>Guitar support on the left thigh, both feet flat</span></label></li>
+      <li><label><input type="checkbox"><span>Guitar stays put when I let go with both hands</span></label></li>
+      <li><label><input type="checkbox"><span>Headstock at about eye level</span></label></li>
+      <li><label><input type="checkbox"><span>Shoulders level and loose, right one not hunched</span></label></li>
+      <li><label><input type="checkbox"><span>Left thumb behind the neck, wrist nearly straight</span></label></li>
+      <li><label><input type="checkbox"><span>Right forearm on the edge of the guitar, not the elbow</span></label></li>
+      <li><label><input type="checkbox"><span>Breathing easily, jaw unclenched</span></label></li>
+    </ul>
+    <button type="button" class="btn-outline" id="checklist-reset">Clear checklist</button>
+  </section>
+
+  <section class="stage" aria-label="Classical guitar posture">
+    <div class="stage-head">
+      <span>Classical posture</span>
+      <span>Seated · guitar support</span>
+    </div>
+
+    <div class="card">
+      <div class="figure">
+        <svg id="posture-svg" viewBox="0 0 420 390" role="img" aria-label="Front view of a seated classical guitarist: knees apart with the guitar sitting between the legs, both feet flat, a guitar support on the left thigh holding the guitar up by its lower side, neck angled up about 40 degrees with the headstock near eye level, and four numbered contact points.">
+          <line class="pf-floor" x1="30" y1="372" x2="400" y2="372"/>
+          <!-- chair -->
+          <rect class="pf-chair" x="116" y="118" width="108" height="118"/>
+          <rect class="pf-chair" x="104" y="232" width="132" height="8"/>
+          <line class="pf-line" x1="112" y1="240" x2="108" y2="372"/>
+          <line class="pf-line" x1="228" y1="240" x2="232" y2="372"/>
+          <!-- lower legs, splayed so the knees sit wide apart; both feet flat -->
+          <path class="pf-limb-o pf-leg" d="M110,250 L102,358"/>
+          <path class="pf-limb pf-leg" d="M110,250 L102,358"/>
+          <ellipse class="pf-body" cx="96" cy="365" rx="17" ry="6"/>
+          <path class="pf-limb-o pf-leg" d="M236,250 L242,358"/>
+          <path class="pf-limb pf-leg" d="M236,250 L242,358"/>
+          <ellipse class="pf-body" cx="248" cy="365" rx="17" ry="6"/>
+          <!-- torso -->
+          <path class="pf-body" d="M128,104 Q170,94 212,104 L208,230 L132,230 Z"/>
+          <!-- thighs, coming forward and out to the knees -->
+          <path class="pf-limb-o pf-thigh" d="M146,226 L112,248"/>
+          <path class="pf-limb pf-thigh" d="M146,226 L112,248"/>
+          <path class="pf-limb-o pf-thigh" d="M194,226 L234,248"/>
+          <path class="pf-limb pf-thigh" d="M194,226 L234,248"/>
+          <!-- head -->
+          <rect class="pf-body" x="164" y="80" width="12" height="18"/>
+          <circle class="pf-body" cx="170" cy="62" r="21"/>
+          <!-- left arm, behind the guitar -->
+          <path class="pf-limb-o" d="M206,112 L262,176 L298,97"/>
+          <path class="pf-limb" d="M206,112 L262,176 L298,97"/>
+          <!-- guitar: lower bout down between the knees, waist above the left thigh -->
+          <g transform="translate(206 172) rotate(-40)">
+            <rect class="pf-neck" x="52" y="-7" width="132" height="14"/>
+            <path class="pf-neck" d="M184,-8 L222,-11 L222,11 L184,8 Z"/>
+            <path class="pf-guitar" d="M-14,-28 C-34,-50 -98,-50 -98,0 C-98,50 -34,50 -14,28 C0,40 56,40 56,0 C56,-40 0,-40 -14,-28 Z"/>
+            <circle class="pf-hole" cx="14" cy="0" r="11"/>
+            <rect class="pf-bridge" x="-70" y="-13" width="7" height="26"/>
+            <path class="pf-strings" d="M-66,-4 L184,-4 M-66,0 L184,0 M-66,4 L184,4"/>
+            <path class="pf-frets" d="M70,-7 L70,7 M88,-7 L88,7 M105,-7 L105,7 M121,-7 L121,7 M136,-7 L136,7 M150,-7 L150,7 M163,-7 L163,7 M175,-7 L175,7"/>
+          </g>
+          <!-- guitar support: curved plate on the left thigh, two arms up to suction cups on the guitar's lower side -->
+          <path class="pf-support" d="M218,226 L223,200 M236,229 L246,184"/>
+          <circle class="pf-cup" cx="223" cy="199" r="3.5"/>
+          <circle class="pf-cup" cx="246" cy="183" r="3.5"/>
+          <path class="pf-support-plate" d="M204,225 Q224,218 242,230 L240,235 Q224,224 205,230 Z"/>
+          <!-- right arm: forearm over the top edge of the lower bout -->
+          <path class="pf-limb-o" d="M134,112 L102,165 L178,189"/>
+          <path class="pf-limb" d="M134,112 L102,165 L178,189"/>
+          <circle class="pf-body" cx="183" cy="191" r="7"/>
+          <circle class="pf-body" cx="300" cy="93" r="7"/>
+          <!-- angle + eye-level guides -->
+          <path class="pf-guide" d="M262,172 L350,172"/>
+          <path class="pf-guide" d="M302,172 A96,96 0 0 0 279.5,110.3"/>
+          <text class="pf-note" x="316" y="150">≈ 40°</text>
+          <path class="pf-guide" d="M196,58 L404,58"/>
+          <text class="pf-note" x="204" y="50">headstock ≈ eye level</text>
+          <line class="pf-leader" x1="272" y1="203" x2="250" y2="190"/>
+          <text class="pf-note" x="276" y="206">guitar support</text>
+          <text class="pf-note" x="276" y="218">both feet flat</text>
+          <!-- contact points -->
+          <line class="pf-leader" x1="274" y1="242" x2="244" y2="240"/>
+          <line class="pf-leader" x1="68" y1="232" x2="122" y2="236"/>
+          <line class="pf-leader" x1="66" y1="176" x2="124" y2="174"/>
+          <g class="pf-marker"><circle cx="282" cy="243" r="9"/><text x="282" y="246.5">1</text></g>
+          <g class="pf-marker"><circle cx="60" cy="232" r="9"/><text x="60" y="235.5">2</text></g>
+          <g class="pf-marker"><circle cx="164" cy="142" r="9"/><text x="164" y="145.5">3</text></g>
+          <g class="pf-marker"><circle cx="58" cy="176" r="9"/><text x="58" y="179.5">4</text></g>
+        </svg>
+
+        <ol class="contact-legend">
+          <li><span class="contact-num">1</span><span><strong>Left thigh</strong>The guitar support rests here and lifts the guitar to playing height.</span></li>
+          <li><span class="contact-num">2</span><span><strong>Right thigh</strong>The lower bout leans against the inside of the right leg.</span></li>
+          <li><span class="contact-num">3</span><span><strong>Chest</strong>The back of the upper bout touches the chest, lightly.</span></li>
+          <li><span class="contact-num">4</span><span><strong>Right forearm</strong>Rests on the top edge of the lower bout and holds it all in place.</span></li>
+        </ol>
+      </div>
+    </div>
+
+    <div class="test-line">Tension builds up slowly. Every few minutes, check your shoulders, jaw and thumb.</div>
+
+    <div class="steps">
+      <article class="step">
+        <span class="step-num">01</span>
+        <h3>The chair</h3>
+        <p>Use a firm, armless chair at a height that keeps your thighs about level. Sit on the front half of the seat, on your sit bones, not slumped against the backrest.</p>
+        <p>Keep your spine tall without stiffening it, and lean forward just a little from the hips.</p>
+      </article>
+      <article class="step">
+        <span class="step-num">02</span>
+        <h3>Use a guitar support</h3>
+        <p>Attach the support to the lower side of the guitar (most hold on with suction cups) and rest it on your left thigh. Keep both feet flat on the floor, about hip-width apart.</p>
+        <p>Adjust its height until the headstock reaches about eye level and the guitar stays still without your hands.</p>
+        <p class="aside">The support raises the guitar instead of your leg, so your hips stay level and your lower back isn't twisted, as it can be with the traditional footstool.</p>
+      </article>
+      <article class="step">
+        <span class="step-num">03</span>
+        <h3>Angle the neck</h3>
+        <p>Point the neck up at about 35–45°, so the headstock is roughly at eye level. Higher angles bring the left hand closer and keep the wrist straighter.</p>
+        <p>Keep the top close to vertical. If you need to see the fingerboard, turn your head a little. Don't tip the guitar's face up toward you.</p>
+      </article>
+      <article class="step">
+        <span class="step-num">04</span>
+        <h3>Left hand</h3>
+        <p>Put the pad of the thumb behind the neck, about opposite the second finger. Don't hook it over the top. Keep the wrist almost straight with a slight forward curve.</p>
+        <p>Curve the fingers and play on the tips, just behind the fret, pressing only as hard as a clean note needs. Let the elbow hang freely, neither pinned to your side nor sticking out.</p>
+      </article>
+      <article class="step">
+        <span class="step-num">05</span>
+        <h3>Right hand</h3>
+        <p>Rest the forearm, not the elbow, on the top edge of the lower bout. The hand then hangs over the strings between the soundhole and the bridge.</p>
+        <p>Line the wrist up with the forearm with a slight arch, and don't bend it sideways. Keep the thumb (<i>p</i>) out ahead of the fingers toward the neck, with <i>i m a</i> over the treble strings, each moving from its big knuckle.</p>
+      </article>
+      <article class="step">
+        <span class="step-num">06</span>
+        <h3>Shoulders &amp; breath</h3>
+        <p>Keep both shoulders level and dropped. The right one tends to creep up as you reach over the guitar. Unclench your jaw and keep breathing through hard passages.</p>
+        <p class="aside">The test: let go with both hands. The guitar should stay where it is.</p>
+      </article>
+    </div>
+
+    <div>
+      <span class="section-label">Common faults</span>
+      <ul class="faults">
+        <li><strong>Face tipped toward the ceiling</strong><span>The guitar is lying back so you can watch your hands, which twists the left wrist.</span></li>
+        <li><strong>Neck drooping</strong><span>The headstock is lower than the shoulder, so the left arm has to reach and the wrist collapses.</span></li>
+        <li><strong>Hunched right shoulder</strong><span>Usually the guitar is too far forward or the chair is too low. Fix the setup first, not the shoulder.</span></li>
+        <li><strong>Thumb over the top</strong><span>Fine for steel-string and electric. On classical it shortens your reach and pulls the fingers off vertical.</span></li>
+        <li><strong>Support set too low</strong><span>The guitar sinks and you end up bending over it. Raise the support before you change anything else.</span></li>
+        <li><strong>Leaning over the guitar</strong><span>Bring the guitar up to you instead of bending down to it.</span></li>
+      </ul>
+    </div>
+  </section>
+</main>
+
+<script>
+(function () {
+  // a tick list for this sitting only, deliberately not saved
+  var list = document.getElementById("checklist"), count = document.getElementById("check-count");
+  var boxes = list.querySelectorAll("input[type=checkbox]");
+  function update() {
+    var done = 0;
+    boxes.forEach(function (b) { if (b.checked) done++; });
+    count.textContent = done + " / " + boxes.length;
+  }
+  list.addEventListener("change", update);
+  document.getElementById("checklist-reset").addEventListener("click", function () {
+    boxes.forEach(function (b) { b.checked = false; });
+    update();
+  });
+  update();
+})();
+</script>
+</body>
+</html>
