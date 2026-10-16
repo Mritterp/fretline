@@ -209,9 +209,6 @@ details.settings summary { cursor: pointer; font-size: 11px; letter-spacing: 0.1
 
   <details class="settings" id="settings">
     <summary>Settings</summary>
-    <div class="setrow">
-      <label>Tone <select id="tone"><option value="sine">Sine</option><option value="triangle" selected>Triangle</option><option value="square">Square</option></select></label>
-    </div>
     <div id="set-int">
       <div class="setrow"><label>Notes per question <select id="int-notes"><option value="2">2</option><option value="3">3</option><option value="4">4</option><option value="5">5</option></select></label></div>
       <div class="setrow"><label>Root note register from <select id="reg-lo"></select></label><label>to <select id="reg-hi"></select></label><span class="hint">the lower note of each interval falls from the first C to the last B of these registers (default C2–C5); the upper note can reach C8</span></div>
@@ -1005,10 +1002,6 @@ details.settings summary { cursor: pointer; font-size: 11px; letter-spacing: 0.1
   $("mode-cq").addEventListener("click", () => setMode("cq"));
   $("mode-chd").addEventListener("click", () => setMode("chd"));
   $("reset").addEventListener("click", () => { S.score = defaults().score; save(); showScore(); });
-  // the tone is shared with every other page (fl-audio.js); the volume is set on the Sightreading page only
-  const showSharedAudio = (v) => { $("tone").value = v.tone; };
-  showSharedAudio(FretlineAudio.get()); FretlineAudio.onChange(showSharedAudio);
-  $("tone").addEventListener("change", () => FretlineAudio.set({ tone: $("tone").value }));
   $("int-next").addEventListener("click", () => nextInterval());
   $("int-skip").addEventListener("click", () => newInterval(true));
   $("int-repeat").addEventListener("click", () => { gestured = true; playInterval(); });
