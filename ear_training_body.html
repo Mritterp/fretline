@@ -436,11 +436,15 @@ details.settings summary { cursor: pointer; font-size: 11px; letter-spacing: 0.1
     fit();
   }
   const KBD = { kw: 26, h: 112 };
-  function renderKeyboard(el, marks) {   // marks: [{midi, label}]
-    // phones: keys are drawn at the Sightreading keyboard's real size (35 x 82 px white, 21 x 49 px black) so they're easy
-    // to tap, and the keyboard scrolls sideways; wider screens fit all 88 keys to the width as before
+  function renderKeyboard(el, marks, focus) {   // marks: [{midi, label}]; focus: the midis to keep in view (default: all marks)
+    // phones: the keys are the size the Sightreading keyboard shrinks to, 15 white keys (two octaves, C to C) across the
+    // strip, 82 px tall so they're easy to tap. The keyboard scrolls the full 88 keys and centres on the notes in focus,
+    // and since no interval is wider than two octaves, both of its notes are always on screen. Wider screens fit all 88
+    // keys to the width as before.
     const phone = PHONE.matches;
-    const kw = phone ? 35 : KBD.kw, h = phone ? 82 : KBD.h, bw = phone ? 21 : 16;
+    const kw = phone ? Math.floor(((el.clientWidth || 322) / 15) * 10) / 10 : KBD.kw;
+    const h = phone ? 82 : KBD.h, bw = phone ? Math.round(kw * 0.6) : 16;
+    const markR = phone ? Math.min(13, kw / 2 - 1) : 13, markFont = phone ? 10 : 12;   // a note's label marker fits inside its key
     const isBlack = (m) => [1, 3, 6, 8, 10].includes(mod(m));
     const whites = []; for (let m = LOW; m <= HIGH; m++) if (!isBlack(m)) whites.push(m);
     const xOf = new Map(); whites.forEach((m, i) => xOf.set(m, i * kw));
@@ -455,15 +459,16 @@ details.settings summary { cursor: pointer; font-size: 11px; letter-spacing: 0.1
     }
     marks.forEach((k) => {
       const black = isBlack(k.midi);
-      const cx = black ? xOf.get(k.midi - 1) + kw : xOf.get(k.midi) + kw / 2, cy = black ? h * 0.6 - 16 : h - 26;
-      p.push(`<g pointer-events="none"><circle cx="${cx}" cy="${cy}" r="13" fill="#b07a5a" stroke="#fff" stroke-width="1.5"/><text x="${cx}" y="${cy + 4.5}" text-anchor="middle" font-size="12" font-weight="700" fill="#fff" font-family="Helvetica,Arial,sans-serif">${k.label}</text></g>`);
+      const cx = black ? xOf.get(k.midi - 1) + kw : xOf.get(k.midi) + kw / 2, cy = black ? h * 0.6 - markR - 3 : h - markR - 13;
+      p.push(`<g pointer-events="none"><circle cx="${cx}" cy="${cy}" r="${markR}" fill="#b07a5a" stroke="#fff" stroke-width="1.5"/><text x="${cx}" y="${cy + markFont * 0.37}" text-anchor="middle" font-size="${markFont}" font-weight="700" fill="#fff" font-family="Helvetica,Arial,sans-serif">${k.label}</text></g>`);
     });
     const size = phone ? ` style="width:${W}px;height:${h}px"` : "";   // one drawing unit = one pixel on phones
     el.innerHTML = `<svg viewBox="0 0 ${W} ${h}" preserveAspectRatio="xMidYMid meet"${size}>${p.join("")}</svg>`;
-    if (marks.length && el.scrollWidth > el.clientWidth) {   // phones keep a scrollable keyboard: centre it on the notes
-      const mid = marks.reduce((s, k) => s + k.midi, 0) / marks.length;
-      let nearest = whites[0]; whites.forEach((m) => { if (Math.abs(m - mid) < Math.abs(nearest - mid)) nearest = m; });
-      el.scrollLeft = Math.max(0, (xOf.get(nearest) / W) * el.scrollWidth - el.clientWidth / 2);
+    const keep = focus && focus.length ? focus : marks.map((k) => k.midi);
+    if (keep.length && el.scrollWidth > el.clientWidth) {   // phones: scroll so the notes in focus sit centred, key edges included
+      const edges = keep.map((m) => isBlack(m) ? [xOf.get(m - 1) + kw - bw / 2, xOf.get(m - 1) + kw + bw / 2] : [xOf.get(m), xOf.get(m) + kw]);
+      const left = Math.min(...edges.map((e) => e[0])), right = Math.max(...edges.map((e) => e[1]));
+      el.scrollLeft = Math.max(0, ((left + right) / 2 / W) * el.scrollWidth - el.clientWidth / 2);
     }
   }
 
@@ -490,7 +495,8 @@ details.settings summary { cursor: pointer; font-size: 11px; letter-spacing: 0.1
     if (Q.multi) {   // the notes heard so far are shown; the next one appears when you answer
       const shown = Q.notes.slice(0, qAnswered ? Q.step + 1 : Q.step);
       renderStaff($("int-staff"), shown.map((m) => [m]), false, undefined, Q.notes, Q.notes.length);
-      renderKeyboard($("int-kbd"), [...new Set(shown)].map((m) => ({ midi: m, label: label(m) })));
+      // a melody can wander further than the screen shows: keep the interval being answered (the last two notes heard) in view
+      renderKeyboard($("int-kbd"), [...new Set(shown)].map((m) => ({ midi: m, label: label(m) })), shown.slice(-2));
       return;
     }
     if (!qAnswered) {   // only the first note is shown until you answer (for a harmonic interval, its lower note)

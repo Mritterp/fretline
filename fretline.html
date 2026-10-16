@@ -2074,11 +2074,17 @@ button.mode-chip.active:hover { color: var(--parchment); }
   // keyboard rather than always starting the window on C.
   const WHITE_LETTER = { 0: "C", 2: "D", 4: "E", 5: "F", 7: "G", 9: "A", 11: "B" };
   function renderKeyboard(key, modeRootPc) {
-    // keyW is fixed (the same per-white-key width a single octave always
-    // used) rather than shrinking to squeeze two octaves into a fixed
-    // canvas — the canvas (W) grows to fit instead, same approach as the
-    // fretboard diagram.
-    const H = 148, x0 = 10, y0 = 20, keyH = 82, keyW = 35;
+    // keyW is normally fixed at 35 (the same per-white-key width a single
+    // octave always used) and the canvas (W) grows to fit two octaves, same
+    // approach as the fretboard diagram. Where that's wider than the space
+    // the keyboard has (phones), the keys narrow just enough for the full
+    // range to fit with no sideways scroll; keyH stays 82 so they're still
+    // easy to tap. The Ear Training keyboard uses the same rule on phones.
+    const H = 148, x0 = 10, y0 = 20, keyH = 82, MAX_KEY_W = 35;
+    const hostEl = document.getElementById("keyboard-host");
+    // the column, not the keyboard's own wrapper: the column centres its children, so the wrapper only grows to fit the keyboard
+    const colEl = hostEl && hostEl.closest(".diagrams-col");
+    const availW = colEl ? colEl.clientWidth : 0;   // 0 while hidden: keep full size
     const pcs = diatonicPcSet(key);
     const parts = [];
 
@@ -2106,6 +2112,7 @@ button.mode-chip.active:hover { color: var(--parchment); }
       return { pc, midi, white: false, afterWhiteIdx: whiteIdx };
     });
     const whiteCount = whiteIdx + 1;
+    const keyW = availW > 0 ? Math.min(MAX_KEY_W, Math.floor(((availW - x0 * 2) / whiteCount) * 10) / 10) : MAX_KEY_W;
     const W = x0 * 2 + whiteCount * keyW;
     const blackW = keyW * 0.6, blackH = keyH * 0.6;
 
