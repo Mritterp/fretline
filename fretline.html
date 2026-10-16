@@ -631,31 +631,6 @@ button.mode-chip.active:hover { color: var(--parchment); }
           <p class="hint">Click track on its own — for sight-reading against a beat, no line played.</p>
         </div>
 
-        <div class="field">
-          <label for="tone-select">Tone</label>
-          <div class="select-wrap wide">
-            <select id="tone-select">
-              <option value="sine">Sine</option>
-              <option value="triangle" selected>Triangle</option>
-              <option value="square">Square</option>
-            </select>
-            <svg width="11" height="7" viewBox="0 0 11 7" fill="none"><path d="M1 1l4.5 4.5L10 1" stroke="#3D3A30" stroke-width="1.2"/></svg>
-          </div>
-        </div>
-
-        <div class="field">
-          <div class="tempo-head">
-            <label style="padding-bottom:0;">Volume</label>
-            <span class="tempo-value"><span id="volume-value">100</span><span class="unit">%</span></span>
-          </div>
-          <input type="range" id="volume-range" min="0" max="100" value="100" step="1">
-          <p class="hint">Note playback and metronome clicks together.</p>
-          <label class="checkbox-row" style="margin-top:8px;">
-            <input type="checkbox" id="loudness-eq" checked>
-            Equal-loudness EQ
-          </label>
-          <p class="hint">Lifts low notes and evens out the highs to match how the ear hears, so every note sounds about as loud as the others. Applies on every page.</p>
-        </div>
       </div>
 
       <div class="session-counter">
@@ -1429,39 +1404,40 @@ button.mode-chip.active:hover { color: var(--parchment); }
   // Wrap measures into rows ("systems") that fit within the available width.
   // Bars are sized to their own note content (measureMinWidths, from
   // VexFlow's own minimum-width calculation) so dense rhythms get more room
-  // instead of overflowing a fixed-width bar. Rows are packed greedily and
-  // each row's bars are scaled up — never down, since shrinking below the
-  // content's minimum is exactly what caused the overflow — to fill the row.
+  // instead of overflowing a fixed-width bar. Every row holds the same number
+  // of bars, for a balanced page (8 bars on a wide screen = 4 + 4, not 7 + 1):
+  // the most bars per row that divides the line evenly and still fits every
+  // row. Each row's bars are then scaled up — never down, since shrinking
+  // below the content's minimum is exactly what caused the overflow — to fill it.
   function computeRows(measureMinWidths, containerWidth) {
     const ROW_EXTRA = 85; // clef + key signature, repeated at the start of every row
     const TIME_SIG_EXTRA = 34; // extra room for the time signature, only on the piece's first measure
     const MARGIN = 20;
 
-    const rows = [];
-    let idx = 0;
-    let rowIdx = 0;
     const total = measureMinWidths.length;
-
-    while (idx < total) {
-      const extra = ROW_EXTRA + (rowIdx === 0 ? TIME_SIG_EXTRA : 0);
-      const avail = Math.max(containerWidth - extra - MARGIN, MIN_BAR_WIDTH);
-
-      let used = 0;
-      let count = 0;
-      while (idx + count < total) {
-        const need = measureMinWidths[idx + count];
-        if (count > 0 && used + need > avail) break;
-        used += need;
-        count++;
+    const extraFor = (rowIdx) => ROW_EXTRA + (rowIdx === 0 ? TIME_SIG_EXTRA : 0);
+    const availFor = (rowIdx) => Math.max(containerWidth - extraFor(rowIdx) - MARGIN, MIN_BAR_WIDTH);
+    const sum = (from, count) => measureMinWidths.slice(from, from + count).reduce((a, b) => a + b, 0);
+    // k bars per row fits if every row's content fits its width (a single bar always "fits": it can't go any smaller)
+    const fits = (k) => {
+      for (let start = 0, r = 0; start < total; start += k, r++) {
+        if (k > 1 && sum(start, Math.min(k, total - start)) > availFor(r)) return false;
       }
+      return true;
+    };
+    let perRow = 1;
+    for (let k = total; k > 1; k--) {
+      if (total % k === 0 && fits(k)) { perRow = k; break; }
+    }
 
-      const scale = Math.max(1, avail / used);
+    const rows = [];
+    for (let idx = 0, rowIdx = 0; idx < total; idx += perRow, rowIdx++) {
+      const count = Math.min(perRow, total - idx);
+      const extra = extraFor(rowIdx);
+      const scale = Math.max(1, availFor(rowIdx) / sum(idx, count));
       const widths = [];
       for (let i = 0; i < count; i++) widths.push(measureMinWidths[idx + i] * scale);
-
       rows.push({ startIndex: idx, count, extra, widths });
-      idx += count;
-      rowIdx++;
     }
     return rows;
   }
@@ -2591,7 +2567,7 @@ button.mode-chip.active:hover { color: var(--parchment); }
     const dur = 1.4;
     const osc = ctx.createOscillator();
     const gain = ctx.createGain();
-    osc.type = toneSelect.value;
+    osc.type = FretlineAudio.get().tone;
     osc.frequency.value = midiToFreq(midi);
     gain.gain.setValueAtTime(0.0001, t);
     gain.gain.linearRampToValueAtTime(0.22, t + 0.012);
@@ -2819,7 +2795,7 @@ button.mode-chip.active:hover { color: var(--parchment); }
       const dur = ev.durationBeats * secPerBeat * 0.85;
       const osc = ctx.createOscillator();
       const gain = ctx.createGain();
-      osc.type = toneSelect.value;
+      osc.type = FretlineAudio.get().tone;
       osc.frequency.value = midiToFreq(ev.midi);
       gain.gain.setValueAtTime(0.0001, t0);
       gain.gain.linearRampToValueAtTime(0.22, t0 + 0.012);
@@ -2875,9 +2851,6 @@ button.mode-chip.active:hover { color: var(--parchment); }
   const measuresSelect = document.getElementById("measures-select");
   const tempoRange = document.getElementById("tempo-range");
   const tempoValue = document.getElementById("tempo-value");
-  const toneSelect = document.getElementById("tone-select");
-  const volumeRange = document.getElementById("volume-range");
-  const volumeValue = document.getElementById("volume-value");
   const metronomeDuringPlayback = document.getElementById("metronome-during-playback");
   const showNoteNames = document.getElementById("show-note-names");
   const showChords = document.getElementById("show-chords");
@@ -2970,22 +2943,8 @@ button.mode-chip.active:hover { color: var(--parchment); }
   });
   timeSelect.addEventListener("change", retuneMetronome);
 
-  // Scales note playback and metronome clicks together in real time (both
-  // already-sounding and future notes) — see masterGainNode in
-  // ensureAudioCtx(), which every oscillator chain routes through instead
-  // of connecting straight to ctx.destination.
-  // The volume and tone are shared with every other page (fl-audio.js): this page's controls show them and change them.
-  function showSharedAudio(v) {
-    volumeRange.value = String(Math.round(v.volume)); volumeValue.textContent = volumeRange.value;
-    toneSelect.value = v.tone;
-    loudnessEq.checked = v.eq;
-  }
-  const loudnessEq = document.getElementById("loudness-eq");
-  showSharedAudio(FretlineAudio.get());
-  FretlineAudio.onChange(showSharedAudio);
-  volumeRange.addEventListener("input", () => FretlineAudio.set({ volume: +volumeRange.value }));
-  toneSelect.addEventListener("change", () => FretlineAudio.set({ tone: toneSelect.value }));
-  loudnessEq.addEventListener("change", () => FretlineAudio.set({ eq: loudnessEq.checked }));
+  // Volume, tone and the loudness EQ are set in the Playback panel at the end of the tab row (fl-audio.js), shared by every
+  // page; the volume reaches already-sounding notes too, through masterGainNode (see ensureAudioCtx()).
 
   let sessionCount = 0;
   function getTotalCount() {
