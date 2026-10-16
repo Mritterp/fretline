@@ -39,12 +39,33 @@
   });
 
   // the tab links switch pages inside index.html (modified clicks still open a new tab as usual)
+  function pageOf(a) { return (a.getAttribute("href") || "").split("?")[0].split("#")[0].split("/").pop().replace(/\.html$/, ""); }
   document.addEventListener("click", function (e) {
     var a = e.target.closest && e.target.closest("a.site-tab");
     if (!a || e.defaultPrevented || e.button !== 0 || e.ctrlKey || e.metaKey || e.shiftKey || e.altKey) return;
-    var target = (a.getAttribute("href") || "").split("?")[0].split("#")[0].split("/").pop().replace(/\.html$/, "");
+    var target = pageOf(a);
     if (!target) return;
     e.preventDefault();
     window.parent.postMessage({ fretline: "go", page: target }, location.origin);
   }, true);
+
+  // Alt+1..6 jumps to a page, Alt+[ / Alt+] steps to the previous / next one. The order is the page's own tab bar.
+  // e.code, not e.key: Option+digit on a Mac (and AltGr layouts) types a symbol instead of the digit.
+  function tabs() { return Array.prototype.slice.call(document.querySelectorAll("a.site-tab")); }
+  document.addEventListener("keydown", function (e) {
+    if (!e.altKey || e.ctrlKey || e.metaKey || e.shiftKey) return;
+    var list = tabs(), idx = -1, m = /^Digit([1-9])$/.exec(e.code);
+    if (!list.length) return;
+    if (m) idx = parseInt(m[1], 10) - 1;
+    else if (e.code === "BracketLeft" || e.code === "BracketRight") {
+      var cur = list.findIndex(function (a) { return a.classList.contains("current"); });
+      idx = (cur + (e.code === "BracketRight" ? 1 : -1) + list.length) % list.length;
+    }
+    if (idx < 0 || idx >= list.length) return;
+    e.preventDefault();
+    window.parent.postMessage({ fretline: "go", page: pageOf(list[idx]) }, location.origin);
+  }, true);
+  document.addEventListener("DOMContentLoaded", function () {
+    tabs().forEach(function (a, i) { a.title = "Alt+" + (i + 1) + "  ·  Alt+[ / Alt+] for previous / next page"; });
+  });
 })();
