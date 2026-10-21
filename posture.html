@@ -75,6 +75,11 @@ main { display: flex; flex-wrap: wrap; align-items: stretch; max-width: 1500px; 
 /* illustration */
 #posture-svg .pf-floor { stroke: var(--wheat); stroke-width: 1; }
 #posture-svg .pf-line { stroke: var(--wheat); stroke-width: 2; fill: none; }
+#posture-svg .pf-stand-leg { fill: none; stroke: var(--bark); stroke-width: 3; stroke-linecap: round; stroke-linejoin: round; }
+#posture-svg .pf-stand-desk { fill: var(--linen); stroke: var(--bark); stroke-width: 1.2; }
+#posture-svg .pf-stand-lip { fill: var(--bark); }
+#posture-svg .pf-stand-staff { fill: none; stroke: var(--wheat); stroke-width: 0.8; }
+#posture-svg .pf-stand-note { fill: var(--bark); }
 #posture-svg .pf-chair { fill: var(--linen); stroke: var(--wheat); stroke-width: 1; }
 #posture-svg .pf-support { fill: none; stroke: var(--bark); stroke-width: 3.5; stroke-linecap: round; }
 #posture-svg .pf-support-plate { fill: var(--bark); stroke: var(--bark); stroke-width: 1; stroke-linejoin: round; }
@@ -125,7 +130,7 @@ main { display: flex; flex-wrap: wrap; align-items: stretch; max-width: 1500px; 
   <section class="panel" aria-label="Posture checklist">
     <div class="panel-head">
       <span>Before you play</span>
-      <span id="check-count">0 / 8</span>
+      <span id="check-count">0 / 9</span>
     </div>
     <p class="intro">A thirty-second check to run at the start of each session, and again whenever something starts to ache.</p>
     <ul class="checklist" id="checklist">
@@ -133,6 +138,7 @@ main { display: flex; flex-wrap: wrap; align-items: stretch; max-width: 1500px; 
       <li><label><input type="checkbox"><span>Guitar support on the left thigh, both feet flat</span></label></li>
       <li><label><input type="checkbox"><span>Guitar stays put when I let go with both hands</span></label></li>
       <li><label><input type="checkbox"><span>Headstock at about eye level</span></label></li>
+      <li><label><input type="checkbox"><span>Music stand at eye level, about an arm's length away</span></label></li>
       <li><label><input type="checkbox"><span>Shoulders level and loose, right one not hunched</span></label></li>
       <li><label><input type="checkbox"><span>Left thumb behind the neck, wrist nearly straight</span></label></li>
       <li><label><input type="checkbox"><span>Right forearm on the edge of the guitar, not the elbow</span></label></li>
@@ -149,8 +155,18 @@ main { display: flex; flex-wrap: wrap; align-items: stretch; max-width: 1500px; 
 
     <div class="card">
       <div class="figure">
-        <svg id="posture-svg" viewBox="0 0 420 390" role="img" aria-label="Front view of a seated classical guitarist: knees apart with the guitar sitting between the legs, both feet flat, a guitar support on the left thigh holding the guitar up by its lower side, neck angled up about 40 degrees with the headstock near eye level, and four numbered contact points.">
-          <line class="pf-floor" x1="30" y1="372" x2="400" y2="372"/>
+        <svg id="posture-svg" viewBox="0 0 420 390" role="img" aria-label="Front view of a seated classical guitarist: knees apart with the guitar sitting between the legs, both feet flat, a guitar support on the left thigh holding the guitar up by its lower side, neck angled up about 40 degrees with the headstock near eye level, a music stand on the opposite side with the top of its page at the same eye level, and four numbered contact points.">
+          <line class="pf-floor" x1="6" y1="372" x2="400" y2="372"/>
+          <!-- music stand, on the side away from the headstock: top of the page at eye level -->
+          <path class="pf-stand-leg" d="M36,108 L36,372 M36,336 L10,372 M36,336 L62,372"/>
+          <rect class="pf-stand-desk" x="8" y="58" width="56" height="50"/>
+          <rect class="pf-stand-lip" x="8" y="104" width="56" height="4"/>
+          <path class="pf-stand-staff" d="M14,66 H58 M14,68.5 H58 M14,71 H58 M14,73.5 H58 M14,76 H58 M14,84 H58 M14,86.5 H58 M14,89 H58 M14,91.5 H58 M14,94 H58"/>
+          <circle class="pf-stand-note" cx="22" cy="73.5" r="1.8"/>
+          <circle class="pf-stand-note" cx="33" cy="68.5" r="1.8"/>
+          <circle class="pf-stand-note" cx="45" cy="71" r="1.8"/>
+          <circle class="pf-stand-note" cx="26" cy="91.5" r="1.8"/>
+          <circle class="pf-stand-note" cx="40" cy="86.5" r="1.8"/>
           <!-- chair -->
           <rect class="pf-chair" x="116" y="118" width="108" height="118"/>
           <rect class="pf-chair" x="104" y="232" width="132" height="8"/>
@@ -202,6 +218,8 @@ main { display: flex; flex-wrap: wrap; align-items: stretch; max-width: 1500px; 
           <text class="pf-note" x="316" y="150">≈ 40°</text>
           <path class="pf-guide" d="M196,58 L404,58"/>
           <text class="pf-note" x="204" y="50">headstock ≈ eye level</text>
+          <path class="pf-guide" d="M146,58 L64,58"/>
+          <text class="pf-note" x="6" y="50">top of page ≈ eye level</text>
           <line class="pf-leader" x1="272" y1="203" x2="250" y2="190"/>
           <text class="pf-note" x="276" y="206">guitar support</text>
           <text class="pf-note" x="276" y="218">both feet flat</text>
@@ -248,18 +266,25 @@ main { display: flex; flex-wrap: wrap; align-items: stretch; max-width: 1500px; 
       </article>
       <article class="step">
         <span class="step-num">04</span>
+        <h3>Music stand &amp; eyeline</h3>
+        <p>Set the stand up after the guitar is in position, so the page goes where your eyes already are. Put it straight in front of you, about an arm's length away (roughly 60–70&nbsp;cm / 2&nbsp;ft), and raise it until the top of the page is about at eye level.</p>
+        <p>Read with your eyes, not your head: chin level, eyes drifting down the page. With the headstock and the page at similar heights, a glance at the fingerboard is a small eye movement, not a nod.</p>
+        <p class="aside">Reading Fretline on a phone, tablet or laptop? Put the screen on the stand (or prop it on books) at that same height and distance. A screen lying flat on a table pulls your head down over it.</p>
+      </article>
+      <article class="step">
+        <span class="step-num">05</span>
         <h3>Left hand</h3>
         <p>Put the pad of the thumb behind the neck, about opposite the second finger. Don't hook it over the top. Keep the wrist almost straight with a slight forward curve.</p>
         <p>Curve the fingers and play on the tips, just behind the fret, pressing only as hard as a clean note needs. Let the elbow hang freely, neither pinned to your side nor sticking out.</p>
       </article>
       <article class="step">
-        <span class="step-num">05</span>
+        <span class="step-num">06</span>
         <h3>Right hand</h3>
         <p>Rest the forearm, not the elbow, on the top edge of the lower bout. The hand then hangs over the strings between the soundhole and the bridge.</p>
         <p>Line the wrist up with the forearm with a slight arch, and don't bend it sideways. Keep the thumb (<i>p</i>) out ahead of the fingers toward the neck, with <i>i m a</i> over the treble strings, each moving from its big knuckle.</p>
       </article>
       <article class="step">
-        <span class="step-num">06</span>
+        <span class="step-num">07</span>
         <h3>Shoulders &amp; breath</h3>
         <p>Keep both shoulders level and dropped. The right one tends to creep up as you reach over the guitar. Unclench your jaw and keep breathing through hard passages.</p>
         <p class="aside">The test: let go with both hands. The guitar should stay where it is.</p>
@@ -275,6 +300,8 @@ main { display: flex; flex-wrap: wrap; align-items: stretch; max-width: 1500px; 
         <li><strong>Thumb over the top</strong><span>Fine for steel-string and electric. On classical it shortens your reach and pulls the fingers off vertical.</span></li>
         <li><strong>Support set too low</strong><span>The guitar sinks and you end up bending over it. Raise the support before you change anything else.</span></li>
         <li><strong>Leaning over the guitar</strong><span>Bring the guitar up to you instead of bending down to it.</span></li>
+        <li><strong>Music stand too low</strong><span>You nod down over the page, rounding your neck and shoulders. Raise the stand to your eyes instead of dropping your head to it.</span></li>
+        <li><strong>Stand too far or too close</strong><span>Too far and you lean in to read; too close and it crowds your arms. Aim for about an arm's length.</span></li>
       </ul>
     </div>
   </section>
