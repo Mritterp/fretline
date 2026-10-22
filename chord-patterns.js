@@ -27,6 +27,7 @@
       ["- - ♭3 - 1 -", "♭5 - - - - -", "- 1 - - - -"],   // Pos 3 (G-string 1 removed, B-string 1 added)
       ["- - ♭5 - ♭3 -", "- - - 1 - -", "- ♭3 - - - -", "- - - - - -"],   // Pos 4
       ["- ♭3 - - - -", "- - - - ♭5 -", "- - - ♭3 - 1", "- - - - - -"],   // Pos 5
+      ["- 1 - - - -", "- - ♭5 - ♭3 -", "- - - 1 - -"],   // Pos 6: A-D-G-B, root on A and G (Adim = x-12-13-14-13-x), from the dazwatsonmusic.weebly.com Diminished Chords chart
     ],
     "°7": [ // diminished 7 (the five chart shapes: 3 drop-2 + 2 drop-3; dim7 repeats every 3 frets, so roots may sit on any note)
       ["- - - ♭3 - -", "- ♭5 - - - -", "- - 1 - °7 -"],   // Pos 1: drop 2 on A-D-G-B
