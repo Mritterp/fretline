@@ -97,12 +97,26 @@
     ".fl-pb-check { display: flex; align-items: center; gap: 8px; cursor: pointer; font-size: 9px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--moss, #5c6b52); }",
     ".fl-pb-check input { width: 14px; height: 14px; margin: 0; accent-color: var(--bark, #3d3a30); cursor: pointer; }",
     ".fl-pb-hint { margin: 6px 0 0; font-size: 11px; line-height: 1.5; color: var(--moss, #5c6b52); }",
-    // phones: the tab grid is full, so the button sits in the header's top-right corner, level with the Fretline title
+    // the Playback and Notes buttons live together on the right side of the header, level with the tabs
+    ".fl-tools { display: flex; gap: 8px; margin-left: auto; align-self: flex-end; margin-bottom: 4px; }",
+    // phones: the tab grid is full, so the buttons sit in the header's top-right corner, level with the Fretline title
     "@media (max-width: 700px) {",
-    "  .site-tabs .fl-pb-btn { position: absolute; top: 12px; right: 12px; width: auto; min-width: 0; padding: 6px 12px; }",
+    "  .fl-tools { position: absolute; top: 12px; right: 12px; margin: 0; gap: 6px; }",
+    "  .fl-tools .site-tab { width: auto; min-width: 0; padding: 6px 12px; }",
     "  .fl-pb-panel { left: 12px; right: 12px !important; width: auto; }",
     "}",
   ].join("\n");
+
+  // where the header buttons go: a box on the right of the tab row, made once and shared (the Notes button joins it from fl-notes.js)
+  window.FretlineTools = {
+    host: function () {
+      var box = document.querySelector(".fl-tools"), nav = document.querySelector("nav.site-tabs");
+      if (box || !nav) return box;
+      box = document.createElement("div"); box.className = "fl-tools";
+      nav.parentNode.insertBefore(box, nav.nextSibling);
+      return box;
+    },
+  };
 
   function buildPanel() {
     var nav = document.querySelector("nav.site-tabs");
@@ -116,7 +130,7 @@
     btn.type = "button"; btn.className = "site-tab fl-pb-btn"; btn.textContent = "Playback";
     btn.title = "Volume, tone and loudness EQ (the same on every page)";
     btn.setAttribute("aria-expanded", "false"); btn.setAttribute("aria-controls", "fl-pb-panel");
-    nav.appendChild(btn);
+    window.FretlineTools.host().appendChild(btn);
 
     var panel = document.createElement("div");
     panel.id = "fl-pb-panel"; panel.className = "fl-pb-panel"; panel.hidden = true;
