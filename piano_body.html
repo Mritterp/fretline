@@ -201,27 +201,15 @@ main { max-width: 1300px; margin: 0 auto; padding: 14px 16px 30px; }
     if (ctx.state === "suspended") ctx.resume();
     return ctx;
   }
-  // A note's level rises through TWO gains that each ease toward their target, so it starts with no slope at all (a straight ramp has a sharp corner at
-  // the start, and that corner is the click) and takes about 25 ms to come up, longer for low notes and a little quicker for hard keys.
-  // Letting go eases the same way, and the oscillator is only stopped once it is silent.
+  // The notes come from the shared synth in fl-audio.js (Playback panel: tone, attack, decay, sustain, release and reverb).
   function voiceOff(m, quick) {
     const v = voices.get(m); if (!v || !ctx) return;
-    const t = ctx.currentTime, rel = quick ? 0.04 : 0.3;
-    v.g1.gain.cancelScheduledValues(t); v.g1.gain.setValueAtTime(v.g1.gain.value, t); v.g1.gain.setTargetAtTime(0, t, rel / 6);
-    try { v.osc.stop(t + rel + 0.06); } catch (e) {}
-    voices.delete(m);
+    v.release(quick); voices.delete(m);
   }
   function voiceOn(m, vel) {
     const c = audio(); voiceOff(m, true);
     if (voices.size > 28) voiceOff(voices.keys().next().value, true);
-    const t = c.currentTime, f = 440 * Math.pow(2, (m - 69) / 12), osc = c.createOscillator(), g1 = c.createGain(), g2 = c.createGain();
-    const peak = 0.05 + 0.2 * (vel / 127);   // the other pages' notes peak around 0.22
-    const tau = Math.min(0.02, Math.max(0.009, 1.1 / f)) * (1.25 - 0.5 * (vel / 127));
-    osc.type = FretlineAudio.get().tone; osc.frequency.value = f;
-    g1.gain.setValueAtTime(0, t); g1.gain.setTargetAtTime(peak, t, tau); g1.gain.setTargetAtTime(peak * 0.5, t + 6 * tau, 1.1);   // up, then a slow fade while the key is held
-    g2.gain.setValueAtTime(0, t); g2.gain.setTargetAtTime(1, t, tau);
-    osc.connect(g1).connect(g2).connect(FretlineAudio.out(c)); osc.start(t);
-    voices.set(m, { osc, g1, g2 });
+    voices.set(m, FretlineAudio.note(c, { midi: m, level: 0.05 + 0.2 * (vel / 127) }));   // the shared synth, held until the key is let go (the other pages' notes peak around 0.22)
   }
 
   // ================= what is being played =================

@@ -2568,18 +2568,7 @@ button.mode-chip.active:hover { color: var(--parchment); }
     const ctx = ensureAudioCtx();
     if (ctx.state === "suspended") ctx.resume();
     const t = ctx.currentTime + 0.01;
-    const dur = 1.4;
-    const osc = ctx.createOscillator();
-    const gain = ctx.createGain();
-    osc.type = FretlineAudio.get().tone;
-    osc.frequency.value = midiToFreq(midi);
-    gain.gain.setValueAtTime(0.0001, t);
-    gain.gain.linearRampToValueAtTime(0.22, t + 0.012);
-    gain.gain.exponentialRampToValueAtTime(0.0001, t + dur);
-    osc.connect(gain).connect(masterGainNode);
-    osc.start(t);
-    osc.stop(t + dur + 0.02);
-    allOscNodes.push(osc);
+    allOscNodes.push(FretlineAudio.note(ctx, { midi, t, dur: 1.4, level: 0.22 }).osc);   // the shared synth (Playback panel: tone, envelope, reverb)
   }
   function clearNoteHighlights() {
     document.querySelectorAll(".note-active").forEach((el) => el.classList.remove("note-active"));
@@ -2797,17 +2786,7 @@ button.mode-chip.active:hover { color: var(--parchment); }
       if (ev.startBeatGlobal < fromBeat - 1e-6) return;
       const t0 = anchorCtxTime + (ev.startBeatGlobal - fromBeat) * secPerBeat;
       const dur = ev.durationBeats * secPerBeat * 0.85;
-      const osc = ctx.createOscillator();
-      const gain = ctx.createGain();
-      osc.type = FretlineAudio.get().tone;
-      osc.frequency.value = midiToFreq(ev.midi);
-      gain.gain.setValueAtTime(0.0001, t0);
-      gain.gain.linearRampToValueAtTime(0.22, t0 + 0.012);
-      gain.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
-      osc.connect(gain).connect(masterGainNode);
-      osc.start(t0);
-      osc.stop(t0 + dur + 0.02);
-      allOscNodes.push(osc);
+      allOscNodes.push(FretlineAudio.note(ctx, { midi: ev.midi, t: t0, dur, level: 0.22 }).osc);
       if (ev.element) scheduleList.push({ element: ev.element, absStart: t0, absEnd: t0 + dur });
     });
 

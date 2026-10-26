@@ -508,14 +508,7 @@ let audioCtx = null;
 function playMidi(m) {
   if (!audioCtx) { audioCtx = new (window.AudioContext || window.webkitAudioContext)(); }
   if (audioCtx.state === "suspended") audioCtx.resume();
-  const t = audioCtx.currentTime + 0.01, dur = 1.4, osc = audioCtx.createOscillator(), gain = audioCtx.createGain();
-  osc.type = FretlineAudio.get().tone;
-  osc.frequency.value = 440 * Math.pow(2, (m - 69) / 12);
-  gain.gain.setValueAtTime(0.0001, t);
-  gain.gain.linearRampToValueAtTime(0.22, t + 0.012);
-  gain.gain.exponentialRampToValueAtTime(0.0001, t + dur);
-  osc.connect(gain).connect(FretlineAudio.out(audioCtx));
-  osc.start(t); osc.stop(t + dur + 0.02);
+  FretlineAudio.note(audioCtx, { midi: m, t: audioCtx.currentTime + 0.01, dur: 1.4, level: 0.22 });   // the shared synth (Playback panel)
 }
 $("out").addEventListener("pointerdown", (e) => {
   const d = e.target.closest && e.target.closest("[data-midi]");

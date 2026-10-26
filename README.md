@@ -34,6 +34,8 @@ Live app: https://claude.ai/code/artifact/b0f71811-d152-4e1b-a595-7abeb8a99003
   itself); inside it, the tab links switch pages instead of navigating, and sound is paused while a page is hidden.
 - `fl-audio.js` — the volume and tone shared by every page (stored in the browser, so a change on one page applies everywhere);
   pages connect their notes to `FretlineAudio.out(ctx)`, which applies the volume and a limiter.
+  It also holds the shared synth, `FretlineAudio.note(ctx, {midi, t, dur, level})`, which every page uses for its notes: the Playback panel sets its tone,
+  attack / decay / sustain / release and a reverb (dry/wet and decay time, from a generated impulse response, nothing downloaded).
 - `fl-notes.js` — the Notes button (next to Playback, on the right of every page's tab row): a small window for notes and reminders, kept in the
   browser and the same on every page.
 - `chord-patterns.js` — the approved chord patterns (grids per quality, which ones are alternates, and a helper that lists where a pattern
