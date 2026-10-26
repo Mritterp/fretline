@@ -4,14 +4,14 @@
 (function () {
   var KEY = "fretline-audio", TONES = ["sine", "triangle", "square"];
   // the synth: attack (ms), decay (s), sustain (% of the note's level) and release (s); the reverb: dry/wet (%) and decay time (s)
-  var DEFAULTS = { volume: 100, tone: "triangle", eq: true, attack: 15, decay: 1, sustain: 0, release: 0.25, reverbMix: 0, reverbDecay: 1.8 };
+  var DEFAULTS = { volume: 100, muted: false, tone: "triangle", eq: true, attack: 15, decay: 1, sustain: 0, release: 0.25, reverbMix: 0, reverbDecay: 1.8 };
   var RANGE = { attack: [2, 400], decay: [0.05, 4], sustain: [0, 100], release: [0.02, 3], reverbMix: [0, 100], reverbDecay: [0.3, 6] };
   var MULTIPLIER = 4;   // the volume slider runs 0-100%, and 100% is four times the raw level (notes are scheduled at low levels)
   var listeners = [], memory = null;
 
   function num(v, key, lo, hi) { var n = Number(v && v[key]); return isFinite(n) && v && v[key] !== null && v[key] !== "" ? Math.max(lo, Math.min(hi, n)) : DEFAULTS[key]; }
   function clean(v) {
-    var out = { volume: num(v, "volume", 0, 100), tone: v && TONES.indexOf(v.tone) >= 0 ? v.tone : DEFAULTS.tone, eq: v && typeof v.eq === "boolean" ? v.eq : DEFAULTS.eq };
+    var out = { volume: num(v, "volume", 0, 100), muted: !!(v && v.muted === true), tone: v && TONES.indexOf(v.tone) >= 0 ? v.tone : DEFAULTS.tone, eq: v && typeof v.eq === "boolean" ? v.eq : DEFAULTS.eq };
     Object.keys(RANGE).forEach(function (k) { out[k] = num(v, k, RANGE[k][0], RANGE[k][1]); });
     return out;
   }
@@ -75,7 +75,7 @@
     }
     // turning the EQ off sets every filter flat (0 dB) and the trim to unity, so already-sounding notes follow the switch too
     function apply(v) {
-      gain.gain.value = v.volume / 100 * MULTIPLIER;
+      var t0 = ctx.currentTime; gain.gain.cancelScheduledValues(t0); gain.gain.setTargetAtTime(v.muted ? 0 : v.volume / 100 * MULTIPLIER, t0, 0.01);   // eased, so muting and un-muting do not click
       trim.gain.value = v.eq ? EQ_TRIM : 1;
       filters.forEach(function (f, i) { f.gain.value = v.eq ? EQ[i].gain : 0; });
       var mix = v.reverbMix / 100;
@@ -150,6 +150,11 @@
     ".fl-pb-label { display: flex; justify-content: space-between; align-items: baseline; font-size: 9px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--moss, #5c6b52); margin: 0 0 7px; }",
     ".fl-pb-label b { font-family: var(--font-display, Georgia, serif); font-weight: 400; font-size: 16px; letter-spacing: 0; text-transform: none; color: var(--bark, #3d3a30); }",
     ".fl-pb-panel input[type=range] { width: 100%; margin: 0 0 16px; accent-color: var(--bark, #3d3a30); }",
+    ".fl-pb-volrow { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; }",
+    ".fl-pb-volrow input[type=range] { flex: 1; margin: 0; min-width: 0; }",
+    ".fl-pb-volrow.muted input[type=range] { opacity: 0.4; }",
+    ".fl-pb-mute { font: inherit; font-size: 10px; letter-spacing: 0.14em; text-transform: uppercase; padding: 6px 10px; border: 1px solid var(--bark, #3d3a30); background: transparent; color: var(--bark, #3d3a30); cursor: pointer; }",
+    ".fl-pb-mute[aria-pressed='true'] { background: var(--bark, #3d3a30); color: var(--parchment, #f5f0e8); }",
     ".fl-pb-seg { display: grid; grid-template-columns: repeat(3, 1fr); border: 1px solid var(--bark, #3d3a30); margin-bottom: 16px; }",
     ".fl-pb-seg button { font: inherit; font-size: 10px; letter-spacing: 0.14em; text-transform: uppercase; padding: 8px 4px; border: 0; border-radius: 0; background: transparent; color: var(--bark, #3d3a30); cursor: pointer; }",
     ".fl-pb-seg button + button { border-left: 1px solid var(--bark, #3d3a30); }",
@@ -214,7 +219,7 @@
     panel.innerHTML =
       '<div class="fl-pb-head"><span>Playback</span><span>Every page</span></div>' +
       '<label class="fl-pb-label" for="fl-pb-volume">Volume <span><b id="fl-pb-volume-value"></b> %</span></label>' +
-      '<input type="range" id="fl-pb-volume" min="0" max="100" step="1">' +
+      '<div class="fl-pb-volrow" id="fl-pb-volrow"><input type="range" id="fl-pb-volume" min="0" max="100" step="1"><button type="button" class="fl-pb-mute" id="fl-pb-mute" aria-pressed="false" title="Silence everything (the same on every page)">Mute</button></div>' +
       '<div class="fl-pb-label">Tone</div>' +
       '<div class="fl-pb-seg" role="group" aria-label="Tone">' +
       TONES.map(function (t) { return '<button type="button" data-tone="' + t + '">' + t + "</button>"; }).join("") + "</div>" +
@@ -226,15 +231,18 @@
     header.appendChild(panel);
 
     var vol = panel.querySelector("#fl-pb-volume"), volText = panel.querySelector("#fl-pb-volume-value"), eqBox = panel.querySelector("#fl-pb-eq");
-    var toneBtns = panel.querySelectorAll("[data-tone]");
+    var toneBtns = panel.querySelectorAll("[data-tone]"), muteBtn = panel.querySelector("#fl-pb-mute"), volRow = panel.querySelector("#fl-pb-volrow");
     function show(v) {
       vol.value = String(Math.round(v.volume)); volText.textContent = vol.value;
+      muteBtn.setAttribute("aria-pressed", String(v.muted)); muteBtn.textContent = v.muted ? "Muted" : "Mute"; volRow.classList.toggle("muted", v.muted);
+      btn.textContent = v.muted ? "Playback · muted" : "Playback";
       toneBtns.forEach(function (b) { b.setAttribute("aria-pressed", String(b.getAttribute("data-tone") === v.tone)); });
       eqBox.checked = v.eq;
       SLIDERS.forEach(function (d) { var el = panel.querySelector("#fl-pb-" + d[0]); el.value = String(v[d[0]]); panel.querySelector("#fl-pb-" + d[0] + "-value").textContent = d[4](+v[d[0]]); });
     }
     show(get()); listeners.push(show);
-    vol.addEventListener("input", function () { set({ volume: +vol.value }); });
+    vol.addEventListener("input", function () { set({ volume: +vol.value, muted: false }); });   // moving the slider un-mutes
+    muteBtn.addEventListener("click", function () { set({ muted: !get().muted }); });
     toneBtns.forEach(function (b) { b.addEventListener("click", function () { set({ tone: b.getAttribute("data-tone") }); }); });
     eqBox.addEventListener("change", function () { set({ eq: eqBox.checked }); });
     SLIDERS.forEach(function (d) { panel.querySelector("#fl-pb-" + d[0]).addEventListener("input", function (e) { var p = {}; p[d[0]] = +e.target.value; set(p); }); });
