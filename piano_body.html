@@ -1,0 +1,390 @@
+<meta charset="UTF-8">
+<script src="embed.js"></script>
+<script src="fl-audio.js"></script>
+<script src="fl-notes.js"></script>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Fretline — Piano</title>
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#3D3A30">
+<link rel="icon" href="icons/favicon-32.png" sizes="32x32">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon-180.png">
+<style>
+:root {
+  --parchment: #f5f0e8; --linen: #e8e0d0; --wheat: #c4b89a; --sage: #8a9e7e;
+  --moss: #5c6b52; --clay: #b07a5a; --bark: #3d3a30;
+  --font-display: Georgia, 'Times New Roman', serif;
+  --font-body: Helvetica, Arial, sans-serif;
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--parchment); color: var(--bark); font-family: var(--font-body); }
+header { background: var(--parchment); border-bottom: 1px solid var(--wheat); padding: 14px 24px 12px; }
+.brand { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 8px 22px; }
+h1 { margin: 0; font-family: var(--font-display); font-weight: 400; font-size: 30px; letter-spacing: -0.015em; line-height: 1; }
+.site-tabs { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 4px; }
+.site-tab { box-sizing: border-box; min-width: 126px; text-align: center; font-family: var(--font-body); font-size: 10px; line-height: 1.3; letter-spacing: 0.18em; text-transform: uppercase; text-decoration: none; white-space: nowrap; padding: 7px 12px; border: 1px solid var(--wheat); color: var(--sage); }
+.site-tab:hover { border-color: var(--sage); color: var(--bark); }
+.site-tab.current { border-color: var(--bark); background: var(--bark); color: var(--parchment); }
+@media (max-width: 700px) { .site-tabs { display: grid; grid-template-columns: repeat(3, 1fr); gap: 5px; width: 100%; } .site-tab { min-width: 0; font-size: 9px; letter-spacing: 0.1em; padding: 6px 2px; } }
+
+main { max-width: 1300px; margin: 0 auto; padding: 14px 16px 30px; }
+.card { background: #f9f5ee; border: 1px solid #e3dac6; padding: 12px 14px; }
+.midibar { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 16px; margin-bottom: 12px; }
+.btn { font: inherit; font-size: 11px; letter-spacing: 0.16em; text-transform: uppercase; padding: 8px 16px; border: 1px solid var(--bark); background: var(--bark); color: var(--parchment); cursor: pointer; }
+.btn:hover { background: var(--moss); border-color: var(--moss); }
+.btn.ghost { background: transparent; color: var(--bark); border-color: var(--wheat); }
+.btn.ghost:hover { border-color: var(--sage); background: transparent; color: var(--bark); }
+.midibar select { font: inherit; font-size: 13px; padding: 6px 8px; background: var(--parchment); border: 1px solid var(--wheat); color: var(--bark); max-width: 260px; }
+#midi-status { font-size: 12px; color: var(--moss); }
+#midi-status.bad { color: #a6433d; }
+.stage { display: grid; grid-template-columns: minmax(280px, 400px) 1fr; gap: 12px; margin-bottom: 12px; }
+@media (max-width: 800px) { .stage { grid-template-columns: 1fr; } }
+.staff { height: clamp(250px, 38vh, 360px); overflow: hidden; transition: opacity 160ms ease-out; }
+.staff svg { display: block; width: 100%; height: 100%; }
+.staff.released, .analysis.released .a-name, .analysis.released .a-notes { opacity: 0.5; }
+.analysis { display: flex; flex-direction: column; gap: 8px; min-height: 250px; }
+.a-state { font-size: 10px; letter-spacing: 0.2em; text-transform: uppercase; color: var(--sage); }
+.a-name { font-family: var(--font-display); font-size: clamp(34px, 6vw, 58px); line-height: 1.05; letter-spacing: -0.01em; word-break: break-word; }
+.a-sub { font-size: 14px; color: var(--moss); }
+.a-notes { font-family: var(--font-display); font-size: 22px; letter-spacing: 0.06em; color: var(--bark); }
+.a-alt { font-size: 13px; color: var(--moss); line-height: 1.6; }
+.a-alt b { color: var(--bark); font-weight: 600; }
+.kbd { overflow-x: auto; }
+.kbd svg { display: block; width: 100%; min-width: 760px; height: auto; touch-action: none; user-select: none; }
+.kbd .key { cursor: pointer; }
+.history { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 8px; margin-top: 12px; font-size: 12px; color: var(--moss); }
+.history .h-label { font-size: 10px; letter-spacing: 0.2em; text-transform: uppercase; color: var(--sage); margin-right: 4px; }
+.history .chip { font-family: var(--font-display); font-size: 15px; padding: 3px 10px; border: 1px solid var(--wheat); color: var(--bark); background: #fff; }
+.keys { display: flex; flex-wrap: wrap; gap: 6px 22px; margin: 14px 0 0; font-size: 11px; color: var(--moss); }
+.keys kbd { font: inherit; font-size: 10px; letter-spacing: 0.06em; padding: 2px 6px; border: 1px solid var(--wheat); border-bottom-width: 2px; border-radius: 3px; background: #fff; color: var(--bark); }
+</style>
+</head>
+<body>
+<header>
+  <div class="brand">
+    <h1>Fretline</h1>
+    <nav class="site-tabs" aria-label="Pages">
+      <a class="site-tab" href="fretline.html">Sightreading</a>
+      <a class="site-tab" href="ear_training.html">Ear Training</a>
+      <a class="site-tab" href="shapes_lab.html">Chord Lab</a>
+      <a class="site-tab" href="scale_lab.html">Scale Lab</a>
+      <a class="site-tab" href="harmony_map.html">Harmony Map</a>
+      <a class="site-tab" href="posture.html">Posture</a>
+      <a class="site-tab current" href="piano.html" aria-current="page">Piano</a>
+    </nav>
+  </div>
+</header>
+
+<main>
+  <div class="midibar">
+    <button type="button" class="btn" id="midi-connect">Connect MIDI piano</button>
+    <select id="midi-input" aria-label="MIDI input" hidden></select>
+    <span id="midi-status">Plug in a MIDI piano and press Connect, or play with the on-screen keys or your computer keyboard.</span>
+    <button type="button" class="btn ghost" id="stop-all" style="margin-left:auto">Stop all notes</button>
+  </div>
+
+  <div class="stage">
+    <div class="card"><div class="staff" id="staff" aria-label="The notes you are playing, on a grand staff"></div></div>
+    <div class="card analysis" id="analysis" aria-live="polite">
+      <div class="a-state" id="a-state">Play some notes</div>
+      <div class="a-name" id="a-name">—</div>
+      <div class="a-sub" id="a-sub"></div>
+      <div class="a-notes" id="a-notes"></div>
+      <div class="a-alt" id="a-alt"></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="kbd" id="kbd" aria-label="Piano keyboard: click keys to play"></div>
+    <div class="history" id="history" hidden><span class="h-label">Chords you played</span></div>
+  </div>
+
+  <p class="keys" aria-label="Keyboard shortcuts">
+    <span>computer keys: <kbd>A</kbd> <kbd>S</kbd> <kbd>D</kbd> <kbd>F</kbd> <kbd>G</kbd> <kbd>H</kbd> <kbd>J</kbd> <kbd>K</kbd> <kbd>L</kbd> white keys · <kbd>W</kbd> <kbd>E</kbd> <kbd>T</kbd> <kbd>Y</kbd> <kbd>U</kbd> <kbd>O</kbd> <kbd>P</kbd> black keys</span>
+    <span><kbd>Z</kbd> <kbd>X</kbd> octave down / up (<b id="oct-label">C4</b>)</span>
+    <span>a sustain pedal on your piano holds notes, as on a piano</span>
+  </p>
+</main>
+
+<script>
+/*__VEXFLOW_BUNDLE__*/
+</script>
+
+<script>
+(function () {
+  "use strict";
+  const { Renderer, Stave, StaveNote, Voice, Formatter, Accidental, StaveConnector, GhostNote } = VexFlow;
+  const $ = (id) => document.getElementById(id);
+  const mod = (n) => ((n % 12) + 12) % 12;
+  const LOW = 21, HIGH = 108;   // A0 .. C8, a standard 88-key piano
+  const LETTERS = ["C", "D", "E", "F", "G", "A", "B"], NAT = [0, 2, 4, 5, 7, 9, 11];
+  const ACC_SYM = { "-2": "𝄫", "-1": "♭", "0": "", "1": "♯", "2": "𝄪" }, ACC_VEX = { "-2": "bb", "-1": "b", "1": "#", "2": "##" };
+
+  // ================= the chords it can name =================
+  // [name, symbol, [semitones above the root, letter steps above the root's letter]]: the letter steps spell each note properly (a 7th is always
+  // some kind of "B" over a C chord, a diminished 7th's top note is a double-flatted 7th, and so on)
+  const CHORDS = [
+    ["Major", "", [[0, 0], [4, 2], [7, 4]]], ["Minor", "m", [[0, 0], [3, 2], [7, 4]]], ["Diminished", "dim", [[0, 0], [3, 2], [6, 4]]], ["Augmented", "aug", [[0, 0], [4, 2], [8, 4]]],
+    ["Suspended 2nd", "sus2", [[0, 0], [2, 1], [7, 4]]], ["Suspended 4th", "sus4", [[0, 0], [5, 3], [7, 4]]],
+    ["Major 6", "6", [[0, 0], [4, 2], [7, 4], [9, 5]]], ["Minor 6", "m6", [[0, 0], [3, 2], [7, 4], [9, 5]]],
+    ["Major 7", "maj7", [[0, 0], [4, 2], [7, 4], [11, 6]]], ["Dominant 7", "7", [[0, 0], [4, 2], [7, 4], [10, 6]]], ["Minor 7", "m7", [[0, 0], [3, 2], [7, 4], [10, 6]]],
+    ["Half-diminished 7", "m7♭5", [[0, 0], [3, 2], [6, 4], [10, 6]]], ["Diminished 7", "dim7", [[0, 0], [3, 2], [6, 4], [9, 6]]], ["Minor-major 7", "m(maj7)", [[0, 0], [3, 2], [7, 4], [11, 6]]],
+    ["Dominant 7sus4", "7sus4", [[0, 0], [5, 3], [7, 4], [10, 6]]], ["Dominant 7♭5", "7♭5", [[0, 0], [4, 2], [6, 4], [10, 6]]], ["Dominant 7♯5", "7♯5", [[0, 0], [4, 2], [8, 4], [10, 6]]],
+    ["Major 7♯5", "maj7♯5", [[0, 0], [4, 2], [8, 4], [11, 6]]],
+    ["Major add9", "add9", [[0, 0], [2, 1], [4, 2], [7, 4]]], ["Minor add9", "m(add9)", [[0, 0], [2, 1], [3, 2], [7, 4]]],
+    ["Major 6/9", "6/9", [[0, 0], [2, 1], [4, 2], [7, 4], [9, 5]]], ["Dominant 9", "9", [[0, 0], [2, 1], [4, 2], [7, 4], [10, 6]]], ["Major 9", "maj9", [[0, 0], [2, 1], [4, 2], [7, 4], [11, 6]]],
+    ["Minor 9", "m9", [[0, 0], [2, 1], [3, 2], [7, 4], [10, 6]]], ["Dominant 7♭9", "7♭9", [[0, 0], [1, 1], [4, 2], [7, 4], [10, 6]]], ["Dominant 7♯9", "7♯9", [[0, 0], [3, 1], [4, 2], [7, 4], [10, 6]]],
+    ["Dominant 7, no 5th", "7 (no 5)", [[0, 0], [4, 2], [10, 6]]], ["Minor 7, no 5th", "m7 (no 5)", [[0, 0], [3, 2], [10, 6]]], ["Major 7, no 5th", "maj7 (no 5)", [[0, 0], [4, 2], [11, 6]]],
+  ];
+  const ROOT_SPELL = { 0: [["C", 0]], 1: [["C", 1], ["D", -1]], 2: [["D", 0]], 3: [["D", 1], ["E", -1]], 4: [["E", 0]], 5: [["F", 0]], 6: [["F", 1], ["G", -1]], 7: [["G", 0]], 8: [["G", 1], ["A", -1]], 9: [["A", 0]], 10: [["A", 1], ["B", -1]], 11: [["B", 0]] };
+  const PREFER_FLAT = { 1: true, 3: true, 6: false, 8: true, 10: true };
+  const accOf = (pc, letterIdx) => ((pc - NAT[letterIdx] + 18) % 12) - 6;
+  const noteText = (letterIdx, acc) => LETTERS[letterIdx] + ACC_SYM[String(acc)];
+  const INTERVALS = ["Unison", "Minor 2nd", "Major 2nd", "Minor 3rd", "Major 3rd", "Perfect 4th", "Tritone", "Perfect 5th", "Minor 6th", "Major 6th", "Minor 7th", "Major 7th"];
+  const DEGREE_WORD = { 0: "root", 1: "9th", 2: "3rd", 3: "4th", 4: "5th", 5: "6th", 6: "7th" };
+
+  // spell a chord rooted on pc with a template: the root's spelling with the fewest accidentals over all its notes wins
+  function spellChord(rootPc, tones) {
+    let best = null;
+    ROOT_SPELL[rootPc].forEach(([rootL, rootAcc]) => {
+      const base = LETTERS.indexOf(rootL), map = {}; let cost = rootAcc ? 0.5 : 0;
+      tones.forEach(([semis, steps]) => {
+        const li = (base + steps) % 7, pc = mod(rootPc + semis), a = accOf(pc, li);
+        map[pc] = { li, acc: a }; cost += Math.abs(a) + (Math.abs(a) >= 2 ? 6 : 0);
+      });
+      const flat = rootAcc < 0, tie = PREFER_FLAT[rootPc] === undefined ? 0 : (flat === PREFER_FLAT[rootPc] ? 0 : 0.2);
+      cost += tie;
+      if (!best || cost < best.cost) best = { cost, map, root: { li: base, acc: rootAcc } };
+    });
+    return best;
+  }
+
+  // what the set of notes sounding right now is
+  function analyze(midis) {
+    if (!midis.length) return null;
+    const bass = midis[0], bassPc = mod(bass), pcs = [...new Set(midis.map(mod))].sort((a, b) => a - b);
+    const out = { midis, bass, pcs, kind: "", chords: [] };
+    if (pcs.length === 1) { out.kind = "note"; return out; }
+    if (pcs.length === 2) {
+      const lo = midis[0], hi = midis[midis.length - 1], d = mod(hi - lo);
+      out.kind = "interval"; out.interval = (hi - lo >= 12 && d === 0 ? "Octave" : INTERVALS[d]) + (hi - lo > 12 && d !== 0 ? " (wide)" : "");
+      if (d === 7 || mod(lo - hi) === 7) { const root = d === 7 ? lo : hi, sp = spellChord(mod(root), [[0, 0], [7, 4]]); out.power = noteText(sp.root.li, sp.root.acc) + "5"; }
+      return out;
+    }
+    CHORDS.forEach(([name, sym, tones], idx) => {
+      if (tones.length !== pcs.length) return;
+      for (const pc of pcs) {
+        const want = tones.map(([s]) => mod(pc + s)).sort((a, b) => a - b);
+        if (want.join() !== pcs.join()) continue;
+        const sp = spellChord(pc, tones), rootName = noteText(sp.root.li, sp.root.acc), bassSp = sp.map[bassPc];
+        const bassTone = tones.find(([s]) => mod(pc + s) === bassPc);
+        const inv = bassPc === pc ? "Root position" : bassTone[1] === 2 ? "1st inversion (3rd in the bass)" : bassTone[1] === 4 ? "2nd inversion (5th in the bass)" : bassTone[1] === 6 ? "3rd inversion (7th in the bass)" : "Slash chord (" + DEGREE_WORD[bassTone[1]] + " in the bass)";
+        out.chords.push({ score: (bassPc === pc ? 0 : 50) + idx, name, sym, rootPc: pc, rootName, spell: sp.map, inv,
+          label: rootName + sym + (bassPc === pc ? "" : "/" + noteText(bassSp.li, bassSp.acc)) });
+      }
+    });
+    out.chords.sort((a, b) => a.score - b.score);
+    out.kind = out.chords.length ? "chord" : "unknown";
+    return out;
+  }
+  // spelling for the staff: the best chord's own notes, or plain flats/sharps when nothing matched
+  const FALLBACK = { 0: [0, 0], 1: [1, -1], 2: [1, 0], 3: [2, -1], 4: [2, 0], 5: [3, 0], 6: [3, 1], 7: [4, 0], 8: [5, -1], 9: [5, 0], 10: [6, -1], 11: [6, 0] };
+  function spellMidi(m, a) {
+    const pc = mod(m), s = a && a.kind === "chord" && a.chords[0].spell[pc];
+    const [li, acc] = s ? [s.li, s.acc] : FALLBACK[pc];
+    return { li, acc, name: noteText(li, acc), octave: Math.floor((m - NAT[li] - acc) / 12) - 1 };
+  }
+
+  // ================= the sound: the same synth as the Playback panel (its tone, volume and EQ) =================
+  let ctx = null; const voices = new Map();
+  function audio() {
+    if (!ctx) ctx = new (window.AudioContext || window.webkitAudioContext)();
+    if (ctx.state === "suspended") ctx.resume();
+    return ctx;
+  }
+  function voiceOff(m, quick) {
+    const v = voices.get(m); if (!v || !ctx) return;
+    const t = ctx.currentTime, rel = quick ? 0.03 : 0.3;
+    v.g.gain.cancelScheduledValues(t); v.g.gain.setValueAtTime(Math.max(v.g.gain.value, 0.0002), t); v.g.gain.exponentialRampToValueAtTime(0.0001, t + rel);
+    try { v.osc.stop(t + rel + 0.03); } catch (e) {}
+    voices.delete(m);
+  }
+  function voiceOn(m, vel) {
+    const c = audio(); voiceOff(m, true);
+    if (voices.size > 28) voiceOff(voices.keys().next().value, true);
+    const t = c.currentTime, osc = c.createOscillator(), g = c.createGain(), peak = 0.05 + 0.2 * (vel / 127);   // the other pages' notes peak around 0.22
+    osc.type = FretlineAudio.get().tone; osc.frequency.value = 440 * Math.pow(2, (m - 69) / 12);
+    g.gain.setValueAtTime(0.0001, t); g.gain.linearRampToValueAtTime(peak, t + 0.012); g.gain.exponentialRampToValueAtTime(peak * 0.5, t + 2);
+    osc.connect(g).connect(FretlineAudio.out(c)); osc.start(t);
+    voices.set(m, { osc, g });
+  }
+
+  // ================= what is being played =================
+  const held = new Map(), sustained = new Set(); let pedal = false, pressedNow = false;
+  const sounding = () => [...new Set([...held.keys(), ...sustained])].sort((a, b) => a - b);
+  function noteOn(m, vel) { if (m < LOW || m > HIGH) return; held.set(m, vel || 90); sustained.delete(m); voiceOn(m, vel || 90); pressedNow = true; changed(); }
+  function noteOff(m) { if (!held.has(m)) return; held.delete(m); if (pedal) sustained.add(m); else voiceOff(m); changed(); }
+  function setPedal(on) { pedal = on; if (!on) { sustained.forEach((m) => { if (!held.has(m)) voiceOff(m); }); sustained.clear(); changed(); } }
+  function allOff() { [...voices.keys()].forEach((m) => voiceOff(m)); held.clear(); sustained.clear(); pedal = false; changed(); }
+
+  // ================= the keyboard (88 keys, drawn once; pressing a key colours it) =================
+  const isBlack = (m) => [1, 3, 6, 8, 10].includes(mod(m));
+  function buildKeyboard() {
+    const KW = 26, KH = 120, whites = []; for (let m = LOW; m <= HIGH; m++) if (!isBlack(m)) whites.push(m);
+    const xOf = new Map(); whites.forEach((m, i) => xOf.set(m, i * KW));
+    const W = whites.length * KW, p = [];
+    whites.forEach((m) => {
+      p.push(`<rect class="key w" data-midi="${m}" x="${xOf.get(m)}" y="0" width="${KW}" height="${KH}" fill="#fff" stroke="#c4b89a" stroke-width="1"><title>${LETTERS[NAT.indexOf(mod(m))]}${Math.floor(m / 12) - 1}</title></rect>`);
+      if (mod(m) === 0) p.push(`<text x="${xOf.get(m) + KW / 2}" y="${KH - 6}" text-anchor="middle" font-size="10" fill="#8a9e7e" pointer-events="none" font-family="Helvetica,Arial,sans-serif">C${Math.floor(m / 12) - 1}</text>`);
+    });
+    for (let m = LOW; m <= HIGH; m++) if (isBlack(m)) p.push(`<rect class="key b" data-midi="${m}" x="${xOf.get(m - 1) + KW - 8}" y="0" width="16" height="${KH * 0.62}" fill="#3d3a30" rx="2"/>`);
+    $("kbd").innerHTML = `<svg viewBox="0 0 ${W} ${KH}" preserveAspectRatio="xMidYMid meet">${p.join("")}</svg>`;
+  }
+  const keyEls = new Map();
+  function paintKeys() {
+    if (!keyEls.size) document.querySelectorAll("#kbd .key").forEach((k) => keyEls.set(+k.dataset.midi, k));
+    keyEls.forEach((el, m) => {
+      const down = held.has(m), tail = !down && sustained.has(m);
+      el.setAttribute("fill", down ? (isBlack(m) ? "#b07a5a" : "#e0a984") : tail ? (isBlack(m) ? "#7a5c46" : "#f0d9c8") : isBlack(m) ? "#3d3a30" : "#fff");
+    });
+  }
+
+  // ================= the grand staff =================
+  function renderStaff(midis, a) {
+    const el = $("staff"); el.innerHTML = "";
+    const W = 230, treble = midis.filter((m) => m >= 60), bass = midis.filter((m) => m < 60);
+    const pick = (arr, lo0, hi0, dir) => {   // the octave shift (none, 8va/8vb, 15ma/15mb) that keeps a clef's notes within three ledger lines
+      if (!arr.length) return 0;
+      const mn = Math.min(...arr), mx = Math.max(...arr); let best = 0, bv = 1e9;
+      for (const sh of [0, 12, 24]) { const v = Math.max(0, lo0 - (mn + dir * sh), mx + dir * sh - hi0); if (v < bv) { bv = v; best = sh; } }
+      return best;
+    };
+    const shiftT = pick(treble, 53, 88, -1), shiftB = pick(bass, 33, 67, 1);
+    const ledger = 30, above = ledger + 16, trebleY = 20 + above, bassY = trebleY + 96, H = bassY + 80 + ledger + 38;
+    const renderer = new Renderer(el, Renderer.Backends.SVG); renderer.resize(W, H);
+    const svgEl = el.querySelector("svg"); svgEl.setAttribute("viewBox", "0 0 " + W + " " + H); svgEl.setAttribute("width", "100%"); svgEl.setAttribute("height", "100%");
+    svgEl.style.width = "100%"; svgEl.style.height = "100%"; el.style.removeProperty("width"); el.style.removeProperty("height");
+    const c = renderer.getContext();
+    const ts = new Stave(10, trebleY, W - 24).addClef("treble"), bs = new Stave(10, bassY, W - 24).addClef("bass");
+    ts.setContext(c).draw(); bs.setContext(c).draw();
+    try {
+      const brace = new StaveConnector(ts, bs); brace.setType(StaveConnector.type.BRACE); brace.setContext(c).draw();
+      const left = new StaveConnector(ts, bs); left.setType(StaveConnector.type.SINGLE_LEFT); left.setContext(c).draw();
+    } catch (e) {}
+    const mk = (list, shift, dir, clef) => {
+      if (!list.length) return new GhostNote({ duration: "w" });
+      const items = list.map((m) => { const s = spellMidi(m, a), disp = m + dir * shift; return { s, key: LETTERS[s.li].toLowerCase() + (ACC_VEX[String(s.acc)] || "") + "/" + (Math.floor((disp - NAT[s.li] - s.acc) / 12) - 1), disp }; }).sort((x, y) => x.disp - y.disp);
+      const note = new StaveNote({ keys: items.map((i) => i.key), duration: "w", clef });
+      items.forEach((i, idx) => { if (i.s.acc) note.addModifier(new Accidental(ACC_VEX[String(i.s.acc)]), idx); });
+      return note;
+    };
+    const tn = mk(treble, shiftT, -1, "treble"), bn = mk(bass, shiftB, 1, "bass");
+    const vt = new Voice({ num_beats: 4, beat_value: 4 }).setStrict(false).addTickables([tn]);
+    const vb = new Voice({ num_beats: 4, beat_value: 4 }).setStrict(false).addTickables([bn]);
+    new Formatter().joinVoices([vt]).joinVoices([vb]).format([vt, vb], 60);
+    const x = (ts.getNoteStartX() + ts.getNoteEndX()) / 2 - 10; tn.getTickContext().setX(x); bn.getTickContext().setX(x);
+    vt.draw(c, ts); vb.draw(c, bs);
+    const NS = "http://www.w3.org/2000/svg";
+    const sign = (text, y, hook) => {   // 8va / 8vb signs, as on the Ear Training staff
+      const t = document.createElementNS(NS, "text"); t.setAttribute("x", ts.getNoteStartX() + 4); t.setAttribute("y", y); t.setAttribute("font-size", "12"); t.setAttribute("font-style", "italic");
+      t.setAttribute("font-family", "Georgia,serif"); t.setAttribute("fill", "#3d3a30"); t.textContent = text; svgEl.appendChild(t);
+      const ln = document.createElementNS(NS, "path"); ln.setAttribute("d", `M ${ts.getNoteStartX() + 4 + text.length * 7 + 4} ${y - 4} L ${x + 34} ${y - 4} L ${x + 34} ${y - 4 + hook * 6}`);
+      ln.setAttribute("fill", "none"); ln.setAttribute("stroke", "#3d3a30"); ln.setAttribute("stroke-dasharray", "4 3"); svgEl.appendChild(ln);
+    };
+    if (shiftT) sign(shiftT === 24 ? "15ma" : "8va", trebleY + 40 - ledger - 18, 1);
+    if (shiftB) sign(shiftB === 24 ? "15mb" : "8vb", bassY + 80 + ledger + 24, -1);
+    try { const bb = svgEl.getBBox(); if (bb.width > 0) svgEl.setAttribute("viewBox", [bb.x - 6, 0, bb.width + 12, H].join(" ")); } catch (e) {}
+  }
+
+  // ================= the readout =================
+  let lastShown = null, historyList = [];
+  const noteList = (midis, a) => midis.map((m) => { const s = spellMidi(m, a); return s.name + s.octave; }).join("  ");
+  function describe(a) {
+    if (a.kind === "note") { const s = spellMidi(a.midis[0], a); return { name: s.name + s.octave, sub: "One note", notes: "", alt: "" }; }
+    if (a.kind === "interval") return { name: a.interval, sub: a.power ? a.power + " (a power chord, root and fifth)" : "Two notes", notes: noteList(a.midis, a), alt: "" };
+    if (a.kind === "unknown") return { name: "Not a chord I know", sub: a.pcs.length + " different notes", notes: noteList(a.midis, a), alt: "" };
+    const best = a.chords[0], alts = a.chords.slice(1, 4);
+    return { name: best.label, sub: best.name + (best.sym === "" ? " triad" : "") + " · " + best.inv, notes: noteList(a.midis, a),
+      alt: alts.length ? "Also: " + alts.map((x) => "<b>" + x.label + "</b> (" + x.name.toLowerCase() + ")").join(" · ") : "" };
+  }
+  function show(a, live) {
+    const d = describe(a);
+    $("a-state").textContent = live ? "Playing now" : "Last played";
+    $("a-name").textContent = d.name; $("a-sub").textContent = d.sub; $("a-notes").textContent = d.notes; $("a-alt").innerHTML = d.alt;
+    $("analysis").classList.toggle("released", !live); $("staff").classList.toggle("released", !live);
+  }
+  let queued = false;
+  function changed() { if (!queued) { queued = true; requestAnimationFrame(update); } }
+  function update() {
+    queued = false;
+    paintKeys();
+    const now = sounding(), a = analyze(now);
+    if (a) {
+      lastShown = { a, midis: now }; show(a, true); renderStaff(now, a);
+      if (pressedNow && a.kind === "chord" && a.midis.length >= 3) {   // a chord the moment it is played (not as notes are let go)
+        const label = a.chords[0].label;
+        if (!historyList.length || historyList[historyList.length - 1] !== label) { historyList.push(label); if (historyList.length > 12) historyList.shift(); drawHistory(); }
+      }
+    } else if (lastShown) { show(lastShown.a, false); renderStaff(lastShown.midis, lastShown.a); }
+    else { $("a-state").textContent = "Play some notes"; $("a-name").textContent = "—"; $("a-sub").textContent = ""; $("a-notes").textContent = ""; $("a-alt").innerHTML = ""; renderStaff([], null); }
+    pressedNow = false;
+  }
+  function drawHistory() {
+    const h = $("history"); h.hidden = !historyList.length;
+    h.innerHTML = '<span class="h-label">Chords you played</span>' + historyList.map((c) => `<span class="chip">${c}</span>`).join("");
+  }
+
+  // ================= playing: on-screen keys, computer keys, MIDI =================
+  $("kbd").addEventListener("pointerdown", (e) => {
+    const k = e.target.closest && e.target.closest(".key"); if (!k) return;
+    e.preventDefault(); k.setPointerCapture(e.pointerId); noteOn(+k.dataset.midi, 90);
+    const up = () => { noteOff(+k.dataset.midi); k.removeEventListener("pointerup", up); k.removeEventListener("pointercancel", up); };
+    k.addEventListener("pointerup", up); k.addEventListener("pointercancel", up);
+  });
+  const CODES = { KeyA: 0, KeyW: 1, KeyS: 2, KeyE: 3, KeyD: 4, KeyF: 5, KeyT: 6, KeyG: 7, KeyY: 8, KeyH: 9, KeyU: 10, KeyJ: 11, KeyK: 12, KeyO: 13, KeyL: 14, KeyP: 15, Semicolon: 16 };
+  let octave = 4; const down = new Map();
+  const setOctave = (o) => { octave = Math.max(1, Math.min(6, o)); $("oct-label").textContent = "C" + octave; };
+  document.addEventListener("keydown", (e) => {
+    if (e.ctrlKey || e.metaKey || e.altKey || /^(INPUT|TEXTAREA|SELECT)$/.test((e.target.tagName || ""))) return;
+    if (e.code === "KeyZ") { setOctave(octave - 1); return; }
+    if (e.code === "KeyX") { setOctave(octave + 1); return; }
+    if (!(e.code in CODES) || e.repeat || down.has(e.code)) return;
+    const m = 12 * (octave + 1) + CODES[e.code]; down.set(e.code, m); noteOn(m, 90);
+  });
+  document.addEventListener("keyup", (e) => { if (down.has(e.code)) { noteOff(down.get(e.code)); down.delete(e.code); } });
+  window.addEventListener("blur", () => { down.forEach((m) => noteOff(m)); down.clear(); });
+
+  let access = null;
+  function midiStatus(text, bad) { $("midi-status").textContent = text; $("midi-status").classList.toggle("bad", !!bad); }
+  function onMidi(e) {
+    const [st, d1, d2] = e.data, cmd = st & 0xf0;
+    if (cmd === 0x90 && d2 > 0) noteOn(d1, d2);
+    else if (cmd === 0x80 || (cmd === 0x90 && d2 === 0)) noteOff(d1);
+    else if (cmd === 0xb0) { if (d1 === 64) setPedal(d2 >= 64); else if (d1 === 123 || d1 === 120) allOff(); }
+  }
+  function refreshPorts() {
+    const inputs = [...access.inputs.values()], sel = $("midi-input"), prev = sel.value;
+    sel.innerHTML = '<option value="">All inputs</option>' + inputs.map((i) => `<option value="${i.id}">${i.name || "MIDI input"}</option>`).join("");
+    sel.hidden = inputs.length < 2; if ([...sel.options].some((o) => o.value === prev)) sel.value = prev;
+    inputs.forEach((i) => { i.onmidimessage = !sel.value || sel.value === i.id ? onMidi : null; });
+    if (!inputs.length) midiStatus("MIDI is on, but no piano was found. Plug it in or switch it on; it will appear here by itself.");
+    else midiStatus("Listening to " + (inputs.length === 1 ? inputs[0].name : inputs.length + " MIDI inputs") + ". Play something.");
+  }
+  async function connect() {
+    audio();   // this click lets the browser start the sound
+    if (!navigator.requestMIDIAccess) { midiStatus("This browser can't read MIDI. Chrome, Edge or Opera can.", true); return; }
+    try { access = await navigator.requestMIDIAccess({ sysex: false }); }
+    catch (err) { midiStatus("The browser didn't allow MIDI. Allow it for this site (the lock icon in the address bar) and try again.", true); return; }
+    access.onstatechange = refreshPorts; refreshPorts(); $("midi-connect").textContent = "MIDI connected";
+  }
+  $("midi-connect").addEventListener("click", connect);
+  $("midi-input").addEventListener("change", refreshPorts);
+  $("stop-all").addEventListener("click", allOff);
+  // if the browser has already been given MIDI permission for this site, connect without a click
+  try { navigator.permissions && navigator.permissions.query({ name: "midi" }).then((r) => { if (r.state === "granted") connect(); }).catch(() => {}); } catch (e) {}
+
+  buildKeyboard(); setOctave(4); update();
+  window.__piano = { noteOn, noteOff, setPedal, allOff, analyze, sounding, held, get history() { return historyList; } };
+})();
+</script>
+</body>
+</html>

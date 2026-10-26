@@ -19,7 +19,7 @@
 <noscript><p style="font-family:Helvetica,Arial,sans-serif;padding:24px"><a href="fretline.html?standalone">Open Fretline</a></p></noscript>
 <script>
 (function () {
-  var PAGES = ["fretline", "ear_training", "shapes_lab", "scale_lab", "harmony_map", "posture"], frames = {}, current = null;
+  var PAGES = ["fretline", "ear_training", "shapes_lab", "scale_lab", "harmony_map", "posture", "piano"], frames = {}, current = null;
   var query = location.search;   // passed on to every page (harmony_map.html?edit still works through here)
   function post(name, what) { try { frames[name].contentWindow.postMessage({ fretline: what }, location.origin); } catch (e) {} }
   function focusPage(name) { try { frames[name].contentWindow.focus(); } catch (e) {} }   // so the page's keyboard shortcuts work straight away

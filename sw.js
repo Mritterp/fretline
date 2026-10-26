@@ -1,12 +1,13 @@
 // Bump this on every release so installed clients pick up the new fretline.html
 // (activate clears any cache under an older name and re-precaches).
-const CACHE_NAME = "fretline-v17";
+const CACHE_NAME = "fretline-v18";
 
 const PRECACHE_URLS = [
   "./index.html",
   "./embed.js",
   "./fl-audio.js",
   "./fl-notes.js",
+  "./piano.html",
   "./chord-patterns.js",
   "./shapes_lab.html",
   "./fretline.html",
