@@ -374,13 +374,21 @@ main { max-width: 1300px; margin: 0 auto; padding: 14px 16px 30px; }
     if (!navigator.requestMIDIAccess) { midiStatus("This browser can't read MIDI. Chrome, Edge or Opera can.", true); return; }
     try { access = await navigator.requestMIDIAccess({ sysex: false }); }
     catch (err) { midiStatus("The browser didn't allow MIDI. Allow it for this site (the lock icon in the address bar) and try again.", true); return; }
-    access.onstatechange = refreshPorts; refreshPorts(); $("midi-connect").textContent = "MIDI connected";
+    access.onstatechange = refreshPorts; refreshPorts(); $("midi-connect").textContent = "Disconnect MIDI";
+    try { localStorage.removeItem("fretline-midi-off"); } catch (e) {}
   }
-  $("midi-connect").addEventListener("click", connect);
+  function disconnect() {   // stop listening to the piano, let go of its ports, and silence the browser
+    if (access) { access.onstatechange = null; access.inputs.forEach((i) => { i.onmidimessage = null; try { if (i.close) i.close(); } catch (e) {} }); access = null; }
+    allOff();
+    $("midi-input").hidden = true; $("midi-input").innerHTML = ""; $("midi-connect").textContent = "Connect MIDI piano";
+    midiStatus("MIDI disconnected. The browser no longer listens to your piano. Press Connect to use it again.");
+    try { localStorage.setItem("fretline-midi-off", "1"); } catch (e) {}   // and do not reconnect by itself next time
+  }
+  $("midi-connect").addEventListener("click", () => (access ? disconnect() : connect()));
   $("midi-input").addEventListener("change", refreshPorts);
   $("stop-all").addEventListener("click", allOff);
   // if the browser has already been given MIDI permission for this site, connect without a click
-  try { navigator.permissions && navigator.permissions.query({ name: "midi" }).then((r) => { if (r.state === "granted") connect(); }).catch(() => {}); } catch (e) {}
+  try { navigator.permissions && navigator.permissions.query({ name: "midi" }).then((r) => { if (r.state === "granted" && !localStorage.getItem("fretline-midi-off")) connect(); }).catch(() => {}); } catch (e) {}
 
   buildKeyboard(); setOctave(4); update();
   window.__piano = { noteOn, noteOff, setPedal, allOff, analyze, sounding, held, get history() { return historyList; } };
