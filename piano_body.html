@@ -142,6 +142,17 @@ main { max-width: 1300px; margin: 0 auto; padding: 14px 16px 30px; }
     ["Major 6/9", "6/9", [[0, 0], [2, 1], [4, 2], [7, 4], [9, 5]]], ["Dominant 9", "9", [[0, 0], [2, 1], [4, 2], [7, 4], [10, 6]]], ["Major 9", "maj9", [[0, 0], [2, 1], [4, 2], [7, 4], [11, 6]]],
     ["Minor 9", "m9", [[0, 0], [2, 1], [3, 2], [7, 4], [10, 6]]], ["Dominant 7♭9", "7♭9", [[0, 0], [1, 1], [4, 2], [7, 4], [10, 6]]], ["Dominant 7♯9", "7♯9", [[0, 0], [3, 1], [4, 2], [7, 4], [10, 6]]],
     ["Dominant 7, no 5th", "7 (no 5)", [[0, 0], [4, 2], [10, 6]]], ["Minor 7, no 5th", "m7 (no 5)", [[0, 0], [3, 2], [10, 6]]], ["Major 7, no 5th", "maj7 (no 5)", [[0, 0], [4, 2], [11, 6]]],
+    // rarer chords, tried only after everything above
+    ["Dominant 7sus2", "7sus2", [[0, 0], [2, 1], [7, 4], [10, 6]]], ["Major add4", "add4", [[0, 0], [4, 2], [5, 3], [7, 4]]], ["Major add♯11", "add♯11", [[0, 0], [4, 2], [6, 3], [7, 4]]],
+    ["Minor 6/9", "m6/9", [[0, 0], [2, 1], [3, 2], [7, 4], [9, 5]]], ["Dominant 9sus4", "9sus4", [[0, 0], [2, 1], [5, 3], [7, 4], [10, 6]]],
+    ["Minor 11", "m11", [[0, 0], [3, 2], [5, 3], [7, 4], [10, 6]]], ["Dominant 11", "11", [[0, 0], [4, 2], [5, 3], [7, 4], [10, 6]]],
+    ["Major 7♯11", "maj7♯11", [[0, 0], [4, 2], [6, 3], [7, 4], [11, 6]]], ["Dominant 7♯11", "7♯11", [[0, 0], [4, 2], [6, 3], [7, 4], [10, 6]]], ["Major 9♯11", "maj9♯11", [[0, 0], [2, 1], [4, 2], [6, 3], [7, 4], [11, 6]]],
+    ["Dominant 13", "13", [[0, 0], [4, 2], [7, 4], [9, 5], [10, 6]]], ["Major 13", "maj13", [[0, 0], [4, 2], [7, 4], [9, 5], [11, 6]]], ["Minor 13", "m13", [[0, 0], [3, 2], [7, 4], [9, 5], [10, 6]]],
+    ["Dominant 7♭13", "7♭13", [[0, 0], [4, 2], [7, 4], [8, 5], [10, 6]]], ["Minor 7♭9", "m7♭9", [[0, 0], [1, 1], [3, 2], [7, 4], [10, 6]]],
+    ["Dominant 7♯5♯9", "7♯5♯9", [[0, 0], [3, 1], [4, 2], [8, 4], [10, 6]]], ["Dominant 7♯5♭9", "7♯5♭9", [[0, 0], [1, 1], [4, 2], [8, 4], [10, 6]]],
+    ["Dominant 7♭5♭9", "7♭5♭9", [[0, 0], [1, 1], [4, 2], [6, 4], [10, 6]]], ["Dominant 7♭5♯9", "7♭5♯9", [[0, 0], [3, 1], [4, 2], [6, 4], [10, 6]]],
+    ["Dominant 9♭5", "9♭5", [[0, 0], [2, 1], [4, 2], [6, 4], [10, 6]]], ["Dominant 9♯5", "9♯5", [[0, 0], [2, 1], [4, 2], [8, 4], [10, 6]]],
+    ["Major 7♭5", "maj7♭5", [[0, 0], [4, 2], [6, 4], [11, 6]]], ["Diminished major 7", "dim(maj7)", [[0, 0], [3, 2], [6, 4], [11, 6]]], ["Minor-major 9", "m(maj9)", [[0, 0], [2, 1], [3, 2], [7, 4], [11, 6]]],
   ];
   const ROOT_SPELL = { 0: [["C", 0]], 1: [["C", 1], ["D", -1]], 2: [["D", 0]], 3: [["D", 1], ["E", -1]], 4: [["E", 0]], 5: [["F", 0]], 6: [["F", 1], ["G", -1]], 7: [["G", 0]], 8: [["G", 1], ["A", -1]], 9: [["A", 0]], 10: [["A", 1], ["B", -1]], 11: [["B", 0]] };
   const PREFER_FLAT = { 1: true, 3: true, 6: false, 8: true, 10: true };
@@ -150,10 +161,10 @@ main { max-width: 1300px; margin: 0 auto; padding: 14px 16px 30px; }
   const INTERVALS = ["Unison", "Minor 2nd", "Major 2nd", "Minor 3rd", "Major 3rd", "Perfect 4th", "Tritone", "Perfect 5th", "Minor 6th", "Major 6th", "Minor 7th", "Major 7th"];
   const DEGREE_WORD = { 0: "root", 1: "9th", 2: "3rd", 3: "4th", 4: "5th", 5: "6th", 6: "7th" };
 
-  // spell a chord rooted on pc with a template: the root's spelling with the fewest accidentals over all its notes wins
-  function spellChord(rootPc, tones) {
+  // spell a chord rooted on pc with a template: the root's spelling with the fewest accidentals over all its notes wins (or the one asked for)
+  function spellChord(rootPc, tones, prefer) {
     let best = null;
-    ROOT_SPELL[rootPc].forEach(([rootL, rootAcc]) => {
+    ROOT_SPELL[rootPc].filter(([l, a]) => !prefer || (LETTERS.indexOf(l) === prefer.li && a === prefer.acc)).forEach(([rootL, rootAcc]) => {
       const base = LETTERS.indexOf(rootL), map = {}; let cost = rootAcc ? 0.5 : 0;
       tones.forEach(([semis, steps]) => {
         const li = (base + steps) % 7, pc = mod(rootPc + semis), a = accOf(pc, li);
@@ -163,14 +174,36 @@ main { max-width: 1300px; margin: 0 auto; padding: 14px 16px 30px; }
       cost += tie;
       if (!best || cost < best.cost) best = { cost, map, root: { li: base, acc: rootAcc } };
     });
-    return best;
+    return best || spellChord(rootPc, tones);
+  }
+  const ADD_DEG = { 1: ["♭9", 1], 2: ["9", 1], 3: ["♯9", 1], 5: ["11", 3], 6: ["♯11", 3], 8: ["♭13", 5], 9: ["13", 5] };   // an extra note this far above the root: [its name, letter steps]
+  const SHARP_STYLE = { 0: [0, 0], 1: [0, 1], 2: [1, 0], 3: [1, 1], 4: [2, 0], 5: [3, 0], 6: [3, 1], 7: [4, 0], 8: [4, 1], 9: [5, 0], 10: [5, 1], 11: [6, 0] };
+  const SHORT_INT = ["P1", "m2", "M2", "m3", "M3", "P4", "tritone", "P5", "m6", "M6", "m7", "M7"];
+
+  const RARE = new Set(["dim(maj7)", "m(maj9)", "maj7♭5"]);
+  // one way of reading the notes: a chord (type "exact"), a chord with one extra note ("add"), or a chord sitting over a different bass note ("upper")
+  function candidate(type, rootPc, c, idx, bassPc, extra) {
+    const [name, sym, tones] = c, sp = spellChord(rootPc, tones), map = Object.assign({}, sp.map), rootName = noteText(sp.root.li, sp.root.acc);
+    let degName = "";
+    if (type === "add") { const [dn, steps] = ADD_DEG[extra]; degName = dn; const li = (sp.root.li + steps) % 7, pc = mod(rootPc + extra); map[pc] = { li, acc: accOf(pc, li) }; }
+    if (type === "upper") { const [li, acc] = (rootName.includes("♯") ? SHARP_STYLE : FALLBACK)[bassPc]; map[bassPc] = { li, acc }; }
+    const bs = map[bassPc], bassTxt = noteText(bs.li, bs.acc), bassTone = tones.find(([x]) => mod(rootPc + x) === bassPc);
+    let inv;
+    if (type === "upper") inv = (name === "Major" || name === "Minor" ? name + " triad" : name + " chord") + " over a " + bassTxt + " in the bass";
+    else if (bassPc === rootPc) inv = "Root position";
+    else if (!bassTone) inv = "The added " + degName + " is in the bass";
+    else inv = bassTone[1] === 2 ? "1st inversion (3rd in the bass)" : bassTone[1] === 4 ? "2nd inversion (5th in the bass)" : bassTone[1] === 6 ? "3rd inversion (7th in the bass)" : "Slash chord (" + DEGREE_WORD[bassTone[1]] + " in the bass)";
+    const body = rootName + sym + (type === "add" ? (tones.length >= 4 ? "(" + degName + ")" : "(add" + degName + ")") : "");
+    const slash = type === "upper" || bassPc !== rootPc ? "/" + bassTxt : "";
+    const penalty = type === "exact" ? (RARE.has(sym) ? 300 : 0) : type === "add" ? 200 : 100;   // an unusual name loses to a plainer reading with an added note
+    return { type, score: penalty + (type === "upper" || bassPc === rootPc ? 0 : 50) + idx, name, sym, rootPc, rootName, rootSp: sp.root, spell: map, inv, degName, label: body + slash, extra };
   }
 
   // what the set of notes sounding right now is
   function analyze(midis) {
     if (!midis.length) return null;
     const bass = midis[0], bassPc = mod(bass), pcs = [...new Set(midis.map(mod))].sort((a, b) => a - b);
-    const out = { midis, bass, pcs, kind: "", chords: [] };
+    const out = { midis, bass, bassPc, pcs, kind: "", chords: [] };
     if (pcs.length === 1) { out.kind = "note"; return out; }
     if (pcs.length === 2) {
       const lo = midis[0], hi = midis[midis.length - 1], d = mod(hi - lo);
@@ -178,24 +211,44 @@ main { max-width: 1300px; margin: 0 auto; padding: 14px 16px 30px; }
       if (d === 7 || mod(lo - hi) === 7) { const root = d === 7 ? lo : hi, sp = spellChord(mod(root), [[0, 0], [7, 4]]); out.power = noteText(sp.root.li, sp.root.acc) + "5"; }
       return out;
     }
-    CHORDS.forEach(([name, sym, tones], idx) => {
-      if (tones.length !== pcs.length) return;
-      for (const pc of pcs) {
-        const want = tones.map(([s]) => mod(pc + s)).sort((a, b) => a - b);
-        if (want.join() !== pcs.join()) continue;
-        const sp = spellChord(pc, tones), rootName = noteText(sp.root.li, sp.root.acc), bassSp = sp.map[bassPc];
-        const bassTone = tones.find(([s]) => mod(pc + s) === bassPc);
-        const inv = bassPc === pc ? "Root position" : bassTone[1] === 2 ? "1st inversion (3rd in the bass)" : bassTone[1] === 4 ? "2nd inversion (5th in the bass)" : bassTone[1] === 6 ? "3rd inversion (7th in the bass)" : "Slash chord (" + DEGREE_WORD[bassTone[1]] + " in the bass)";
-        out.chords.push({ score: (bassPc === pc ? 0 : 50) + idx, name, sym, rootPc: pc, rootName, spell: sp.map, inv,
-          label: rootName + sym + (bassPc === pc ? "" : "/" + noteText(bassSp.li, bassSp.acc)) });
-      }
+    if (pcs.length >= 5 && pcs.every((p) => p % 2 === pcs[0] % 2)) {   // five or six notes of one whole-tone scale: no chord name is better than the scale's own
+      out.kind = "unknown"; out.wholeTone = true; out.stack = pcs.map((p) => mod(p - bassPc)).sort((x, y) => x - y).map((x) => SHORT_INT[x]); return out;
+    }
+    const sameSet = (rel, tones) => rel.length === tones.length && tones.every(([x]) => rel.includes(x));
+    // 1. exactly a chord on the list
+    CHORDS.forEach((c, idx) => {
+      for (const pc of pcs) { const rel = pcs.map((p) => mod(p - pc)); if (sameSet(rel, c[2])) out.chords.push(candidate("exact", pc, c, idx, bassPc)); }
     });
+    // 2. a chord of three or more notes over a different bass note (D major over a C in the bass, and so on)
+    if (!out.chords.length && pcs.length >= 4) {
+      const rest = pcs.filter((p) => p !== bassPc);
+      CHORDS.forEach((c, idx) => {
+        if (c[2].length < 3) return;
+        for (const pc of rest) { const rel = rest.map((p) => mod(p - pc)); if (sameSet(rel, c[2])) out.chords.push(candidate("upper", pc, c, idx, bassPc)); }
+      });
+    }
+    // 3. a chord on the list plus one extra note (a 9th, an 11th...)
+    if (!out.chords.length || out.chords.every((c) => RARE.has(c.sym))) {
+      CHORDS.forEach((c, idx) => {
+        if (c[2].length < 3 || c[2].length !== pcs.length - 1) return;
+        for (const pc of pcs) {
+          const rel = pcs.map((p) => mod(p - pc)), extra = rel.filter((x) => !c[2].some(([t]) => t === x));
+          if (extra.length === 1 && c[2].every(([t]) => rel.includes(t)) && ADD_DEG[extra[0]]) out.chords.push(candidate("add", pc, c, idx, bassPc, extra[0]));
+        }
+      });
+    }
     out.chords.sort((a, b) => a.score - b.score);
-    out.kind = out.chords.length ? "chord" : "unknown";
+    if (out.chords.length) { out.kind = "chord"; return out; }
+    // 4. no chord reading: a cluster of neighbouring notes, or something else
+    const distinct = [...new Set(midis)];
+    out.cluster = distinct.length >= 3 && distinct.every((m, i) => i === 0 || m - distinct[i - 1] <= 2) && distinct[distinct.length - 1] - distinct[0] <= 9;
+    out.kind = out.cluster ? "cluster" : "unknown";
+    out.stack = pcs.map((p) => mod(p - bassPc)).sort((x, y) => x - y).map((x) => SHORT_INT[x]);
     return out;
   }
-  // ================= scales that fit a chord =================
-  // name, semitones, degree labels (the degree numbers spell each note with its own letter, as the Scale Lab does)
+
+  // ================= scales that fit =================
+  // name: [semitones, degree labels (the degree numbers spell each note with its own letter, as the Scale Lab does)]
   const SCALES = {
     "Ionian": [[0, 2, 4, 5, 7, 9, 11], "1 2 3 4 5 6 7"], "Dorian": [[0, 2, 3, 5, 7, 9, 10], "1 2 ♭3 4 5 6 ♭7"], "Phrygian": [[0, 1, 3, 5, 7, 8, 10], "1 ♭2 ♭3 4 5 ♭6 ♭7"],
     "Lydian": [[0, 2, 4, 6, 7, 9, 11], "1 2 3 ♯4 5 6 7"], "Mixolydian": [[0, 2, 4, 5, 7, 9, 10], "1 2 3 4 5 6 ♭7"], "Aeolian": [[0, 2, 3, 5, 7, 8, 10], "1 2 ♭3 4 5 ♭6 ♭7"],
@@ -208,20 +261,31 @@ main { max-width: 1300px; margin: 0 auto; padding: 14px 16px 30px; }
   const MAJ = ["Ionian", "Lydian", "Mixolydian"], MIN = ["Aeolian", "Dorian", "Phrygian"], DOM = ["Mixolydian", "Lydian dominant", "Altered", "Half-whole diminished", "Whole tone"];
   const SCALE_FOR = { "": MAJ, "m": MIN, "dim": ["Locrian", "Whole-half diminished"], "aug": ["Whole tone", "Lydian augmented"], "sus2": ["Mixolydian", "Ionian", "Dorian", "Lydian"], "sus4": ["Mixolydian", "Ionian", "Dorian", "Aeolian"],
     "6": ["Ionian", "Lydian", "Mixolydian"], "m6": ["Dorian", "Melodic minor"], "maj7": ["Ionian", "Lydian"], "7": DOM, "m7": ["Dorian", "Aeolian", "Phrygian"], "m7♭5": ["Locrian", "Locrian ♮2"], "dim7": ["Whole-half diminished"],
-    "m(maj7)": ["Melodic minor", "Harmonic minor"], "7sus4": ["Mixolydian", "Dorian"], "7♭5": ["Lydian dominant", "Altered", "Whole tone"], "7♯5": ["Whole tone", "Altered"], "maj7♯5": ["Lydian augmented"],
+    "m(maj7)": ["Melodic minor", "Harmonic minor"], "7sus4": ["Mixolydian", "Dorian"], "7sus2": ["Mixolydian", "Dorian"], "7♭5": ["Lydian dominant", "Altered", "Whole tone"], "7♯5": ["Whole tone", "Altered"], "maj7♯5": ["Lydian augmented"],
     "add9": MAJ, "m(add9)": ["Dorian", "Aeolian"], "6/9": ["Ionian", "Lydian"], "9": ["Mixolydian", "Lydian dominant"], "maj9": ["Ionian", "Lydian"], "m9": ["Dorian", "Aeolian"],
-    "7♭9": ["Half-whole diminished", "Phrygian dominant", "Altered"], "7♯9": ["Altered", "Half-whole diminished"], "7 (no 5)": DOM.slice(0, 3), "m7 (no 5)": ["Dorian", "Aeolian"], "maj7 (no 5)": ["Ionian", "Lydian"] };
+    "7♭9": ["Half-whole diminished", "Phrygian dominant", "Altered"], "7♯9": ["Altered", "Half-whole diminished"], "7 (no 5)": DOM.slice(0, 3), "m7 (no 5)": ["Dorian", "Aeolian"], "maj7 (no 5)": ["Ionian", "Lydian"],
+    "add♯11": ["Lydian"], "maj7♯11": ["Lydian"], "maj9♯11": ["Lydian"], "7♯11": ["Lydian dominant"], "m11": ["Dorian", "Aeolian"], "11": ["Mixolydian"], "9sus4": ["Mixolydian", "Dorian"], "13": ["Mixolydian", "Lydian dominant"],
+    "maj13": ["Ionian", "Lydian"], "m13": ["Dorian"], "7♭13": ["Mixolydian", "Altered", "Phrygian dominant"], "m6/9": ["Dorian", "Melodic minor"], "m7♭9": ["Phrygian"], "m(maj9)": ["Melodic minor"] };
   const KEY_NAMES = ["C", "D♭", "D", "E♭", "E", "F", "F♯", "G", "A♭", "A", "B♭", "B"];
-  function scalesFor(chord, pcs) {
-    const rootPc = chord.rootPc, base = LETTERS.indexOf(chord.rootName[0]), has = (semis) => pcs.every((pc) => semis.some((x) => mod(rootPc + x) === pc));
-    const spellScale = (name) => {
-      const [semis, degs] = SCALES[name], labels = degs.split(" ");
-      return semis.map((x, i) => { const li = (base + (parseInt(labels[i].replace(/[^0-9]/g, ""), 10) - 1)) % 7; return noteText(li, accOf(mod(rootPc + x), li)); }).join("  ");
-    };
-    let names = (SCALE_FOR[chord.sym] || MAJ).filter((n) => has(SCALES[n][0]));
-    if (!names.length) names = Object.keys(SCALES).filter((n) => has(SCALES[n][0])).slice(0, 3);   // nothing on the usual list fits: whatever else does
-    const keys = []; for (let k = 0; k < 12; k++) if (pcs.every((pc) => SCALES["Ionian"][0].some((x) => mod(k + x) === pc))) keys.push(KEY_NAMES[k]);
-    return { rows: names.slice(0, 4).map((n) => ({ name: chord.rootName + " " + n, notes: spellScale(n) })), keys };
+  const SCALE_ORDER = ["Ionian", "Aeolian", "Dorian", "Mixolydian", "Lydian", "Phrygian", "Locrian", "Melodic minor", "Harmonic minor", "Lydian dominant", "Altered", "Whole tone", "Phrygian dominant", "Lydian augmented", "Half-whole diminished", "Whole-half diminished", "Locrian ♮2"];
+  const scaleTones = (name) => SCALES[name][0].map((x, i) => [x, parseInt(SCALES[name][1].split(" ")[i].replace(/[^0-9]/g, ""), 10) - 1]);
+  const hasAll = (rootPc, name, pcs) => pcs.every((pc) => SCALES[name][0].some((x) => mod(rootPc + x) === pc));
+  function scaleRow(rootPc, name, prefer) {
+    const sp = spellChord(rootPc, scaleTones(name), prefer);
+    return { name: noteText(sp.root.li, sp.root.acc) + " " + name, notes: SCALES[name][0].map((x) => { const e = sp.map[mod(rootPc + x)]; return noteText(e.li, e.acc); }).join("  ") };
+  }
+  const majorKeysFor = (pcs) => KEY_NAMES.filter((n, k) => pcs.every((pc) => SCALES["Ionian"][0].some((x) => mod(k + x) === pc)));
+  function scalesFor(chord, pcs) {   // scales on the chord's root that contain every note played
+    let names = (SCALE_FOR[chord.sym] || MAJ).filter((n) => hasAll(chord.rootPc, n, pcs));
+    if (!names.length) names = SCALE_ORDER.filter((n) => hasAll(chord.rootPc, n, pcs));   // nothing on the usual list fits: whatever else does
+    return { head: "Scales that fit", rows: names.slice(0, 4).map((n) => scaleRow(chord.rootPc, n, chord.rootSp)), keys: majorKeysFor(pcs) };
+  }
+  function fitScales(pcs, bassPc) {   // for notes that are not a chord: every scale, on any root, that contains them all (roots in the notes first, the bass first of all)
+    const found = [];
+    for (let r = 0; r < 12; r++) SCALE_ORDER.forEach((n, i) => { if (hasAll(r, n, pcs)) found.push({ r, n, rank: (r === bassPc ? 0 : pcs.includes(r) ? 100 : 200) + i }); });
+    found.sort((x, y) => x.rank - y.rank);
+    const seen = new Set(), distinct = found.filter((x) => { const k = x.n + ":" + SCALES[x.n][0].map((t) => mod(x.r + t)).sort((p, q) => p - q).join(); if (seen.has(k)) return false; seen.add(k); return true; });   // the same scale from another of its notes is not listed again
+    return { head: "Scales that contain these notes", rows: distinct.slice(0, 5).map((x) => scaleRow(x.r, x.n)), keys: majorKeysFor(pcs) };
   }
 
   // spelling for the staff: the best chord's own notes, or plain flats/sharps when nothing matched
@@ -339,19 +403,24 @@ main { max-width: 1300px; margin: 0 auto; padding: 14px 16px 30px; }
   function describe(a) {
     if (a.kind === "note") { const s = spellMidi(a.midis[0], a); return { name: s.name + s.octave, sub: "One note", notes: "", alt: "" }; }
     if (a.kind === "interval") return { name: a.interval, sub: a.power ? a.power + " (a power chord, root and fifth)" : "Two notes", notes: noteList(a.midis, a), alt: "" };
-    if (a.kind === "unknown") return { name: "Not a chord I know", sub: a.pcs.length + " different notes", notes: noteList(a.midis, a), alt: "" };
+    const gaps = a.midis.slice(1).map((m, i) => m - a.midis[i]);
+    if (a.kind === "cluster") return { name: "Cluster", sub: a.pcs.length + " neighbouring notes, " + (a.midis[a.midis.length - 1] - a.midis[0]) + " semitones from lowest to highest", notes: noteList(a.midis, a),
+      alt: "Steps between the notes: " + gaps.join(" · ") + " semitones" };
+    if (a.kind === "unknown") return { name: a.wholeTone ? "Whole-tone set" : "Not a standard chord", sub: a.wholeTone ? a.pcs.length + " notes of one whole-tone scale" : a.pcs.length + " different notes, no usual chord name fits", notes: noteList(a.midis, a),
+      alt: "Above the bass note: " + a.stack.join(" · ") };
     const best = a.chords[0], alts = a.chords.slice(1, 4);
-    return { name: best.label, sub: best.name + (best.sym === "" ? " triad" : "") + " · " + best.inv, notes: noteList(a.midis, a),
-      alt: alts.length ? "Also: " + alts.map((x) => "<b>" + x.label + "</b> (" + x.name.toLowerCase() + ")").join(" · ") : "" };
+    const what = best.type === "add" ? best.name + " with an added " + best.degName : best.type === "upper" ? best.name + " chord" : best.name + (best.sym === "" ? " triad" : "");
+    return { name: best.label, sub: what + " · " + best.inv + (best.type !== "exact" ? " · not a standard chord name, the closest reading" : ""), notes: noteList(a.midis, a),
+      alt: alts.length ? "Also: " + alts.map((x) => "<b>" + x.label + "</b> (" + x.name.toLowerCase() + (x.type === "add" ? " + " + x.degName : "") + ")").join(" · ") : "" };
   }
   function show(a, live) {
     const d = describe(a);
     $("a-state").textContent = live ? "Playing now" : "Last played";
     $("a-name").textContent = d.name; $("a-sub").textContent = d.sub; $("a-notes").textContent = d.notes; $("a-alt").innerHTML = d.alt;
-    const box = $("a-scales"); box.hidden = a.kind !== "chord";
-    if (a.kind === "chord") {
-      const sc = scalesFor(a.chords[0], a.pcs);
-      box.innerHTML = '<div class="s-head">Scales that fit</div>' + sc.rows.map((r) => `<div class="s-row"><span class="s-name">${r.name}</span><span class="s-notes">${r.notes}</span></div>`).join("") +
+    const box = $("a-scales"); box.hidden = !(a.kind === "chord" || a.kind === "cluster" || a.kind === "unknown");
+    if (!box.hidden) {
+      const sc = a.kind === "chord" ? scalesFor(a.chords[0], a.pcs) : fitScales(a.pcs, a.bassPc);
+      box.innerHTML = '<div class="s-head">' + sc.head + '</div>' + sc.rows.map((r) => `<div class="s-row"><span class="s-name">${r.name}</span><span class="s-notes">${r.notes}</span></div>`).join("") +
         (sc.keys.length ? `<div class="s-keys">Every note is in the major key${sc.keys.length > 1 ? "s" : ""} of ${sc.keys.join(" · ")}</div>` : "");
     }
     $("analysis").classList.toggle("released", !live); $("staff").classList.toggle("released", !live);
