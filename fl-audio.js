@@ -4,7 +4,7 @@
 (function () {
   var KEY = "fretline-audio", TONES = ["sine", "triangle", "square"];
   // the synth: attack (ms), decay (s), sustain (% of the note's level) and release (s); the reverb: dry/wet (%) and decay time (s)
-  var DEFAULTS = { volume: 100, muted: false, tone: "triangle", eq: true, attack: 15, decay: 1, sustain: 0, release: 0.25, reverbMix: 0, reverbDecay: 1.8 };
+  var DEFAULTS = { volume: 70, muted: false, tone: "triangle", eq: true, attack: 25, decay: 1, sustain: 25, release: 0.25, reverbMix: 10, reverbDecay: 1.5 };
   var RANGE = { attack: [2, 400], decay: [0.05, 4], sustain: [0, 100], release: [0.02, 3], reverbMix: [0, 100], reverbDecay: [0.3, 6] };
   var MULTIPLIER = 4;   // the volume slider runs 0-100%, and 100% is four times the raw level (notes are scheduled at low levels)
   var listeners = [], memory = null;
@@ -246,7 +246,7 @@
     toneBtns.forEach(function (b) { b.addEventListener("click", function () { set({ tone: b.getAttribute("data-tone") }); }); });
     eqBox.addEventListener("change", function () { set({ eq: eqBox.checked }); });
     SLIDERS.forEach(function (d) { panel.querySelector("#fl-pb-" + d[0]).addEventListener("input", function (e) { var p = {}; p[d[0]] = +e.target.value; set(p); }); });
-    panel.querySelector("#fl-pb-reset").addEventListener("click", function () { set({ attack: DEFAULTS.attack, decay: DEFAULTS.decay, sustain: DEFAULTS.sustain, release: DEFAULTS.release, reverbMix: DEFAULTS.reverbMix, reverbDecay: DEFAULTS.reverbDecay }); });
+    panel.querySelector("#fl-pb-reset").addEventListener("click", function () { set({ volume: DEFAULTS.volume, tone: DEFAULTS.tone, eq: DEFAULTS.eq, attack: DEFAULTS.attack, decay: DEFAULTS.decay, sustain: DEFAULTS.sustain, release: DEFAULTS.release, reverbMix: DEFAULTS.reverbMix, reverbDecay: DEFAULTS.reverbDecay, muted: false }); });
 
     function place() {   // line the panel's right edge up with the button's (on phones the CSS pins it to the header's sides instead)
       var h = header.getBoundingClientRect(), b = btn.getBoundingClientRect();
