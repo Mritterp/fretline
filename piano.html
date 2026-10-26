@@ -55,6 +55,19 @@ main { max-width: 1300px; margin: 0 auto; padding: 14px 16px 30px; }
 .a-scales .s-notes { color: var(--moss); letter-spacing: 0.04em; }
 .a-scales .s-keys { margin-top: 6px; font-size: 12px; color: var(--moss); }
 .analysis.released .a-scales { opacity: 0.5; }
+.center-pick { display: flex; align-items: center; gap: 6px 8px; }
+.center-pick .c-label { font-size: 10px; letter-spacing: 0.2em; text-transform: uppercase; color: var(--sage); }
+.a-head { display: grid; grid-template-columns: minmax(0, 1fr); gap: 8px 20px; align-items: start; }
+.a-head.has-rel { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+.a-head.has-rel .a-name { font-size: clamp(30px, 4.6vw, 50px); }
+.a-rel { border-left: 1px solid var(--wheat); padding-left: 20px; min-height: 60px; }
+.a-rel .r-label { font-size: 10px; letter-spacing: 0.2em; text-transform: uppercase; color: var(--sage); }
+.a-rel .r-big { font-family: var(--font-display); font-size: clamp(30px, 4.6vw, 50px); line-height: 1.05; color: var(--bark); word-break: break-word; }
+.a-rel .r-small { margin-top: 4px; font-size: 13px; line-height: 1.55; color: var(--moss); }
+.a-rel .r-out { color: #a6433d; }
+.analysis.released .a-rel { opacity: 0.5; }
+.history .chip .rn { font-size: 12px; color: var(--moss); margin-left: 6px; }
+@media (max-width: 560px) { .a-head.has-rel { grid-template-columns: minmax(0, 1fr); } .a-rel { border-left: 0; padding-left: 0; border-top: 1px solid var(--wheat); padding-top: 8px; } }
 .kbd { overflow-x: auto; }
 .kbd svg { display: block; width: 100%; min-width: 760px; height: auto; touch-action: none; user-select: none; }
 .kbd .key { cursor: pointer; }
@@ -86,6 +99,11 @@ main { max-width: 1300px; margin: 0 auto; padding: 14px 16px 30px; }
     <button type="button" class="btn" id="midi-connect">Connect MIDI piano</button>
     <select id="midi-input" aria-label="MIDI input" hidden></select>
     <span id="midi-status">Plug in a MIDI piano and press Connect, or play with the on-screen keys or your computer keyboard.</span>
+    <div class="center-pick">
+      <span class="c-label">Tonal center</span>
+      <select id="center-note" aria-label="Tonal center note"></select>
+      <select id="center-scale" aria-label="Tonal center scale"></select>
+    </div>
     <button type="button" class="btn ghost" id="stop-all" style="margin-left:auto">Stop all notes</button>
   </div>
 
@@ -93,7 +111,14 @@ main { max-width: 1300px; margin: 0 auto; padding: 14px 16px 30px; }
     <div class="card"><div class="staff" id="staff" aria-label="The notes you are playing, on a grand staff"></div></div>
     <div class="card analysis" id="analysis" aria-live="polite">
       <div class="a-state" id="a-state">Play some notes</div>
-      <div class="a-name" id="a-name">—</div>
+      <div class="a-head" id="a-head">
+        <div class="a-name" id="a-name">—</div>
+        <div class="a-rel" id="a-rel" hidden>
+          <div class="r-label">Relation to the tonal center</div>
+          <div class="r-big" id="a-rel-big"></div>
+          <div class="r-small" id="a-rel-small"></div>
+        </div>
+      </div>
       <div class="a-sub" id="a-sub"></div>
       <div class="a-notes" id="a-notes"></div>
       <div class="a-alt" id="a-alt"></div>
@@ -201,7 +226,7 @@ main { max-width: 1300px; margin: 0 auto; padding: 14px 16px 30px; }
     const body = rootName + sym + (type === "add" ? (tones.length >= 4 ? "(" + degName + ")" : "(add" + degName + ")") : "");
     const slash = type === "upper" || bassPc !== rootPc ? "/" + bassTxt : "";
     const penalty = type === "exact" ? (RARE.has(sym) ? 300 : 0) : type === "add" ? 200 : 100;   // an unusual name loses to a plainer reading with an added note
-    return { type, score: penalty + (type === "upper" || bassPc === rootPc ? 0 : 50) + idx, name, sym, rootPc, rootName, rootSp: sp.root, spell: map, inv, degName, label: body + slash, extra };
+    return { type, score: penalty + (type === "upper" || bassPc === rootPc ? 0 : 50) + idx, name, sym, tones, rootPc, rootName, rootSp: sp.root, spell: map, inv, degName, label: body + slash, extra };
   }
 
   // what the set of notes sounding right now is
@@ -402,6 +427,46 @@ main { max-width: 1300px; margin: 0 auto; padding: 14px 16px 30px; }
     try { const bb = svgEl.getBBox(); if (bb.width > 0) svgEl.setAttribute("viewBox", [bb.x - 6, 0, bb.width + 12, H].join(" ")); } catch (e) {}
   }
 
+  // ================= the tonal center =================
+  // Numerals count from the tonal center against the MAJOR scale (♭III, ♭VI, ♭VII in a minor key), the usual pop / jazz reading. Whether a note is "in the scale" follows the scale that was picked.
+  const DEGREE = ["1", "♭2", "2", "♭3", "3", "4", "♯4", "5", "♭6", "6", "♭7", "7"];
+  const ROMAN = ["I", "♭II", "II", "♭III", "III", "IV", "♯IV", "V", "♭VI", "VI", "♭VII", "VII"];
+  const CENTER_SCALES = [["Ionian", "Major (Ionian)", "major"], ["Aeolian", "Natural minor (Aeolian)", "natural minor"], ["Harmonic minor", "Harmonic minor", "harmonic minor"], ["Melodic minor", "Melodic minor", "melodic minor"],
+    ["Dorian", "Dorian", "Dorian"], ["Phrygian", "Phrygian", "Phrygian"], ["Lydian", "Lydian", "Lydian"], ["Mixolydian", "Mixolydian", "Mixolydian"], ["Locrian", "Locrian", "Locrian"]];
+  let center = { pc: null, scale: "Ionian" };
+  try { const c = JSON.parse(localStorage.getItem("fretline-piano-center")); if (c && (c.pc === null || (Number.isInteger(c.pc) && c.pc >= 0 && c.pc < 12)) && SCALES[c.scale]) center = { pc: c.pc, scale: c.scale }; } catch (e) {}
+  const saveCenter = () => { try { localStorage.setItem("fretline-piano-center", JSON.stringify(center)); } catch (e) {} };
+  const inCenter = (pc) => SCALES[center.scale][0].includes(mod(pc - center.pc));
+  const centerName = () => KEY_NAMES[center.pc] + " " + CENTER_SCALES.find((x) => x[0] === center.scale)[2];
+  function numeral(c) {   // the chord's root against the tonal center: case from its third (lower case for a minor third, so dim / half-diminished too), then the kind of chord
+    const base = ROMAN[mod(c.rootPc - center.pc)], minor = c.tones.some(([x]) => x === 3), q = c.sym;
+    const tail = q === "m7♭5" ? "ø7" : q.startsWith("dim") ? "°" + q.slice(3) : q === "aug" ? "+" : q.startsWith("maj") ? "Δ" + q.slice(3) : q[0] === "m" ? q.slice(1) : q;
+    return (minor ? base.toLowerCase() : base) + tail;
+  }
+  function secondary(c) {   // a dominant-type chord whose root is a fifth above a note of the scale other than the tonic: V7/V, V7/vi and so on
+    if (!/^(7|9|11|13)(?!sus)/.test(c.sym)) return "";
+    const o = mod(c.rootPc + 5 - center.pc), S = SCALES[center.scale][0];
+    if (o === 0 || !S.includes(o)) return "";
+    const has = (x) => S.includes(mod(o + x)), minor = has(3) && !has(4), dim = minor && has(6) && !has(7);
+    return "V" + numeral(c).replace(/^[♭♯]?[IViv]+/, "") + "/" + (minor ? ROMAN[o].toLowerCase() : ROMAN[o]) + (dim ? "°" : "");
+  }
+  function pcSpelled(pc, a) { const s = a.kind === "chord" && a.chords[0].spell[pc], [li, acc] = s ? [s.li, s.acc] : FALLBACK[pc]; return noteText(li, acc); }
+  function relation(a) {   // {big, small} for the right half of the readout, or null when no tonal center is set
+    if (center.pc === null) return null;
+    const key = centerName(), deg = (pc) => DEGREE[mod(pc - center.pc)], out = a.pcs.filter((p) => !inCenter(p)), lines = [];
+    const fit = out.length ? '<span class="r-out">Outside ' + key + ": " + out.map((p) => pcSpelled(p, a)).join(", ") + "</span>" : "Every note is in " + key;
+    let big = "";
+    if (a.kind === "note") { big = deg(a.pcs[0]); lines.push("Degree " + big + " of " + key); lines.push(fit); }
+    else if (a.kind === "interval") { big = deg(a.midis[0]) + " · " + deg(a.midis[a.midis.length - 1]); lines.push("Degrees of " + key); lines.push(fit); }
+    else if (a.kind === "chord") {
+      const best = a.chords[0]; big = numeral(best);
+      lines.push("Root is degree " + deg(best.rootPc) + " of " + key); lines.push(fit);
+      const sd = secondary(best); if (sd) lines.push("Secondary dominant: " + sd);
+      if (a.bassPc !== best.rootPc) lines.push("Bass note is degree " + deg(a.bassPc));
+    } else { lines.push("Bass note is degree " + deg(a.bassPc) + " of " + key); lines.push(fit); }
+    return { big, small: lines.join("<br>") };
+  }
+
   // ================= the readout =================
   let historyList = [];
   const noteList = (midis, a) => midis.map((m) => { const s = spellMidi(m, a); return s.name + s.octave; }).join("  ");
@@ -416,7 +481,7 @@ main { max-width: 1300px; margin: 0 auto; padding: 14px 16px 30px; }
     const best = a.chords[0], alts = a.chords.slice(1, 4);
     const what = best.type === "add" ? best.name + " with an added " + best.degName : best.type === "upper" ? best.name + " chord" : best.name + (best.sym === "" ? " triad" : "");
     return { name: best.label, sub: what + " · " + best.inv + (best.type !== "exact" ? " · not a standard chord name, the closest reading" : ""), notes: noteList(a.midis, a),
-      alt: alts.length ? "Also: " + alts.map((x) => "<b>" + x.label + "</b> (" + x.name.toLowerCase() + (x.type === "add" ? " + " + x.degName : "") + ")").join(" · ") : "" };
+      alt: alts.length ? "Also: " + alts.map((x) => "<b>" + x.label + "</b> (" + x.name.toLowerCase() + (x.type === "add" ? " + " + x.degName : "") + (center.pc === null ? "" : " · " + numeral(x)) + ")").join(" · ") : "" };
   }
   function show(a, live) {
     const d = describe(a);
@@ -428,6 +493,8 @@ main { max-width: 1300px; margin: 0 auto; padding: 14px 16px 30px; }
       box.innerHTML = '<div class="s-head">' + sc.head + '</div>' + sc.rows.map((r) => `<div class="s-row"><span class="s-name">${r.name}</span><span class="s-notes">${r.notes}</span></div>`).join("") +
         (sc.keys.length ? `<div class="s-keys">Every note is in the major key${sc.keys.length > 1 ? "s" : ""} of ${sc.keys.join(" · ")}</div>` : "");
     }
+    const rel = relation(a); $("a-rel").hidden = !rel; $("a-head").classList.toggle("has-rel", !!rel);
+    if (rel) { $("a-rel-big").textContent = rel.big; $("a-rel-big").hidden = !rel.big; $("a-rel-small").innerHTML = rel.small; }
     $("analysis").classList.toggle("released", !live); $("staff").classList.toggle("released", !live);
   }
   let queued = false;
@@ -440,15 +507,25 @@ main { max-width: 1300px; margin: 0 auto; padding: 14px 16px 30px; }
       const a = snap.a; show(a, live); renderStaff(snap.midis, a);
       if (pressedNow && a.kind === "chord" && a.midis.length >= 3) {   // a chord the moment it is played (not as notes are let go)
         const label = a.chords[0].label;
-        if (!historyList.length || historyList[historyList.length - 1] !== label) { historyList.push(label); if (historyList.length > 12) historyList.shift(); drawHistory(); }
+        if (!historyList.length || historyList[historyList.length - 1].label !== label) { historyList.push({ label, c: a.chords[0] }); if (historyList.length > 12) historyList.shift(); drawHistory(); }
       }
-    } else { $("a-scales").hidden = true; $("a-state").textContent = "Play some notes"; $("a-name").textContent = "—"; $("a-sub").textContent = ""; $("a-notes").textContent = ""; $("a-alt").innerHTML = ""; renderStaff([], null); }
+    } else { $("a-rel").hidden = true; $("a-head").classList.remove("has-rel"); $("a-scales").hidden = true; $("a-state").textContent = "Play some notes"; $("a-name").textContent = "—"; $("a-sub").textContent = ""; $("a-notes").textContent = ""; $("a-alt").innerHTML = ""; renderStaff([], null); }
     pressedNow = false;
   }
   function drawHistory() {
     const h = $("history"); h.hidden = !historyList.length;
-    h.innerHTML = '<span class="h-label">Chords you played</span>' + historyList.map((c) => `<span class="chip">${c}</span>`).join("");
+    h.innerHTML = '<span class="h-label">Chords you played</span>' + historyList.map((h) => `<span class="chip">${h.label}${center.pc === null ? "" : `<span class="rn">${numeral(h.c)}</span>`}</span>`).join("");
   }
+
+  // ================= tonal center pickers =================
+  (function () {
+    const n = $("center-note"), sc = $("center-scale");
+    n.innerHTML = '<option value="">Off</option>' + KEY_NAMES.map((k, i) => '<option value="' + i + '">' + k + "</option>").join("");
+    sc.innerHTML = CENTER_SCALES.map((x) => '<option value="' + x[0] + '">' + x[1] + "</option>").join("");
+    const sync = () => { n.value = center.pc === null ? "" : String(center.pc); sc.value = center.scale; sc.disabled = center.pc === null; };
+    const apply = () => { center = { pc: n.value === "" ? null : +n.value, scale: sc.value }; saveCenter(); sync(); n.blur(); sc.blur(); drawHistory(); changed(); };
+    n.addEventListener("change", apply); sc.addEventListener("change", apply); sync();
+  })();
 
   // ================= playing: on-screen keys, computer keys, MIDI =================
   $("kbd").addEventListener("pointerdown", (e) => {
