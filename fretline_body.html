@@ -484,7 +484,7 @@ button.mode-chip.active:hover { color: var(--parchment); }
 .flash-head span:nth-child(2) { font-size: 9px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--sage); margin-right: auto; }
 .flash-x { font: inherit; font-size: 22px; line-height: 1; padding: 0 4px; border: 0; background: transparent; color: var(--bark); cursor: pointer; }
 .flash-staff { width: min(270px, 100%); margin: 10px auto 2px; background: #fff; border: 1px solid var(--wheat); }
-.flash-staff svg { display: block; width: 100%; height: auto; }
+.flash-staff svg { display: block; width: 100% !important; height: auto !important; }   /* the renderer writes pixel sizes inline; the viewBox does the scaling */
 .flash-answer { min-height: 270px; text-align: center; padding-top: 8px; }
 .flash-hint { padding-top: 105px; font-size: 10px; letter-spacing: 0.2em; text-transform: uppercase; color: var(--sage); }
 .flash-name { font-family: var(--font-display); font-size: 38px; line-height: 1.05; color: var(--bark); }
@@ -493,6 +493,20 @@ button.mode-chip.active:hover { color: var(--parchment); }
 .flash-board svg { display: block; width: 100%; max-width: 330px; height: auto; margin: 0 auto; }
 .flash-bar { display: flex; gap: 8px; margin: 10px 0 12px; }
 .flash-bar .btn { flex: 1; padding: 12px 8px; }
+/* phones: the card fills the screen, with a big staff and neck and a tall button at the bottom */
+@media (max-width: 600px) {
+  .flash { padding: 6px; }
+  .flash-card { width: 100%; height: 100%; display: flex; flex-direction: column; padding: 14px 14px 14px; }
+  .flash-staff { width: 100% !important; margin-top: 14px; }   /* !important: the renderer writes an inline pixel width on this box */
+  .flash-answer { flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; justify-content: center; padding-top: 4px; }
+  .flash-hint { padding-top: 0; font-size: 12px; }
+  .flash-name { font-size: 54px; }
+  .flash-pos { font-size: 14px; }
+  .flash-board { margin-top: 14px; }
+  .flash-board svg { max-width: none; }
+  .flash-bar { margin: 12px 0 0; }
+  .flash-bar .btn { padding: 20px 8px; font-size: 12px; }
+}
 </style>
 
 <div class="app-shell">
