@@ -46,24 +46,38 @@
   var EQ_TRIM = Math.pow(10, -6 / 20);
 
   // per AudioContext: volume gain -> EQ trim -> EQ filters -> limiter (squashes peaks above about -3 dBFS instead of clipping)
-  var outputs = new WeakMap();
+  // Two inputs share that limiter: out() goes through the reverb as well; dryOut() is the same volume, mute and EQ with no reverb (the metronome).
+  var outputs = new WeakMap(), dryOutputs = new WeakMap(), internals = new WeakMap();
   function out(ctx) {
     var existing = outputs.get(ctx);
     if (existing) return existing;
-    var gain = ctx.createGain(), trim = ctx.createGain(), filters = [];
-    var limiter = ctx.createDynamicsCompressor();
+    var limiter = ctx.createDynamicsCompressor(), chains = [];
     limiter.threshold.value = -3; limiter.knee.value = 0; limiter.ratio.value = 20; limiter.attack.value = 0.003; limiter.release.value = 0.1;
-    gain.connect(trim);
-    var node = trim;
-    EQ.forEach(function (b) {
-      var f = ctx.createBiquadFilter();
-      f.type = b.type; f.frequency.value = b.frequency; if (b.Q) f.Q.value = b.Q;
-      node.connect(f); node = f; filters.push(f);
-    });
+    limiter.connect(ctx.destination);
+    // volume gain -> EQ trim -> EQ filters; turning the EQ off sets every filter flat (0 dB) and the trim to unity, so already-sounding notes follow the switch too
+    function applyChain(c, v) {
+      var t0 = ctx.currentTime; c.gain.gain.cancelScheduledValues(t0); c.gain.gain.setTargetAtTime(v.muted ? 0 : v.volume / 100 * MULTIPLIER, t0, 0.01);   // eased, so muting and un-muting do not click
+      c.trim.gain.value = v.eq ? EQ_TRIM : 1;
+      c.filters.forEach(function (f, i) { f.gain.value = v.eq ? EQ[i].gain : 0; });
+    }
+    function chain() {
+      var gain = ctx.createGain(), trim = ctx.createGain(), filters = [];
+      gain.connect(trim);
+      var node = trim;
+      EQ.forEach(function (b) {
+        var f = ctx.createBiquadFilter();
+        f.type = b.type; f.frequency.value = b.frequency; if (b.Q) f.Q.value = b.Q;
+        node.connect(f); node = f; filters.push(f);
+      });
+      var c = { gain: gain, trim: trim, filters: filters, node: node };
+      chains.push(c); applyChain(c, get());
+      return c;
+    }
+    var main = chain(), gain = main.gain, node = main.node;
     // reverb: the signal goes straight to the limiter (dry) and, when the reverb is on, also through a convolver (wet); the mix is equal-power.
     // The convolver is only built, and fed, while the dry/wet is above zero, so an unused reverb costs nothing.
     var dry = ctx.createGain(), wet = ctx.createGain(), conv = null, fed = false, irSeconds = 0, irTimer = null;
-    node.connect(dry); dry.connect(limiter); wet.connect(limiter); limiter.connect(ctx.destination);
+    node.connect(dry); dry.connect(limiter); wet.connect(limiter);
     function swapIR(seconds) {   // a new tail: fade the wet signal out, swap the impulse response, fade back in
       irSeconds = seconds;
       clearTimeout(irTimer);
@@ -73,11 +87,8 @@
         setTimeout(function () { conv.buffer = makeIR(ctx, irSeconds); var t2 = ctx.currentTime; wet.gain.cancelScheduledValues(t2); wet.gain.setTargetAtTime(Math.sin(get().reverbMix / 100 * Math.PI / 2), t2, 0.03); }, 60);
       }, 250);
     }
-    // turning the EQ off sets every filter flat (0 dB) and the trim to unity, so already-sounding notes follow the switch too
     function apply(v) {
-      var t0 = ctx.currentTime; gain.gain.cancelScheduledValues(t0); gain.gain.setTargetAtTime(v.muted ? 0 : v.volume / 100 * MULTIPLIER, t0, 0.01);   // eased, so muting and un-muting do not click
-      trim.gain.value = v.eq ? EQ_TRIM : 1;
-      filters.forEach(function (f, i) { f.gain.value = v.eq ? EQ[i].gain : 0; });
+      chains.forEach(function (c) { applyChain(c, v); });
       var mix = v.reverbMix / 100;
       dry.gain.value = Math.cos(mix * Math.PI / 2);
       if (mix > 0 && !conv) { conv = ctx.createConvolver(); conv.buffer = makeIR(ctx, v.reverbDecay); irSeconds = v.reverbDecay; conv.connect(wet); }
@@ -88,8 +99,19 @@
     }
     apply(get());
     listeners.push(apply);
+    internals.set(ctx, { limiter: limiter, chain: chain, apply: apply });
     outputs.set(ctx, gain);
     return gain;
+  }
+  // the same volume, mute, EQ and limiter as out(), but never through the reverb: for sounds that must stay dry (the metronome)
+  function dryOut(ctx) {
+    var existing = dryOutputs.get(ctx);
+    if (existing) return existing;
+    out(ctx);
+    var i = internals.get(ctx), c = i.chain();
+    c.node.connect(i.limiter); i.apply(get());
+    dryOutputs.set(ctx, c.gain);
+    return c.gain;
   }
 
   // A made-up room: stereo noise that dies away evenly (down 60 dB after `seconds`) and gets darker as it goes, like a real space. About 1.4 MB for
@@ -132,7 +154,7 @@
     };
   }
 
-  window.FretlineAudio = { note: note, defaults: DEFAULTS, range: RANGE, get: get, set: set, out: out, onChange: function (fn) { listeners.push(fn); }, multiplier: MULTIPLIER, eq: EQ };
+  window.FretlineAudio = { note: note, defaults: DEFAULTS, range: RANGE, get: get, set: set, out: out, dryOut: dryOut, onChange: function (fn) { listeners.push(fn); }, multiplier: MULTIPLIER, eq: EQ };
 
   // ---------- the Playback button: volume, tone and the EQ switch, at the end of every page's tab row ----------
   // Built here so every page gets the same panel; each page's own .site-tab styling makes the button match its tabs.

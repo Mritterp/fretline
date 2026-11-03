@@ -2519,6 +2519,7 @@ button.mode-chip.active:hover { color: var(--parchment); }
   // already-scheduled note and metronome click simply waits — resuming
   // continues them exactly where they left off, with no rescheduling needed.
   let audioCtx = null;
+  let dryGainNode = null; // the same volume, mute and EQ with no reverb: the metronome goes here, so the reverb never touches it
   let masterGainNode = null; // every oscillator routes through this instead of straight to ctx.destination, so the volume slider affects already-sounding notes too, not just future ones
   let playbackState = "stopped";
   let allOscNodes = []; // every oscillator (notes AND metronome) for the current run, so Stop can hard-stop all of them
@@ -2556,6 +2557,7 @@ button.mode-chip.active:hover { color: var(--parchment); }
         }
       };
       masterGainNode = FretlineAudio.out(audioCtx);   // the shared volume (and limiter), the same on every page
+      dryGainNode = FretlineAudio.dryOut(audioCtx);
     }
     return audioCtx;
   }
@@ -2691,7 +2693,7 @@ button.mode-chip.active:hover { color: var(--parchment); }
     const src = ctx.createBufferSource();
     src.buffer = buildMetronomeLoop(ctx, parseInt(tempoRange.value, 10), TIME_BEATS[timeSelect.value]);
     src.loop = true;
-    src.connect(masterGainNode);
+    src.connect(dryGainNode);
     src.start(when);
     return src;
   }
@@ -2774,7 +2776,7 @@ button.mode-chip.active:hover { color: var(--parchment); }
         gain.gain.setValueAtTime(0.0001, t);
         gain.gain.linearRampToValueAtTime(0.13, t + 0.002);
         gain.gain.exponentialRampToValueAtTime(0.0001, t + 0.05);
-        osc.connect(gain).connect(masterGainNode);
+        osc.connect(gain).connect(dryGainNode);
         osc.start(t);
         osc.stop(t + 0.06);
         allOscNodes.push(osc);
