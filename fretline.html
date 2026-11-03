@@ -473,6 +473,27 @@ button.mode-chip.active:hover { color: var(--parchment); }
 @media (prefers-reduced-motion: reduce) {
   * { transition: none !important; }
 }
+
+/* ---- flash cards: a pop-up for memorising the notes on frets 0-3 ---- */
+.flash-open { order: 2; }
+.flash { position: fixed; inset: 0; z-index: 200; display: flex; align-items: center; justify-content: center; padding: 12px; background: rgba(61, 58, 48, 0.55); }
+.flash[hidden] { display: none; }
+.flash-card { width: min(440px, 100%); max-height: 100%; overflow-y: auto; background: var(--parchment); border: 1px solid var(--bark); padding: 16px 20px 18px; outline: none; cursor: pointer; user-select: none; -webkit-tap-highlight-color: transparent; }
+.flash-head { display: flex; align-items: baseline; gap: 12px; border-bottom: 1px solid var(--wheat); padding-bottom: 8px; }
+.flash-head span:first-child { font-size: 9px; letter-spacing: 0.2em; text-transform: uppercase; color: var(--bark); }
+.flash-head span:nth-child(2) { font-size: 9px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--sage); margin-right: auto; }
+.flash-x { font: inherit; font-size: 22px; line-height: 1; padding: 0 4px; border: 0; background: transparent; color: var(--bark); cursor: pointer; }
+.flash-staff { margin: 10px 0 2px; background: #fff; border: 1px solid var(--wheat); }
+.flash-staff svg { display: block; width: 100%; max-width: 270px; height: auto; margin: 0 auto; }
+.flash-answer { min-height: 270px; text-align: center; padding-top: 8px; }
+.flash-hint { padding-top: 105px; font-size: 10px; letter-spacing: 0.2em; text-transform: uppercase; color: var(--sage); }
+.flash-name { font-family: var(--font-display); font-size: 38px; line-height: 1.05; color: var(--bark); }
+.flash-pos { margin-top: 4px; font-size: 12px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--moss); }
+.flash-board { margin-top: 6px; }
+.flash-board svg { display: block; width: 100%; max-width: 330px; height: auto; margin: 0 auto; }
+.flash-bar { display: flex; gap: 8px; margin: 10px 0 12px; }
+.flash-bar .btn { flex: 1; padding: 12px 8px; }
+.flash-card .hint { margin: 8px 0 0; }
 </style>
 
 <div class="app-shell">
@@ -640,6 +661,7 @@ button.mode-chip.active:hover { color: var(--parchment); }
         <strong id="session-count">0</strong>
       </div>
       </div><!-- #panel-body -->
+      <button type="button" class="btn btn-outline flash-open" id="flash-open">Flash cards: guitar notes</button>
     </section>
 
     <section class="stage" aria-label="Notation">
@@ -713,6 +735,28 @@ button.mode-chip.active:hover { color: var(--parchment); }
       </div>
     </section>
   </main>
+</div>
+
+<div class="flash" id="flash" hidden>
+  <div class="flash-card" id="flash-card" role="dialog" aria-modal="true" aria-label="Flash cards" tabindex="-1">
+    <div class="flash-head"><span>Flash cards</span><span id="flash-count"></span><button type="button" class="flash-x" id="flash-close" aria-label="Close">&times;</button></div>
+    <div class="flash-staff" id="flash-staff"></div>
+    <div class="flash-answer">
+      <div class="flash-hint" id="flash-hint">Tap for the note name and where to play it</div>
+      <div id="flash-reveal" hidden>
+        <div class="flash-name" id="flash-name"></div>
+        <div class="flash-pos" id="flash-pos"></div>
+        <div class="flash-board" id="flash-board"></div>
+      </div>
+    </div>
+    <div class="flash-bar">
+      <button type="button" class="btn btn-outline" id="flash-prev">Back</button>
+      <button type="button" class="btn btn-outline" id="flash-hear">Hear it</button>
+      <button type="button" class="btn btn-primary" id="flash-next">Show answer</button>
+    </div>
+    <label class="checkbox-row"><input type="checkbox" id="flash-acc" checked> Include sharps and flats</label>
+    <p class="hint">Guitar clef, open strings through the 3rd fret. Tap the card (or press Space) to show the answer, then again for the next note. Esc closes.</p>
+  </div>
 </div>
 
 <script>
@@ -3236,6 +3280,111 @@ button.mode-chip.active:hover { color: var(--parchment); }
       cycleChordPosition(e.key === "ArrowUp" ? 1 : -1);
     }
   });
+
+  // ---------- flash cards: every note on frets 0-3 of the six strings ----------
+  // Each card is one note on the guitar staff (treble clef, written an octave above where it sounds, as in the main notation); a tap shows its name and
+  // where it lives on the neck, the next tap moves on. The cards are dealt in a shuffled order, every one once before any repeats.
+  const flash = (function () {
+    const $f = (id) => document.getElementById(id);
+    const root = $f("flash"), card = $f("flash-card"), accBox = $f("flash-acc"), nextBtn = $f("flash-next");
+    const STRING_LABEL = ["6th string (low E)", "5th string (A)", "4th string (D)", "3rd string (G)", "2nd string (B)", "1st string (high e)"];
+    // pitch class -> how it is written on the staff, and the other name for the same key
+    const SPELL = { 0: ["c", "", "C", ""], 1: ["d", "b", "D♭", "C♯"], 2: ["d", "", "D", ""], 3: ["e", "b", "E♭", "D♯"], 4: ["e", "", "E", ""], 5: ["f", "", "F", ""], 6: ["f", "#", "F♯", "G♭"],
+      7: ["g", "", "G", ""], 8: ["a", "b", "A♭", "G♯"], 9: ["a", "", "A", ""], 10: ["b", "b", "B♭", "A♯"], 11: ["b", "", "B", ""] };
+    const ALL = [];
+    OPEN_STRING_MIDI.forEach((open, s) => { for (let fret = 0; fret <= 3; fret++) {
+      const midi = open + fret, written = midi + 12, sp = SPELL[((midi % 12) + 12) % 12];
+      ALL.push({ s, fret, midi, key: sp[0] + sp[1] + "/" + (Math.floor(written / 12) - 1), acc: sp[1], name: sp[2], alt: sp[3] });
+    } });
+    let deck = [], at = 0, shown = false, seen = 0;
+    try { if (localStorage.getItem("fretline-flash-acc") === "0") accBox.checked = false; } catch (e) {}
+
+    function deal() {
+      deck = ALL.filter((c) => accBox.checked || !c.acc);
+      for (let i = deck.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [deck[i], deck[j]] = [deck[j], deck[i]]; }
+      at = 0;
+    }
+    function drawStaff(c) {
+      const host = $f("flash-staff"); host.innerHTML = "";
+      const W = 260, H = 200, renderer = new Renderer(host, Renderer.Backends.SVG);
+      renderer.resize(W, H);
+      const ctx = renderer.getContext(), stave = new Stave(10, 50, W - 20);
+      stave.addClef("treble", "default", "8vb"); stave.setContext(ctx).draw();   // the 8 under the clef: it sounds an octave lower than written
+      const note = new StaveNote({ keys: [c.key], duration: "w", clef: "treble" });
+      if (c.acc) note.addModifier(new Accidental(c.acc), 0);
+      const voice = new Voice({ num_beats: 4, beat_value: 4 }).setStrict(false); voice.addTickables([note]);
+      new Formatter().joinVoices([voice]).format([voice], W - 90);
+      voice.draw(ctx, stave);
+      const svg = host.querySelector("svg"); svg.setAttribute("viewBox", "0 0 " + W + " " + H);
+    }
+    // the neck, frets 0-3, drawn like the Scale Lab's diagrams: high e at the top, each string's open note in a circle at the left, the nut, then the frets.
+    // Only the note being asked about is marked (filled): on its fret, or on the open-string circle when it is an open string.
+    function drawBoard(c) {
+      const W = 340, H = 190, NUT = 42, FW = 94, rowY = (str) => 26 + (5 - str) * 28;   // str 0 = low E, which is the bottom row
+      const OPEN_NAME = ["E", "A", "D", "G", "B", "E"], MARK = "#a6433d", INK = "#5c6b52";
+      const disc = (x, y, label, on) => '<circle cx="' + x + '" cy="' + y + '" r="13" fill="' + (on ? MARK : "#f5f0e8") + '" stroke="' + (on ? MARK : INK) + '" stroke-width="2"/>' +
+        '<text x="' + x + '" y="' + (y + 4.5) + '" text-anchor="middle" font-family="Helvetica, Arial, sans-serif" font-size="' + (label.length > 1 ? 11 : 13) + '" font-weight="700" fill="' + (on ? "#f5f0e8" : "#3d3a30") + '">' + label + "</text>";
+      let g = '<svg viewBox="0 0 ' + W + " " + H + '" xmlns="' + SVG_NS + '" aria-hidden="true">';
+      g += '<line x1="' + NUT + '" y1="' + (rowY(5) - 6) + '" x2="' + NUT + '" y2="' + (rowY(0) + 6) + '" stroke="#b9a98a" stroke-width="4"/>';
+      for (let fr = 1; fr <= 3; fr++) g += '<line x1="' + (NUT + fr * FW) + '" y1="' + (rowY(5) - 6) + '" x2="' + (NUT + fr * FW) + '" y2="' + (rowY(0) + 6) + '" stroke="#c4b89a" stroke-width="1.6"/>';
+      for (let str = 0; str < 6; str++) g += '<line x1="' + NUT + '" y1="' + rowY(str) + '" x2="' + (NUT + 3 * FW + 14) + '" y2="' + rowY(str) + '" stroke="' + INK + '" stroke-width="1.3"/>';
+      for (let fr = 1; fr <= 3; fr++) g += '<text x="' + (NUT + (fr - 0.5) * FW) + '" y="' + (H - 6) + '" text-anchor="middle" font-family="Helvetica, Arial, sans-serif" font-size="11" fill="#8a9e7e">' + fr + "</text>";
+      for (let str = 0; str < 6; str++) g += disc(20, rowY(str), OPEN_NAME[str], c.fret === 0 && c.s === str);
+      if (c.fret > 0) g += disc(NUT + (c.fret - 0.5) * FW, rowY(c.s), c.name, true);
+      $f("flash-board").innerHTML = g + "</svg>";
+    }
+    function render() {
+      const c = deck[at];
+      $f("flash-count").textContent = "Card " + (at + 1) + " of " + deck.length;
+      drawStaff(c);
+      $f("flash-hint").hidden = shown; $f("flash-reveal").hidden = !shown;
+      if (shown) {
+        $f("flash-name").textContent = c.name + (c.alt ? " / " + c.alt : "");
+        $f("flash-pos").textContent = STRING_LABEL[c.s] + " · " + (c.fret === 0 ? "open" : "fret " + c.fret);
+        drawBoard(c);
+      }
+      nextBtn.textContent = shown ? "Next note" : "Show answer";
+      $f("flash-prev").disabled = at === 0 && !shown;
+    }
+    function forward() {
+      if (!shown) { shown = true; render(); return; }
+      shown = false; at++; if (at >= deck.length) deal();
+      render();
+    }
+    function back() {
+      if (shown) { shown = false; render(); return; }
+      if (at > 0) { at--; shown = false; render(); }
+    }
+    function open() {
+      deal(); shown = false; root.hidden = false; render(); card.focus();
+    }
+    function close() { root.hidden = true; $f("flash-open").focus(); }
+
+    $f("flash-open").addEventListener("click", open);
+    $f("flash-close").addEventListener("click", close);
+    root.addEventListener("click", (e) => { if (e.target === root) close(); });   // a tap on the dim area outside the card closes it
+    card.addEventListener("click", (e) => { if (!e.target.closest("button, label, input")) forward(); });   // a tap anywhere on the card moves it along
+    const press = (btn, fn) => btn.addEventListener("click", (e) => { fn(); btn.blur(); card.focus(); e.stopPropagation(); });   // blur, so a later Space moves the card rather than re-pressing this button
+    press(nextBtn, forward); press($f("flash-prev"), back); press($f("flash-hear"), () => playNote(deck[at].midi));
+    accBox.addEventListener("change", () => {
+      try { localStorage.setItem("fretline-flash-acc", accBox.checked ? "1" : "0"); } catch (e) {}
+      deal(); shown = false; render(); accBox.blur(); card.focus();
+    });
+    // while the pop-up is open it owns the keyboard, so the page's own shortcuts (Space plays the line, G, M...) stay quiet
+    window.addEventListener("keydown", (e) => {
+      if (root.hidden) return;
+      if (e.ctrlKey || e.metaKey || e.altKey) return;
+      e.stopImmediatePropagation();
+      if (e.key === "Escape") { e.preventDefault(); close(); return; }
+      const onControl = e.target.closest && e.target.closest("button, input");
+      if ((e.key === " " || e.key === "Enter") && onControl) return;   // a focused button or the checkbox keeps its own Space / Enter
+      if (e.key === " " || e.key === "Enter" || e.key === "ArrowRight" || e.key === "ArrowDown") { e.preventDefault(); if (!e.repeat) forward(); }
+      else if (e.key === "ArrowLeft" || e.key === "ArrowUp") { e.preventDefault(); if (!e.repeat) back(); }
+      else if (e.key === "h" || e.key === "H") { e.preventDefault(); if (!e.repeat) playNote(deck[at].midi); }
+    }, true);
+    return { open, close, get deck() { return deck; }, get all() { return ALL; } };
+  })();
+  window.__flash = flash;   // test hook
 
   // Some browsers suspend a context while its tab is hidden; if that
   // happened under a running metronome, bring it back the moment the tab is
