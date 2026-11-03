@@ -483,8 +483,8 @@ button.mode-chip.active:hover { color: var(--parchment); }
 .flash-head span:first-child { font-size: 9px; letter-spacing: 0.2em; text-transform: uppercase; color: var(--bark); }
 .flash-head span:nth-child(2) { font-size: 9px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--sage); margin-right: auto; }
 .flash-x { font: inherit; font-size: 22px; line-height: 1; padding: 0 4px; border: 0; background: transparent; color: var(--bark); cursor: pointer; }
-.flash-staff { margin: 10px 0 2px; background: #fff; border: 1px solid var(--wheat); }
-.flash-staff svg { display: block; width: 100%; max-width: 270px; height: auto; margin: 0 auto; }
+.flash-staff { width: min(270px, 100%); margin: 10px auto 2px; background: #fff; border: 1px solid var(--wheat); }
+.flash-staff svg { display: block; width: 100%; height: auto; }
 .flash-answer { min-height: 270px; text-align: center; padding-top: 8px; }
 .flash-hint { padding-top: 105px; font-size: 10px; letter-spacing: 0.2em; text-transform: uppercase; color: var(--sage); }
 .flash-name { font-family: var(--font-display); font-size: 38px; line-height: 1.05; color: var(--bark); }
@@ -493,7 +493,6 @@ button.mode-chip.active:hover { color: var(--parchment); }
 .flash-board svg { display: block; width: 100%; max-width: 330px; height: auto; margin: 0 auto; }
 .flash-bar { display: flex; gap: 8px; margin: 10px 0 12px; }
 .flash-bar .btn { flex: 1; padding: 12px 8px; }
-.flash-card .hint { margin: 8px 0 0; }
 </style>
 
 <div class="app-shell">
@@ -754,8 +753,6 @@ button.mode-chip.active:hover { color: var(--parchment); }
       <button type="button" class="btn btn-outline" id="flash-hear">Hear it</button>
       <button type="button" class="btn btn-primary" id="flash-next">Show answer</button>
     </div>
-    <label class="checkbox-row"><input type="checkbox" id="flash-acc" checked> Include sharps and flats</label>
-    <p class="hint">Guitar clef, open strings through the 3rd fret. Tap the card (or press Space) to show the answer, then again for the next note. Esc closes.</p>
   </div>
 </div>
 
@@ -3281,7 +3278,7 @@ button.mode-chip.active:hover { color: var(--parchment); }
   // where it lives on the neck, the next tap moves on. The cards are dealt in a shuffled order, every one once before any repeats.
   const flash = (function () {
     const $f = (id) => document.getElementById(id);
-    const root = $f("flash"), card = $f("flash-card"), accBox = $f("flash-acc"), nextBtn = $f("flash-next");
+    const root = $f("flash"), card = $f("flash-card"), nextBtn = $f("flash-next");
     const STRING_LABEL = ["6th string (low E)", "5th string (A)", "4th string (D)", "3rd string (G)", "2nd string (B)", "1st string (high e)"];
     // pitch class -> how it is written on the staff, and the other name for the same key
     const SPELL = { 0: ["c", "", "C", ""], 1: ["d", "b", "D♭", "C♯"], 2: ["d", "", "D", ""], 3: ["e", "b", "E♭", "D♯"], 4: ["e", "", "E", ""], 5: ["f", "", "F", ""], 6: ["f", "#", "F♯", "G♭"],
@@ -3292,10 +3289,9 @@ button.mode-chip.active:hover { color: var(--parchment); }
       ALL.push({ s, fret, midi, key: sp[0] + sp[1] + "/" + (Math.floor(written / 12) - 1), acc: sp[1], name: sp[2], alt: sp[3] });
     } });
     let deck = [], at = 0, shown = false, seen = 0;
-    try { if (localStorage.getItem("fretline-flash-acc") === "0") accBox.checked = false; } catch (e) {}
 
     function deal() {
-      deck = ALL.filter((c) => accBox.checked || !c.acc);
+      deck = ALL.slice();
       for (let i = deck.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [deck[i], deck[j]] = [deck[j], deck[i]]; }
       at = 0;
     }
@@ -3358,20 +3354,16 @@ button.mode-chip.active:hover { color: var(--parchment); }
     $f("flash-open").addEventListener("click", open);
     $f("flash-close").addEventListener("click", close);
     root.addEventListener("click", (e) => { if (e.target === root) close(); });   // a tap on the dim area outside the card closes it
-    card.addEventListener("click", (e) => { if (!e.target.closest("button, label, input")) forward(); });   // a tap anywhere on the card moves it along
+    card.addEventListener("click", (e) => { if (!e.target.closest("button")) forward(); });   // a tap anywhere on the card moves it along
     const press = (btn, fn) => btn.addEventListener("click", (e) => { fn(); btn.blur(); card.focus(); e.stopPropagation(); });   // blur, so a later Space moves the card rather than re-pressing this button
     press(nextBtn, forward); press($f("flash-prev"), back); press($f("flash-hear"), () => playNote(deck[at].midi));
-    accBox.addEventListener("change", () => {
-      try { localStorage.setItem("fretline-flash-acc", accBox.checked ? "1" : "0"); } catch (e) {}
-      deal(); shown = false; render(); accBox.blur(); card.focus();
-    });
     // while the pop-up is open it owns the keyboard, so the page's own shortcuts (Space plays the line, G, M...) stay quiet
     window.addEventListener("keydown", (e) => {
       if (root.hidden) return;
       if (e.ctrlKey || e.metaKey || e.altKey) return;
       e.stopImmediatePropagation();
       if (e.key === "Escape") { e.preventDefault(); close(); return; }
-      const onControl = e.target.closest && e.target.closest("button, input");
+      const onControl = e.target.closest && e.target.closest("button");
       if ((e.key === " " || e.key === "Enter") && onControl) return;   // a focused button or the checkbox keeps its own Space / Enter
       if (e.key === " " || e.key === "Enter" || e.key === "ArrowRight" || e.key === "ArrowDown") { e.preventDefault(); if (!e.repeat) forward(); }
       else if (e.key === "ArrowLeft" || e.key === "ArrowUp") { e.preventDefault(); if (!e.repeat) back(); }
