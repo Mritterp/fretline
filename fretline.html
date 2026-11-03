@@ -749,8 +749,6 @@ button.mode-chip.active:hover { color: var(--parchment); }
       </div>
     </div>
     <div class="flash-bar">
-      <button type="button" class="btn btn-outline" id="flash-prev">Back</button>
-      <button type="button" class="btn btn-outline" id="flash-hear">Hear it</button>
       <button type="button" class="btn btn-primary" id="flash-next">Show answer</button>
     </div>
   </div>
@@ -3340,16 +3338,11 @@ button.mode-chip.active:hover { color: var(--parchment); }
         drawBoard(c);
       }
       nextBtn.textContent = shown ? "Next note" : "Show answer";
-      $f("flash-prev").disabled = at === 0 && !shown;
     }
     function forward() {
-      if (!shown) { shown = true; render(); return; }
+      if (!shown) { shown = true; render(); playNote(deck[at].midi); return; }   // the answer comes with the sound of the note
       shown = false; at++; if (at >= deck.length) deal();
       render();
-    }
-    function back() {
-      if (shown) { shown = false; render(); return; }
-      if (at > 0) { at--; shown = false; render(); }
     }
     function open() {
       deal(); shown = false; root.hidden = false; render(); card.focus();
@@ -3361,7 +3354,7 @@ button.mode-chip.active:hover { color: var(--parchment); }
     root.addEventListener("click", (e) => { if (e.target === root) close(); });   // a tap on the dim area outside the card closes it
     card.addEventListener("click", (e) => { if (!e.target.closest("button")) forward(); });   // a tap anywhere on the card moves it along
     const press = (btn, fn) => btn.addEventListener("click", (e) => { fn(); btn.blur(); card.focus(); e.stopPropagation(); });   // blur, so a later Space moves the card rather than re-pressing this button
-    press(nextBtn, forward); press($f("flash-prev"), back); press($f("flash-hear"), () => playNote(deck[at].midi));
+    press(nextBtn, forward);
     // while the pop-up is open it owns the keyboard, so the page's own shortcuts (Space plays the line, G, M...) stay quiet
     window.addEventListener("keydown", (e) => {
       if (root.hidden) return;
@@ -3371,8 +3364,6 @@ button.mode-chip.active:hover { color: var(--parchment); }
       const onControl = e.target.closest && e.target.closest("button");
       if ((e.key === " " || e.key === "Enter") && onControl) return;   // a focused button or the checkbox keeps its own Space / Enter
       if (e.key === " " || e.key === "Enter" || e.key === "ArrowRight" || e.key === "ArrowDown") { e.preventDefault(); if (!e.repeat) forward(); }
-      else if (e.key === "ArrowLeft" || e.key === "ArrowUp") { e.preventDefault(); if (!e.repeat) back(); }
-      else if (e.key === "h" || e.key === "H") { e.preventDefault(); if (!e.repeat) playNote(deck[at].midi); }
     }, true);
     return { open, close, get deck() { return deck; }, get all() { return ALL; } };
   })();
