@@ -38,6 +38,24 @@
     }
   });
 
+  // practice time (fl-practice.js in index.html): tell it when you're active here, and every few seconds while sound plays
+  var lastPing = 0, sounding = 0;
+  function active() { var now = Date.now(); if (now - lastPing < 5000) return; lastPing = now; window.parent.postMessage({ fretline: "active" }, location.origin); }
+  ["pointerdown", "keydown", "wheel", "input"].forEach(function (t) { document.addEventListener(t, active, { capture: true, passive: true }); });
+  var Src = window.AudioScheduledSourceNode;   // oscillators: notes, chords and metronome clicks, including ones scheduled ahead
+  if (Src && Src.prototype.start) {
+    var start = Src.prototype.start;
+    Src.prototype.start = function () {
+      var node = this, done = false;
+      sounding++;
+      node.addEventListener("ended", function () { if (!done) { done = true; sounding--; } });
+      return start.apply(node, arguments);
+    };
+  }
+  setInterval(function () {
+    if (sounding > 0 && !window.__fretlineHidden && contexts.some(function (c) { return c.state === "running"; })) active();
+  }, 10000);
+
   // the tab links switch pages inside index.html (modified clicks still open a new tab as usual)
   function pageOf(a) { return (a.getAttribute("href") || "").split("?")[0].split("#")[0].split("/").pop().replace(/\.html$/, ""); }
   document.addEventListener("click", function (e) {
