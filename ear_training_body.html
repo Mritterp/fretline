@@ -67,6 +67,14 @@ main { max-width: 1100px; margin: 0 auto; padding: 10px 16px 90px; }
 .ans.picked { background: var(--linen); border-color: var(--bark); font-weight: 700; }
 .ans:disabled { cursor: default; }
 .ans.heard { box-shadow: inset 0 0 0 2px var(--clay); }
+.setrow label.off { opacity: 0.45; }
+.slotrow { display: flex; flex-wrap: wrap; gap: 6px; margin: 6px 0 2px; }
+.slotrow[hidden] { display: none; }
+.slotchip { font: inherit; font-size: 12px; padding: 8px 12px; border: 1px solid var(--wheat); background: #fff; color: var(--bark); cursor: pointer; border-radius: 18px; }
+.slotchip b { margin-right: 4px; }
+.slotchip.cur { border-color: var(--bark); box-shadow: inset 0 0 0 1px var(--bark); }
+.slotchip.right { background: var(--good-bg); border-color: var(--good); color: var(--good); }
+.slotchip.wrong { background: var(--bad-bg); border-color: var(--bad); color: var(--bad); }
 
 /* the buttons are pinned to the bottom of the screen, so Repeat / Next / Check are always in reach however far down the page is scrolled */
 .actions { position: fixed; left: 0; right: 0; bottom: 0; z-index: 20; display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 10px; margin: 0;
@@ -116,6 +124,7 @@ details.settings summary { cursor: pointer; font-size: 11px; letter-spacing: 0.1
   .staff:not(.chd) { height: calc((100vw - 50px) * 0.6); }
   /* phones: the answer buttons flow with the page (no scroll box inside a scrolling page) */
   #int-answers, #cq-answers { grid-template-columns: repeat(2, 1fr); padding: 2px; }
+  .mode { font-size: 10px; letter-spacing: 0.08em; padding: 9px 2px; }
   .ans { font-size: 12px; padding: 12px 4px; }
   .slot { grid-template-columns: 1fr; }
   .slot .answers { grid-template-columns: repeat(2, 1fr); }
@@ -147,7 +156,7 @@ details.settings summary { cursor: pointer; font-size: 11px; letter-spacing: 0.1
   <div class="modes" role="group" aria-label="Exercise">
     <button type="button" class="mode" id="mode-int" aria-pressed="true">Intervals</button>
     <button type="button" class="mode" id="mode-cq" aria-pressed="false">Chords</button>
-    <button type="button" class="mode" id="mode-chd" aria-pressed="false">Progressions</button>
+    <button type="button" class="mode" id="mode-chd" aria-pressed="false">Chord Progressions</button>
   </div>
 
   <div class="scorebar"><span id="score">—</span><button type="button" class="linkbtn" id="reset">Reset score</button></div>
@@ -160,6 +169,7 @@ details.settings summary { cursor: pointer; font-size: 11px; letter-spacing: 0.1
       <div class="staff" id="int-staff"></div>
       <div class="kbd-wrap" id="int-kbd"></div>
       <div class="status hint" id="int-status">Press Play to hear two notes, then pick the interval.</div>
+      <div class="slotrow" id="int-slots" hidden></div>
       <div class="answers" id="int-answers"></div>
       <div class="actions">
         <div class="left">
@@ -191,7 +201,7 @@ details.settings summary { cursor: pointer; font-size: 11px; letter-spacing: 0.1
   <!-- ===== Progressions ===== -->
   <section id="view-chd" hidden>
     <div class="card">
-      <h2>Progression Identification</h2>
+      <h2>Chord Progression Identification</h2>
       <div class="sub" id="chd-sub"></div>
       <div class="status hint" id="chd-status"></div>
       <div id="chd-slots"></div>
@@ -212,7 +222,7 @@ details.settings summary { cursor: pointer; font-size: 11px; letter-spacing: 0.1
   <details class="settings" id="settings">
     <summary>Settings</summary>
     <div id="set-int">
-      <div class="setrow"><label>Notes per question <select id="int-notes"><option value="2">2</option><option value="3">3</option><option value="4">4</option><option value="5">5</option></select></label></div>
+      <div class="setrow"><button type="button" class="chip" id="int-prog" aria-pressed="false">Progression mode</button><label>Notes per progression <select id="int-notes"><option>3</option><option>4</option><option>5</option><option>6</option><option>7</option><option>8</option></select></label><span class="hint">off: every question is two notes. On: several notes play in a row, and you click their intervals in order</span></div>
       <div class="setrow"><label>Root note register from <select id="reg-lo"></select></label><label>to <select id="reg-hi"></select></label><span class="hint">the lower note of each interval falls from the first C to the last B of these registers (default C2–C5); the upper note can reach C8</span></div>
       <div class="setgroup"><h3>Directions</h3><div class="chips" id="dir-chips"></div></div>
       <div class="setgroup"><h3>Intervals <button type="button" class="linkbtn" id="int-all">all</button><button type="button" class="linkbtn" id="int-none">none</button><button type="button" class="linkbtn" id="int-simple">within an octave</button></h3><div class="chips" id="int-chips"></div></div>
@@ -289,7 +299,7 @@ details.settings summary { cursor: pointer; font-size: 11px; letter-spacing: 0.1
   const defaults = () => ({
     tone: "triangle", volume: 80, mode: "int",
     dirs: ["up", "down", "both"], ints: INTERVALS.map((i) => i.n),
-    nNotes: 2, regLo: 2, regHi: 5, nChords: 4, diatonic: false, mapProg: false, mapStyle: "jazz", mapLevel: 3, scales: ["major", "minor"], quals: ["maj", "min", "dim", "maj7", "dom7", "min7", "hdim7"],
+    nNotes: 4, progMode: false, regLo: 2, regHi: 5, nChords: 4, diatonic: false, mapProg: false, mapStyle: "jazz", mapLevel: 3, scales: ["major", "minor"], quals: ["maj", "min", "dim", "maj7", "dom7", "min7", "hdim7"],
     cqLo: 3, cqHi: 5, cqStyles: ["harm", "arp"],
     cqQuals: ["maj", "min", "dim", "aug", "sus2", "sus4", "maj7", "dom7", "min7", "hdim7", "dim7", "mmaj7", "maj6", "min6", "sus7", "dom7b5"],
     score: { int: { ok: 0, n: 0 }, cq: { ok: 0, n: 0 }, chd: { ok: 0, n: 0, chordsOk: 0, chords: 0 } },
@@ -300,6 +310,7 @@ details.settings summary { cursor: pointer; font-size: 11px; letter-spacing: 0.1
   if (!S.unison) { S.unison = true; if (Array.isArray(S.ints) && !S.ints.includes(0)) S.ints.unshift(0); }
   if (!S.reg25) { S.reg25 = true; if (S.regLo === 1 && S.regHi === 6) { S.regLo = 2; S.regHi = 5; } }   // the old default register (C1–C6) moves to the new one (C2–C5); a register you chose yourself is kept
   const save = () => { try { localStorage.setItem("fretline-ear", JSON.stringify(S)); } catch (e) {} };
+  const nProg = () => Math.min(8, Math.max(3, +S.nNotes || 4));   // notes per progression in progression mode
 
   // ---------- audio ----------
   let ctx = null, master = null, voices = [], gestured = false;
@@ -479,16 +490,15 @@ details.settings summary { cursor: pointer; font-size: 11px; letter-spacing: 0.1
   function updateIntSub() {
     const d = S.dirs.length === DIRS.length ? "any direction" : DIRS.filter((x) => S.dirs.includes(x.id)).map((x) => x.name.toLowerCase()).join(" / ");
     const maxN = Math.max(0, ...S.ints);
-    $("int-sub").textContent = `${S.nNotes > 2 ? S.nNotes + " notes · " : ""}${d} · up to ${maxN <= 12 ? "an octave" : maxN === 24 ? "two octaves" : maxN + " semitones"} · roots C${S.regLo}–C${S.regHi}`;
+    $("int-sub").textContent = `${S.progMode ? nProg() + " notes in a row · " : ""}${d} · up to ${maxN <= 12 ? "an octave" : maxN === 24 ? "two octaves" : maxN + " semitones"} · roots C${S.regLo}–C${S.regHi}`;
   }
   function drawIntervalVisuals() {
     if (!Q) return;
     const label = (m) => noteName(m).replace(/\d/, "");
-    if (Q.multi) {   // the notes heard so far are shown; the next one appears when you answer
-      const shown = Q.notes.slice(0, qAnswered ? Q.step + 1 : Q.step);
+    if (Q.multi) {   // a progression: the first note until the last interval is answered, then every note
+      const shown = qAnswered ? Q.notes : [Q.notes[0]];
       renderStaff($("int-staff"), shown.map((m) => [m]), false, undefined, Q.notes, Q.notes.length);
-      // a melody can wander further than the screen shows: keep the interval being answered (the last two notes heard) in view
-      renderKeyboard($("int-kbd"), [...new Set(shown)].map((m) => ({ midi: m, label: label(m) })), shown.slice(-2));
+      renderKeyboard($("int-kbd"), [...new Set(shown)].map((m) => ({ midi: m, label: label(m) })));
       return;
     }
     if (!qAnswered) {   // only the first note is shown until you answer (for a harmonic interval, its lower note)
@@ -499,15 +509,12 @@ details.settings summary { cursor: pointer; font-size: 11px; letter-spacing: 0.1
       renderKeyboard($("int-kbd"), [...new Set([Q.first, Q.second])].map((m) => ({ midi: m, label: label(m) })));
     }
   }
-  function setStep(k) {   // the interval being asked is the one between notes k-1 and k
-    Q.step = k; Q.first = Q.notes[k - 1]; Q.second = Q.notes[k]; Q.n = Math.abs(Q.second - Q.first);
-    Q.dir = Q.second >= Q.first ? "up" : "down"; Q.lo = Math.min(Q.first, Q.second); Q.hi = Math.max(Q.first, Q.second);
-  }
-  function stepHint() { return "Interval " + Q.step + " of " + Q.nSteps + ": which interval was that?"; }
-  function newMelody(autoplay) {
-    const N = Math.min(5, Math.max(3, S.nNotes));
+  const ivName = (n) => INTERVALS.find((i) => i.n === n).name;
+  const stepTruth = (k) => Math.abs(Q.notes[k + 1] - Q.notes[k]);   // the interval between note k and note k + 1 of a progression
+  function newMelody(autoplay) {   // progression mode: several notes in a row; click their intervals in order
+    const N = nProg();
     const rootMin = Math.max(LOW, 12 * (S.regLo + 1)), rootMax = Math.min(HIGH, 12 * (S.regHi + 1) + 11);
-    const dirs = S.dirs.filter((d) => d !== "both"), useDirs = dirs.length ? dirs : ["up", "down"];
+    const dirs = S.dirs.filter((d) => d !== "both"), useDirs = dirs.length ? dirs : ["up", "down"];   // the notes come one after another, so harmonic does not apply
     let notes = null;
     for (let attempt = 0; attempt < 80 && !notes; attempt++) {
       const seq = [rootMin + rnd(rootMax - rootMin + 1)]; let ok = true;
@@ -518,28 +525,53 @@ details.settings summary { cursor: pointer; font-size: 11px; letter-spacing: 0.1
       }
       if (ok) notes = seq;
     }
-    if (!notes) { $("int-status").className = "status bad"; $("int-status").textContent = "None of the selected intervals fit in that register: lower the register or pick smaller intervals."; Q = null; return; }
-    Q = { multi: true, notes, nSteps: N - 1 }; setStep(1);
+    if (!notes) { $("int-status").className = "status bad"; $("int-status").textContent = "None of the selected intervals fit in that register: lower the register or pick smaller intervals."; Q = null; $("int-slots").hidden = true; return; }
+    Q = { multi: true, notes, n: N - 1, picks: [], cur: 0 };
     qAnswered = false;
     intBtns.forEach((b) => { b.className = "ans"; b.disabled = false; });
-    $("int-status").className = "status hint"; $("int-status").textContent = stepHint();
+    $("int-status").className = "status hint";
+    $("int-status").textContent = `Listen to the ${N} notes, then click the ${N - 1} intervals in the order you heard them.`;
     $("int-next").textContent = "Next"; $("int-next").disabled = false;
-    drawIntervalVisuals();
-    if (autoplay && gestured) playInterval(); else $("int-status").textContent = "Press Repeat to hear the notes, then name each interval in turn.";
+    drawIntervalVisuals(); drawSlots();
+    if (autoplay && gestured) playInterval(); else $("int-status").textContent += " (Press Repeat to start.)";
   }
-  function advanceStep() {
-    cancelPlay(); setStep(Q.step + 1); qAnswered = false;
-    intBtns.forEach((b) => { b.className = "ans"; b.disabled = false; });
-    $("int-status").className = "status hint"; $("int-status").textContent = stepHint();
-    $("int-next").textContent = "Next";
-    drawIntervalVisuals();
-    if (gestured) playInterval();
+  function drawSlots() {   // one chip per interval: what you have clicked so far, and after the last click, right or wrong
+    const host = $("int-slots"); host.hidden = !(Q && Q.multi);
+    if (host.hidden) return;
+    host.innerHTML = "";
+    for (let k = 0; k < Q.n; k++) {
+      const p = Q.picks[k], b = document.createElement("button");
+      b.type = "button"; b.className = "slotchip";
+      let text = "<b>" + (k + 1) + "</b> " + (p === undefined ? "?" : ivName(p));
+      if (qAnswered) { const ok = p === stepTruth(k); b.classList.add(ok ? "right" : "wrong"); if (!ok) text += " → " + ivName(stepTruth(k)); if (k === Q.cur) b.classList.add("cur"); }
+      else if (k === Q.picks.length) b.classList.add("cur");
+      b.innerHTML = text;
+      b.addEventListener("click", () => {
+        if (qAnswered) { Q.cur = k; drawSlots(); }               // after the answer: pick the step an interval is then heard from
+        else if (p !== undefined) { Q.picks.length = k; drawSlots(); }   // before it: clicking a chip you have filled takes that answer (and the ones after it) back
+      });
+      host.appendChild(b);
+    }
   }
-  function nextInterval() { if (Q && Q.multi && qAnswered && Q.step < Q.nSteps) advanceStep(); else newInterval(true); }
+  function pickStep(n) {   // each click answers the next interval in order; the last click gives the verdict
+    if (qAnswered || Q.picks.length >= Q.n) return;
+    Q.picks.push(n);
+    if (Q.picks.length < Q.n) { drawSlots(); return; }
+    qAnswered = true; Q.cur = 0;
+    let right = 0; Q.picks.forEach((p, k) => { if (p === stepTruth(k)) right++; });
+    const all = right === Q.n;
+    S.score.int.n++; if (all) S.score.int.ok++; save(); showScore();
+    $("int-status").className = "status " + (all ? "good" : "bad");
+    $("int-status").textContent = (all ? "Correct! " : `${right} of ${Q.n} intervals right. `) + Q.notes.map((m) => noteName(m)).join(" → ") +
+      ". Click a numbered step, then any interval, to hear it from that step's first note.";
+    drawIntervalVisuals(); drawSlots();
+    $("int-next").disabled = false;
+  }
   function newInterval(autoplay) {
     cancelPlay();
     if (!S.ints.length || !S.dirs.length) { $("int-status").className = "status bad"; $("int-status").textContent = "Turn on at least one interval and one direction in Settings."; Q = null; return; }
-    if (S.nNotes > 2) { newMelody(autoplay); return; }
+    if (S.progMode) { newMelody(autoplay); return; }
+    $("int-slots").hidden = true;
     // root (lower) note: from C{regLo} up to B{regHi}, and the upper note must still fit on the piano
     const rootMin = Math.max(LOW, 12 * (S.regLo + 1)), rootMax = Math.min(HIGH, 12 * (S.regHi + 1) + 11);
     const usable = S.ints.filter((i) => rootMin + i <= HIGH);
@@ -559,7 +591,7 @@ details.settings summary { cursor: pointer; font-size: 11px; letter-spacing: 0.1
     if (!Q) return;
     cancelPlay();
     const c = audio(), t = c.currentTime + 0.05;
-    if (Q.multi) { for (let i = 0; i <= Q.step; i++) tone(Q.notes[i], t + i * 0.8, 1.0, 0.24); return; }
+    if (Q.multi) { for (let i = 0; i < Q.notes.length; i++) tone(Q.notes[i], t + i * 0.8, 1.0, 0.24); return; }   // the whole progression, in one go
     if (Q.dir === "both") { tone(Q.lo, t, 1.7, 0.2); if (Q.hi !== Q.lo) tone(Q.hi, t, 1.7, 0.2); }
     else { tone(Q.first, t, 1.0, 0.24); tone(Q.second, t + 1.0, 1.4, 0.24); }
   }
@@ -570,15 +602,16 @@ details.settings summary { cursor: pointer; font-size: 11px; letter-spacing: 0.1
     cancelPlay();
     intBtns.forEach((b) => b.classList.remove("heard"));
     btn.classList.add("heard");
-    const c = audio(), t = c.currentTime + 0.05, from = Q.first;
+    const dirNow = Q.multi ? (Q.notes[Q.cur + 1] < Q.notes[Q.cur] ? "down" : "up") : Q.dir;
+    const c = audio(), t = c.currentTime + 0.05, from = Q.multi ? Q.notes[Q.cur] : Q.first;
     const fits = (m) => m >= LOW && m <= HIGH;
-    if (Q.dir === "both") {
+    if (dirNow === "both") {
       let lo = from, hi = from + n;
       if (!fits(hi)) { hi = from; lo = from - n; }
       tone(lo, t, 1.7, 0.2); if (hi !== lo) tone(hi, t, 1.7, 0.2);
     } else {
-      let to = Q.dir === "down" ? from - n : from + n;
-      if (!fits(to)) to = Q.dir === "down" ? from + n : from - n;
+      let to = dirNow === "down" ? from - n : from + n;
+      if (!fits(to)) to = dirNow === "down" ? from + n : from - n;
       tone(from, t, 1.0, 0.24); tone(to, t + 1.0, 1.4, 0.24);
     }
   }
@@ -587,6 +620,7 @@ details.settings summary { cursor: pointer; font-size: 11px; letter-spacing: 0.1
   }
   function answerIntervalInner(n, btn) {
     if (!Q || qAnswered) return;
+    if (Q.multi) { pickStep(n); return; }
     qAnswered = true;
     const ok = n === Q.n, correct = INTERVALS.find((i) => i.n === Q.n);
     S.score.int.n++; if (ok) S.score.int.ok++; save(); showScore();
@@ -598,7 +632,6 @@ details.settings summary { cursor: pointer; font-size: 11px; letter-spacing: 0.1
     const mom = Q.dir === "both" ? [[Q.lo, Q.hi]] : [[Q.first], [Q.second]];
     drawIntervalVisuals();
     $("int-next").disabled = false;
-    if (Q.multi) { $("int-next").textContent = Q.step < Q.nSteps ? "Next interval" : "Next"; if (Q.step >= Q.nSteps) $("int-status").textContent += " That was the last interval: press Next for new notes."; }
   }
 
   // ======================= Chords (name the quality of one chord) =======================
@@ -958,7 +991,7 @@ details.settings summary { cursor: pointer; font-size: 11px; letter-spacing: 0.1
     $("score").innerHTML = S.mode === "int"
       ? (s.int.n ? `Correct <b>${s.int.ok} / ${s.int.n}</b> · ${Math.round((100 * s.int.ok) / s.int.n)}%` : "No answers yet")
       : S.mode === "cq" ? (s.cq.n ? `Correct <b>${s.cq.ok} / ${s.cq.n}</b> · ${Math.round((100 * s.cq.ok) / s.cq.n)}%` : "No answers yet")
-      : (s.chd.n ? `Progressions <b>${s.chd.ok} / ${s.chd.n}</b> · chords ${s.chd.chordsOk} / ${s.chd.chords} (${Math.round((100 * s.chd.chordsOk) / s.chd.chords)}%)` : "No answers yet");
+      : (s.chd.n ? `Chord progressions <b>${s.chd.ok} / ${s.chd.n}</b> · chords ${s.chd.chordsOk} / ${s.chd.chords} (${Math.round((100 * s.chd.chordsOk) / s.chd.chords)}%)` : "No answers yet");
     $("int-count").textContent = s.int.n ? `${s.int.n} answered` : "";
     $("cq-count").textContent = s.cq.n ? `${s.cq.n} answered` : "";
   }
@@ -1005,7 +1038,7 @@ details.settings summary { cursor: pointer; font-size: 11px; letter-spacing: 0.1
   $("mode-cq").addEventListener("click", () => setMode("cq"));
   $("mode-chd").addEventListener("click", () => setMode("chd"));
   $("reset").addEventListener("click", () => { S.score = defaults().score; save(); showScore(); });
-  $("int-next").addEventListener("click", () => nextInterval());
+  $("int-next").addEventListener("click", () => newInterval(true));
   $("int-repeat").addEventListener("click", () => { gestured = true; playInterval(); });
   $("cq-next").addEventListener("click", () => newChordQ(true));
   $("cq-repeat").addEventListener("click", () => { gestured = true; playCq(); });
@@ -1035,7 +1068,9 @@ details.settings summary { cursor: pointer; font-size: 11px; letter-spacing: 0.1
   $("chd-check").addEventListener("click", checkChords);
   for (const id of ["reg-lo", "reg-hi"]) for (let r = 1; r <= 6; r++) { const o = document.createElement("option"); o.value = r; o.textContent = "C" + r; $(id).appendChild(o); }
   $("reg-lo").value = String(S.regLo); $("reg-hi").value = String(S.regHi);
-  $("int-notes").value = String(S.nNotes || 2);
+  const syncProg = () => { $("int-prog").setAttribute("aria-pressed", String(!!S.progMode)); $("int-notes").disabled = !S.progMode; $("int-notes").closest("label").classList.toggle("off", !S.progMode); };
+  $("int-notes").value = String(nProg()); syncProg();
+  $("int-prog").addEventListener("click", () => { S.progMode = !S.progMode; save(); syncProg(); updateIntSub(); newInterval(false); });   // the switch that turns the notes-per-progression setting on
   $("int-notes").addEventListener("change", () => { S.nNotes = +$("int-notes").value; save(); updateIntSub(); newInterval(false); });
   const onRegister = (changed) => {
     S.regLo = +$("reg-lo").value; S.regHi = +$("reg-hi").value;
@@ -1081,7 +1116,7 @@ details.settings summary { cursor: pointer; font-size: 11px; letter-spacing: 0.1
     if (e.key === " " || key === "r") { e.preventDefault(); gestured = true; S.mode === "int" ? playInterval() : S.mode === "cq" ? playCq() : playChords(true); }
     else if (e.key === "Enter" || key === "n") {
       gestured = true;
-      if (S.mode === "int") nextInterval();
+      if (S.mode === "int") newInterval(true);
       else if (S.mode === "cq") newChordQ(true);
       else if (e.key === "Enter" && !cChecked && !$("chd-check").disabled) checkChords();   // Enter checks a finished answer; N (or Enter otherwise) moves on
       else newChords(true);
