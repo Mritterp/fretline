@@ -70,11 +70,10 @@ main { max-width: 1100px; margin: 0 auto; padding: 10px 16px 90px; }
 .setrow label.off { opacity: 0.45; }
 .slotrow { display: flex; flex-wrap: wrap; gap: 6px; margin: 6px 0 2px; }
 .slotrow[hidden] { display: none; }
-/* each interval of a progression has its own colour (red, orange, yellow, green, blue, indigo, violet); the ring shows right or wrong */
-.slotchip { --c: #c4b89a; --ink: #fff; font: inherit; font-size: 12px; padding: 8px 12px; border: 2px solid var(--c); background: var(--c); color: var(--ink); cursor: pointer; border-radius: 18px; }
-.slotchip.open { background: #fff; color: var(--bark); }
+/* each interval of a progression has its own colour (red, orange, yellow, green, blue, indigo, violet) on its text; the ring shows right or wrong */
+.slotchip { --c: #3d3a30; font: inherit; font-size: 12px; padding: 8px 12px; border: 1px solid var(--wheat); background: #fff; color: var(--c); cursor: pointer; border-radius: 18px; }
 .slotchip b { margin-right: 4px; }
-.slotchip.cur { font-weight: 700; text-decoration: underline; }
+.slotchip.cur { font-weight: 700; text-decoration: underline; border-color: var(--c); }
 .slotchip.right { outline: 3px solid var(--good); outline-offset: 2px; }
 .slotchip.wrong { outline: 3px solid var(--bad); outline-offset: 2px; }
 .staff.prog { height: 170px; max-height: 230px; }   /* refined per render so the bar fills the width, like the chord progression staves */
@@ -507,6 +506,7 @@ details.settings summary { cursor: pointer; font-size: 11px; letter-spacing: 0.1
   }
   // the colour of each interval of a progression, in order (ROYGBIV); the notes it leads to wear it too
   const STEP_COLORS = [["#d1453b", "#fff"], ["#e08a2c", "#fff"], ["#d4b21f", "#3d3a30"], ["#5f9e44", "#fff"], ["#3f7fbf", "#fff"], ["#4a4aa8", "#fff"], ["#8a4fb0", "#fff"]];
+  const STEP_TEXT = ["#c0392b", "#c9701a", "#a8860a", "#4d8a35", "#2f6fae", "#4a4aa8", "#8a4fb0"];   // the same colours, a little darker where needed so the text reads on white
   const stepColors = (n) => Array.from({ length: n }, (_, i) => (i === 0 ? null : STEP_COLORS[i - 1][0]));   // the first note is the start, so it has no interval colour
   function guessNotes() {   // the notes your answers so far spell out: from the first note, each answer goes the way that step really went
     const g = [Q.notes[0]];
@@ -571,7 +571,7 @@ details.settings summary { cursor: pointer; font-size: 11px; letter-spacing: 0.1
     for (let k = 0; k < Q.n; k++) {
       const p = Q.picks[k], b = document.createElement("button");
       b.type = "button"; b.className = "slotchip" + (p === undefined ? " open" : "");
-      b.style.setProperty("--c", STEP_COLORS[k][0]); b.style.setProperty("--ink", STEP_COLORS[k][1]);
+      b.style.setProperty("--c", STEP_TEXT[k]);
       let text = "<b>" + (k + 1) + "</b> " + (p === undefined ? "?" : ivName(p));
       if (qAnswered) { const ok = p === stepTruth(k); b.classList.add(ok ? "right" : "wrong"); text = (ok ? "✓ " : "✗ ") + text; if (!ok) text += " → " + ivName(stepTruth(k)); if (k === Q.cur) b.classList.add("cur"); }
       else if (k === Q.picks.length) b.classList.add("cur");
