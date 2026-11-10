@@ -36,10 +36,6 @@ Live app: https://claude.ai/code/artifact/b0f71811-d152-4e1b-a595-7abeb8a99003
   pages connect their notes to `FretlineAudio.out(ctx)`, which applies the volume and a limiter.
   It also holds the shared synth, `FretlineAudio.note(ctx, {midi, t, dur, level})`, which every page uses for its notes: the Playback panel sets its tone,
   attack / decay / sustain / release and a reverb (dry/wet and decay time, from a generated impulse response, nothing downloaded).
-- `fl-practice.js` — practice time, loaded by `index.html`: counts the minutes you're active on any page (clicks, keys, or sound
-  playing, which `embed.js` reports) per day in the browser, and sends the daily totals to Life Journal on this PC
-  (`http://localhost:8765/api/fretline/time`), which adds them to Composition. Nothing is sent anywhere else; with Life Journal
-  closed the totals wait in the browser.
 - `fl-notes.js` — the Notes button (next to Playback, on the right of every page's tab row): a small window for notes and reminders, kept in the
   browser and the same on every page.
 - `chord-patterns.js` — the approved chord patterns (grids per quality, which ones are alternates, and a helper that lists where a pattern
