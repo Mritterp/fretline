@@ -70,11 +70,14 @@ main { max-width: 1100px; margin: 0 auto; padding: 10px 16px 90px; }
 .setrow label.off { opacity: 0.45; }
 .slotrow { display: flex; flex-wrap: wrap; gap: 6px; margin: 6px 0 2px; }
 .slotrow[hidden] { display: none; }
-.slotchip { font: inherit; font-size: 12px; padding: 8px 12px; border: 1px solid var(--wheat); background: #fff; color: var(--bark); cursor: pointer; border-radius: 18px; }
+/* each interval of a progression has its own colour (red, orange, yellow, green, blue, indigo, violet); the ring shows right or wrong */
+.slotchip { --c: #c4b89a; --ink: #fff; font: inherit; font-size: 12px; padding: 8px 12px; border: 2px solid var(--c); background: var(--c); color: var(--ink); cursor: pointer; border-radius: 18px; }
+.slotchip.open { background: #fff; color: var(--bark); }
 .slotchip b { margin-right: 4px; }
-.slotchip.cur { border-color: var(--bark); box-shadow: inset 0 0 0 1px var(--bark); }
-.slotchip.right { background: var(--good-bg); border-color: var(--good); color: var(--good); }
-.slotchip.wrong { background: var(--bad-bg); border-color: var(--bad); color: var(--bad); }
+.slotchip.cur { font-weight: 700; text-decoration: underline; }
+.slotchip.right { outline: 3px solid var(--good); outline-offset: 2px; }
+.slotchip.wrong { outline: 3px solid var(--bad); outline-offset: 2px; }
+.staff.prog { height: 170px; max-height: 230px; }   /* refined per render so the bar fills the width, like the chord progression staves */
 
 /* the buttons are pinned to the bottom of the screen, so Repeat / Next / Check are always in reach however far down the page is scrolled */
 .actions { position: fixed; left: 0; right: 0; bottom: 0; z-index: 20; display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 10px; margin: 0;
@@ -121,7 +124,7 @@ details.settings summary { cursor: pointer; font-size: 11px; letter-spacing: 0.1
   .site-tabs { display: grid; grid-template-columns: repeat(3, 1fr); gap: 5px; width: 100%; }
   .site-tab { min-width: 0; font-size: 9px; letter-spacing: 0.1em; padding: 6px 2px; }
   /* the staff box matches the (cropped) drawing, so there's no empty band above the staff */
-  .staff:not(.chd) { height: calc((100vw - 50px) * 0.6); }
+  .staff:not(.chd):not(.prog) { height: calc((100vw - 50px) * 0.6); }
   /* phones: the answer buttons flow with the page (no scroll box inside a scrolling page) */
   #int-answers, #cq-answers { grid-template-columns: repeat(2, 1fr); padding: 2px; }
   .mode { font-size: 10px; letter-spacing: 0.08em; padding: 9px 2px; }
@@ -166,7 +169,10 @@ details.settings summary { cursor: pointer; font-size: 11px; letter-spacing: 0.1
     <div class="card">
       <h2>Interval Identification</h2>
       <div class="sub" id="int-sub">any direction · two octaves</div>
+      <div class="staff-label" id="int-lab-you" hidden>Your answer <span class="hint">· a note is added for each interval you click</span></div>
       <div class="staff" id="int-staff"></div>
+      <div class="staff-label" id="int-lab-cor" hidden>Correct answer</div>
+      <div class="staff prog" id="int-staff-correct" hidden></div>
       <div class="kbd-wrap" id="int-kbd"></div>
       <div class="status hint" id="int-status">Press Play to hear two notes, then pick the interval.</div>
       <div class="slotrow" id="int-slots" hidden></div>
@@ -340,7 +346,7 @@ details.settings summary { cursor: pointer; font-size: 11px; letter-spacing: 0.1
 
   // ---------- staff + keyboard ----------
   const PHONE = window.matchMedia("(max-width: 700px)");   // same breakpoint as the phone CSS
-  function renderStaff(el, moments, flat, onChord, basis, slots) {   // basis: every pitch the question can show, so the octave signs never change between steps
+  function renderStaff(el, moments, flat, onChord, basis, slots, colors) {   // colors: an optional colour per moment (a note's head, stem and accidental)   // basis: every pitch the question can show, so the octave signs never change between steps
     el.innerHTML = "";
     const nSlots = Math.max(moments.length, slots || 0);
     const W = 150 + Math.max(2, nSlots) * (onChord && el.classList.contains("chd") ? (moments.length < 4 ? 280 : 200) : 130);   // drawing units; the SVG scales to its box
@@ -386,23 +392,25 @@ details.settings summary { cursor: pointer; font-size: 11px; letter-spacing: 0.1
           // phones: drop the empty band VexFlow leaves above the ledger-line room (and a little below), never cutting into
           // anything drawn, so the staff isn't floating in white space; the crop is the same every question unless a note needs more
           let top = 0, bottom = H;
-          if (!el.classList.contains("chd") && PHONE.matches) { top = Math.min(50, b.y - pad); bottom = Math.max(H - 15, b.y + b.height + pad); }
+          if (!el.classList.contains("chd") && !el.classList.contains("prog") && PHONE.matches) { top = Math.min(50, b.y - pad); bottom = Math.max(H - 15, b.y + b.height + pad); }
           svgEl.setAttribute("viewBox", [b.x - pad, top, b.width + 2 * pad, bottom - top].join(" "));
           // chord staves: size the box to the bar so the staff fills the full width instead of leaving side margins
-          if (el.classList.contains("chd") && el.clientWidth) el.style.height = Math.round((el.clientWidth * H) / (b.width + 2 * pad)) + "px";
+          if ((el.classList.contains("chd") || el.classList.contains("prog")) && el.clientWidth) el.style.height = Math.round((el.clientWidth * H) / (b.width + 2 * pad)) + "px";
         }
       } catch (e) {}
     };
     if (!moments.length) { fit(); return; }
     const KEYS = flat ? ["c", "db", "d", "eb", "e", "f", "f#", "g", "ab", "a", "bb", "b"] : ["c", "c#", "d", "d#", "e", "f", "f#", "g", "g#", "a", "a#", "b"];
-    const mk = (midis, clef) => {
+    const mk = (midis, clef, idx) => {
       if (!midis.length) return new GhostNote({ duration: "h" });
       const sorted = midis.slice().sort((a, b) => a - b);
       const note = new StaveNote({ keys: sorted.map((m) => KEYS[mod(m)] + "/" + (Math.floor(m / 12) - 1)), duration: "h", clef });
-      sorted.forEach((m, i) => { const k = KEYS[mod(m)]; if (k.length > 1) note.addModifier(new Accidental(k[1]), i); });
+      const col = colors && colors[idx], st = col ? { fillStyle: col, strokeStyle: col } : null;
+      sorted.forEach((m, i) => { const k = KEYS[mod(m)]; if (k.length > 1) { const acc = new Accidental(k[1]); if (st) acc.setStyle(st); note.addModifier(acc, i); } });
+      if (st) { note.setStyle(st); try { note.setStemStyle(st); } catch (e) {} }
       return note;
     };
-    const tn = trebleDisp.map((m) => mk(m, "treble")), bn = bassDisp.map((m) => mk(m, "bass"));
+    const tn = trebleDisp.map((m, i) => mk(m, "treble", i)), bn = bassDisp.map((m, i) => mk(m, "bass", i));
     const beats = moments.length * 2;
     const vt = new Voice({ num_beats: beats, beat_value: 4 }).setStrict(false).addTickables(tn);
     const vb = new Voice({ num_beats: beats, beat_value: 4 }).setStrict(false).addTickables(bn);
@@ -468,7 +476,7 @@ details.settings summary { cursor: pointer; font-size: 11px; letter-spacing: 0.1
     marks.forEach((k) => {
       const black = isBlack(k.midi);
       const cx = black ? xOf.get(k.midi - 1) + kw : xOf.get(k.midi) + kw / 2, cy = black ? h * 0.6 - markR - 3 : h - markR - 13;
-      p.push(`<g pointer-events="none"><circle cx="${cx}" cy="${cy}" r="${markR}" fill="#b07a5a" stroke="#fff" stroke-width="1.5"/><text x="${cx}" y="${cy + markFont * 0.37}" text-anchor="middle" font-size="${markFont}" font-weight="700" fill="#fff" font-family="Helvetica,Arial,sans-serif">${k.label}</text></g>`);
+      p.push(`<g pointer-events="none"><circle cx="${cx}" cy="${cy}" r="${markR}" fill="${k.color || "#b07a5a"}" stroke="#fff" stroke-width="1.5"/><text x="${cx}" y="${cy + markFont * 0.37}" text-anchor="middle" font-size="${markFont}" font-weight="700" fill="${k.ink || "#fff"}" font-family="Helvetica,Arial,sans-serif">${k.label}</text></g>`);
     });
     const size = phone ? ` style="width:${W}px;height:${h}px"` : "";   // one drawing unit = one pixel on phones
     el.innerHTML = `<svg viewBox="0 0 ${W} ${h}" preserveAspectRatio="xMidYMid meet"${size}>${p.join("")}</svg>`;
@@ -497,22 +505,38 @@ details.settings summary { cursor: pointer; font-size: 11px; letter-spacing: 0.1
     const maxN = Math.max(0, ...S.ints);
     $("int-sub").textContent = `${S.progMode ? nProg() + " notes in a row · " : ""}${d} · up to ${maxN <= 12 ? "an octave" : maxN === 24 ? "two octaves" : maxN + " semitones"} · roots C${S.regLo}–C${S.regHi}`;
   }
+  // the colour of each interval of a progression, in order (ROYGBIV); the notes it leads to wear it too
+  const STEP_COLORS = [["#d1453b", "#fff"], ["#e08a2c", "#fff"], ["#d4b21f", "#3d3a30"], ["#5f9e44", "#fff"], ["#3f7fbf", "#fff"], ["#4a4aa8", "#fff"], ["#8a4fb0", "#fff"]];
+  const stepColors = (n) => Array.from({ length: n }, (_, i) => (i === 0 ? null : STEP_COLORS[i - 1][0]));   // the first note is the start, so it has no interval colour
+  function guessNotes() {   // the notes your answers so far spell out: from the first note, each answer goes the way that step really went
+    const g = [Q.notes[0]];
+    Q.picks.forEach((p, k) => {
+      const from = g[k], down = Q.notes[k + 1] < Q.notes[k]; let to = down ? from - p : from + p;
+      if (to < LOW || to > HIGH) to = down ? from + p : from - p;
+      g.push(to);
+    });
+    return g;
+  }
   function drawIntervalVisuals() {
     if (!Q) return;
-    const label = (m) => noteName(m).replace(/\d/, "");
-    if (Q.multi) {   // a progression: the first note until the last interval is answered, then every note
-      const shown = qAnswered ? Q.notes : [Q.notes[0]];
-      renderStaff($("int-staff"), shown.map((m) => [m]), false, undefined, Q.notes, Q.notes.length);
-      renderKeyboard($("int-kbd"), [...new Set(shown)].map((m) => ({ midi: m, label: label(m) })));
+    const label = (m) => noteName(m).replace(/\d/, ""), prog = !!Q.multi;
+    $("int-staff").classList.toggle("prog", prog);
+    $("int-lab-you").hidden = !prog; $("int-lab-cor").hidden = !(prog && qAnswered); $("int-staff-correct").hidden = !(prog && qAnswered);
+    const hear = (moments) => (i) => { gestured = true; cancelPlay(); const t = audio().currentTime + 0.02; (moments[i] || []).forEach((m) => tone(m, t, 1.3, moments[i].length > 1 ? 0.16 : 0.24)); };   // pressing a note on the staff plays it
+    if (prog) {   // a progression: your answer so far on one staff, the correct one under it once the last interval is answered
+      const guess = guessNotes(), basis = Q.notes.concat(guess), gm = guess.map((m) => [m]);
+      renderStaff($("int-staff"), gm, false, hear(gm), basis, Q.notes.length, stepColors(gm.length));
+      if (qAnswered) {
+        const cm = Q.notes.map((m) => [m]), marks = new Map();
+        renderStaff($("int-staff-correct"), cm, false, hear(cm), basis, Q.notes.length, stepColors(cm.length));
+        Q.notes.forEach((m, i) => marks.set(m, i === 0 ? { midi: m, label: label(m) } : { midi: m, label: label(m), color: STEP_COLORS[i - 1][0], ink: STEP_COLORS[i - 1][1] }));   // the piano shows only the correct answer
+        renderKeyboard($("int-kbd"), [...marks.values()]);
+      } else renderKeyboard($("int-kbd"), [{ midi: Q.notes[0], label: label(Q.notes[0]) }]);
       return;
     }
-    if (!qAnswered) {   // only the first note is shown until you answer (for a harmonic interval, its lower note)
-      renderStaff($("int-staff"), [[Q.first]], false, undefined, [Q.first, Q.second]);
-      renderKeyboard($("int-kbd"), [{ midi: Q.first, label: label(Q.first) }]);
-    } else {
-      renderStaff($("int-staff"), Q.dir === "both" ? [Q.lo === Q.hi ? [Q.lo] : [Q.lo, Q.hi]] : [[Q.first], [Q.second]], false, undefined, [Q.first, Q.second]);
-      renderKeyboard($("int-kbd"), [...new Set([Q.first, Q.second])].map((m) => ({ midi: m, label: label(m) })));
-    }
+    const moments = !qAnswered ? [[Q.first]] : Q.dir === "both" ? [Q.lo === Q.hi ? [Q.lo] : [Q.lo, Q.hi]] : [[Q.first], [Q.second]];   // only the first note is shown until you answer (for a harmonic interval, its lower note)
+    renderStaff($("int-staff"), moments, false, hear(moments), [Q.first, Q.second]);
+    renderKeyboard($("int-kbd"), (qAnswered ? [...new Set([Q.first, Q.second])] : [Q.first]).map((m) => ({ midi: m, label: label(m) })));
   }
   const ivName = (n) => INTERVALS.find((i) => i.n === n).name;
   const stepTruth = (k) => Math.abs(Q.notes[k + 1] - Q.notes[k]);   // the interval between note k and note k + 1 of a progression
@@ -546,14 +570,15 @@ details.settings summary { cursor: pointer; font-size: 11px; letter-spacing: 0.1
     host.innerHTML = "";
     for (let k = 0; k < Q.n; k++) {
       const p = Q.picks[k], b = document.createElement("button");
-      b.type = "button"; b.className = "slotchip";
+      b.type = "button"; b.className = "slotchip" + (p === undefined ? " open" : "");
+      b.style.setProperty("--c", STEP_COLORS[k][0]); b.style.setProperty("--ink", STEP_COLORS[k][1]);
       let text = "<b>" + (k + 1) + "</b> " + (p === undefined ? "?" : ivName(p));
-      if (qAnswered) { const ok = p === stepTruth(k); b.classList.add(ok ? "right" : "wrong"); if (!ok) text += " → " + ivName(stepTruth(k)); if (k === Q.cur) b.classList.add("cur"); }
+      if (qAnswered) { const ok = p === stepTruth(k); b.classList.add(ok ? "right" : "wrong"); text = (ok ? "✓ " : "✗ ") + text; if (!ok) text += " → " + ivName(stepTruth(k)); if (k === Q.cur) b.classList.add("cur"); }
       else if (k === Q.picks.length) b.classList.add("cur");
       b.innerHTML = text;
       b.addEventListener("click", () => {
         if (qAnswered) { Q.cur = k; drawSlots(); }               // after the answer: pick the step an interval is then heard from
-        else if (p !== undefined) { Q.picks.length = k; drawSlots(); }   // before it: clicking a chip you have filled takes that answer (and the ones after it) back
+        else if (p !== undefined) { Q.picks.length = k; drawSlots(); drawIntervalVisuals(); }   // before it: clicking a chip you have filled takes that answer (and the ones after it) back
       });
       host.appendChild(b);
     }
@@ -561,7 +586,7 @@ details.settings summary { cursor: pointer; font-size: 11px; letter-spacing: 0.1
   function pickStep(n) {   // each click answers the next interval in order; the last click gives the verdict
     if (qAnswered || Q.picks.length >= Q.n) return;
     Q.picks.push(n);
-    if (Q.picks.length < Q.n) { drawSlots(); return; }
+    if (Q.picks.length < Q.n) { drawSlots(); drawIntervalVisuals(); return; }   // a note joins your staff with every click
     qAnswered = true; Q.cur = 0;
     let right = 0; Q.picks.forEach((p, k) => { if (p === stepTruth(k)) right++; });
     const all = right === Q.n;
