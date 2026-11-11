@@ -459,16 +459,11 @@ details.settings summary { cursor: pointer; font-size: 11px; letter-spacing: 0.1
   }
   const KBD = { kw: 26, h: 112 };
   function renderKeyboard(el, marks, focus) {   // marks: [{midi, label}]; focus: the midis to keep in view (default: all marks)
-    // phones: 12 white keys (a perfect 12th, C up to the G an octave and a fifth above) across the strip, 82 px tall so
-    // they're easy to tap. The keyboard scrolls the full 88 keys and centres on the notes in focus. When the marked notes
-    // span more than that (a wide interval, once it's answered), the keys shrink just enough to show them all; before an
-    // answer only the first note is marked, so the key size never hints at the answer. Wider screens fit all 88 keys to the width.
+    // phones: always 12 white keys (a perfect 12th, C up to the G an octave and a fifth above) across the strip, 82 px tall so
+    // they're easy to tap. The keyboard scrolls the full 88 keys and centres on the notes in focus; when they don't all fit
+    // (an answered interval wider than that), it stays on the first note and you scroll to the rest. Wider screens fit all 88 keys to the width.
     const phone = PHONE.matches;
-    const whiteIdx = (m) => 7 * Math.floor(m / 12) + [0, 0, 1, 1, 2, 3, 3, 4, 4, 5, 5, 6][mod(m)];   // a black key counts as its white neighbour below
-    const shown = marks.map((k) => k.midi);
-    const span = shown.length ? whiteIdx(Math.max(...shown)) - whiteIdx(Math.min(...shown)) + 2 : 0;   // the marked keys plus half a key's room each side
-    const across = Math.max(12, span);
-    const kw = phone ? Math.floor(((el.clientWidth || 322) / across) * 10) / 10 : KBD.kw;
+    const kw = phone ? Math.floor(((el.clientWidth || 322) / 12) * 10) / 10 : KBD.kw;
     const h = phone ? 82 : KBD.h, bw = phone ? Math.round(kw * 0.6) : 16;
     const markR = phone ? Math.min(13, kw / 2 - 1) : 13, markFont = phone ? 10 : 12;   // a note's label marker fits inside its key
     const isBlack = (m) => [1, 3, 6, 8, 10].includes(mod(m));
@@ -492,7 +487,9 @@ details.settings summary { cursor: pointer; font-size: 11px; letter-spacing: 0.1
     el.innerHTML = `<svg viewBox="0 0 ${W} ${h}" preserveAspectRatio="xMidYMid meet"${size}>${p.join("")}</svg>`;
     const keep = focus && focus.length ? focus : marks.map((k) => k.midi);
     if (keep.length && el.scrollWidth > el.clientWidth) {   // phones: scroll so the notes in focus sit centred, key edges included
-      const edges = keep.map((m) => isBlack(m) ? [xOf.get(m - 1) + kw - bw / 2, xOf.get(m - 1) + kw + bw / 2] : [xOf.get(m), xOf.get(m) + kw]);
+      const edgesOf = (ms) => ms.map((m) => isBlack(m) ? [xOf.get(m - 1) + kw - bw / 2, xOf.get(m - 1) + kw + bw / 2] : [xOf.get(m), xOf.get(m) + kw]);
+      let edges = edgesOf(keep);
+      if (Math.max(...edges.map((e) => e[1])) - Math.min(...edges.map((e) => e[0])) > el.clientWidth) edges = edgesOf([keep[0]]);   // too wide to show together: stay on the first note
       const left = Math.min(...edges.map((e) => e[0])), right = Math.max(...edges.map((e) => e[1]));
       el.scrollLeft = Math.max(0, ((left + right) / 2 / W) * el.scrollWidth - el.clientWidth / 2);
     }
