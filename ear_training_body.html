@@ -56,6 +56,7 @@ main { max-width: 1100px; margin: 0 auto; padding: 10px 16px 90px; }
 .status { min-height: 40px; margin: 8px 0 4px; font-size: 14px; line-height: 1.4; }
 .status.good { color: var(--good); }
 .status.bad { color: var(--bad); }
+.status.close { color: var(--clay); }
 .hint { font-size: 12px; color: var(--sage); }
 
 .answers { display: grid; gap: 6px; margin-top: 6px; }
@@ -70,7 +71,7 @@ main { max-width: 1100px; margin: 0 auto; padding: 10px 16px 90px; }
 .setrow label.off { opacity: 0.45; }
 .slotrow { display: flex; flex-wrap: wrap; gap: 6px; margin: 6px 0 2px; }
 .slotrow[hidden] { display: none; }
-/* each interval of a progression has its own colour (red, orange, yellow, green, blue, indigo, violet) on its text; the ring shows right or wrong */
+/* each interval of a progression has its own colour (blue, orange, violet, gold, sky, brown, slate) on its text; the ring shows right or wrong */
 .slotchip { --c: #3d3a30; font: inherit; font-size: 12px; padding: 8px 12px; border: 1px solid var(--wheat); background: #fff; color: var(--c); cursor: pointer; border-radius: 18px; }
 .slotchip b { margin-right: 4px; }
 .slotchip.cur { font-weight: 700; text-decoration: underline; border-color: var(--c); }
@@ -331,9 +332,15 @@ details.settings summary { cursor: pointer; font-size: 11px; letter-spacing: 0.1
   function tone(midi, t, dur, level) {
     const c = audio();
     // the shared synth (Playback panel: tone, envelope, reverb); the level is lower for stacked chord tones so nothing clips
-    voices.push(FretlineAudio.note(c, { midi, t, dur, level }).osc);
+    const v = Object.assign(FretlineAudio.note(c, { midi, t, dur, level }), { t, end: t + dur });
+    voices.push(v);
+    return v;
   }
-  function stopAll() { voices.forEach((o) => { try { o.stop(); } catch (e) {} }); voices = []; }
+  // Stopping a sounding note dead is a click, so notes already playing fade out over a few ms instead; notes not yet started are just dropped.
+  function fadeOut(v) {
+    try { if (v.t > audio().currentTime + 0.005) v.osc.stop(); else v.release(true); } catch (e) {}
+  }
+  function stopAll() { voices.forEach(fadeOut); voices = []; }
   let playToken = 0, timers = [];
   function afterPlay(ms, fn) { timers.push(setTimeout(fn, ms)); }
   function cancelPlay() { stopAll(); timers.forEach(clearTimeout); timers = []; playToken++; }
@@ -447,12 +454,16 @@ details.settings summary { cursor: pointer; font-size: 11px; letter-spacing: 0.1
   }
   const KBD = { kw: 26, h: 112 };
   function renderKeyboard(el, marks, focus) {   // marks: [{midi, label}]; focus: the midis to keep in view (default: all marks)
-    // phones: the keys are the size the Sightreading keyboard shrinks to, 15 white keys (two octaves, C to C) across the
-    // strip, 82 px tall so they're easy to tap. The keyboard scrolls the full 88 keys and centres on the notes in focus,
-    // and since no interval is wider than two octaves, both of its notes are always on screen. Wider screens fit all 88
-    // keys to the width as before.
+    // phones: 12 white keys (a perfect 12th, C up to the G an octave and a fifth above) across the strip, 82 px tall so
+    // they're easy to tap. The keyboard scrolls the full 88 keys and centres on the notes in focus. When the marked notes
+    // span more than that (a wide interval, once it's answered), the keys shrink just enough to show them all; before an
+    // answer only the first note is marked, so the key size never hints at the answer. Wider screens fit all 88 keys to the width.
     const phone = PHONE.matches;
-    const kw = phone ? Math.floor(((el.clientWidth || 322) / 15) * 10) / 10 : KBD.kw;
+    const whiteIdx = (m) => 7 * Math.floor(m / 12) + [0, 0, 1, 1, 2, 3, 3, 4, 4, 5, 5, 6][mod(m)];   // a black key counts as its white neighbour below
+    const shown = marks.map((k) => k.midi);
+    const span = shown.length ? whiteIdx(Math.max(...shown)) - whiteIdx(Math.min(...shown)) + 2 : 0;   // the marked keys plus half a key's room each side
+    const across = Math.max(12, span);
+    const kw = phone ? Math.floor(((el.clientWidth || 322) / across) * 10) / 10 : KBD.kw;
     const h = phone ? 82 : KBD.h, bw = phone ? Math.round(kw * 0.6) : 16;
     const markR = phone ? Math.min(13, kw / 2 - 1) : 13, markFont = phone ? 10 : 12;   // a note's label marker fits inside its key
     const isBlack = (m) => [1, 3, 6, 8, 10].includes(mod(m));
@@ -499,9 +510,10 @@ details.settings summary { cursor: pointer; font-size: 11px; letter-spacing: 0.1
     const maxN = Math.max(0, ...S.ints);
     $("int-sub").textContent = `${S.progMode ? nProg() + " notes in a row · " : ""}${d} · up to ${maxN <= 12 ? "an octave" : maxN === 24 ? "two octaves" : maxN + " semitones"} · roots C${S.regLo}–C${S.regHi}`;
   }
-  // the colour of each interval of a progression, in order (ROYGBIV); the notes it leads to wear it too
-  const STEP_COLORS = [["#d1453b", "#fff"], ["#e08a2c", "#fff"], ["#d4b21f", "#3d3a30"], ["#5f9e44", "#fff"], ["#3f7fbf", "#fff"], ["#4a4aa8", "#fff"], ["#8a4fb0", "#fff"]];
-  const STEP_TEXT = ["#c0392b", "#c9701a", "#a8860a", "#4d8a35", "#2f6fae", "#4a4aa8", "#8a4fb0"];   // the same colours, a little darker where needed so the text reads on white
+  // the colour of each interval of a progression, in order; the notes it leads to wear it too. No reds or greens, and
+  // neighbouring steps differ in both hue and lightness so they stay apart: blue, orange, violet, gold, sky, brown, slate
+  const STEP_COLORS = [["#2f5fa8", "#fff"], ["#e08a2c", "#fff"], ["#8a4fb0", "#fff"], ["#d4b21f", "#3d3a30"], ["#4aa3d9", "#fff"], ["#8b5a2b", "#fff"], ["#5f6672", "#fff"]];
+  const STEP_TEXT = ["#2f5fa8", "#c9701a", "#8a4fb0", "#a8860a", "#2a83b9", "#8b5a2b", "#5f6672"];   // the same colours, a little darker where needed so the text reads on white
   const stepColors = (n) => Array.from({ length: n }, (_, i) => (i === 0 ? null : STEP_COLORS[i - 1][0]));   // the first note is the start, so it has no interval colour
   function guessNotes() {   // the notes your answers so far spell out: from the first note, each answer goes the way that step really went
     const g = [Q.notes[0]];
@@ -534,6 +546,9 @@ details.settings summary { cursor: pointer; font-size: 11px; letter-spacing: 0.1
     renderKeyboard($("int-kbd"), (qAnswered ? [...new Set([Q.first, Q.second])] : [Q.first]).map((m) => ({ midi: m, label: label(m) })));
   }
   const ivName = (n) => INTERVALS.find((i) => i.n === n).name;
+  // how near an answer is: right, close (a half step off, or the right interval an octave off), or wrong
+  const nearness = (guess, truth) => guess === truth ? "good" : Math.abs(guess - truth) === 1 || Math.abs(guess - truth) === 12 ? "close" : "bad";
+  const VERDICT = { good: "Correct", close: "Close", bad: "Incorrect" };
   const stepTruth = (k) => Math.abs(Q.notes[k + 1] - Q.notes[k]);   // the interval between note k and note k + 1 of a progression
   function newMelody(autoplay) {   // progression mode: several notes in a row; click their intervals in order
     const N = nProg();
@@ -586,9 +601,9 @@ details.settings summary { cursor: pointer; font-size: 11px; letter-spacing: 0.1
     let right = 0; Q.picks.forEach((p, k) => { if (p === stepTruth(k)) right++; });
     const all = right === Q.n;
     S.score.int.n++; if (all) S.score.int.ok++; save(); showScore();
-    $("int-status").className = "status " + (all ? "good" : "bad");
-    $("int-status").textContent = (all ? "Correct! " : `${right} of ${Q.n} intervals right. `) + Q.notes.map((m) => noteName(m)).join(" → ") +
-      ". Click a numbered step, then any interval, to hear it from that step's first note.";
+    const v = all ? "good" : Q.picks.every((p, k) => nearness(p, stepTruth(k)) !== "bad") ? "close" : "bad";   // close: every step right or close
+    $("int-status").className = "status " + v;
+    $("int-status").textContent = VERDICT[v];
     drawIntervalVisuals(); drawSlots();
     $("int-next").disabled = false;
   }
@@ -647,14 +662,13 @@ details.settings summary { cursor: pointer; font-size: 11px; letter-spacing: 0.1
     if (!Q || qAnswered) return;
     if (Q.multi) { pickStep(n); return; }
     qAnswered = true;
-    const ok = n === Q.n, correct = INTERVALS.find((i) => i.n === Q.n);
+    const ok = n === Q.n;
     S.score.int.n++; if (ok) S.score.int.ok++; save(); showScore();
     intBtns.forEach((b) => { if (+b.dataset.n === Q.n) b.classList.add("right"); });
     if (!ok) btn.classList.add("wrong");
-    const dirName = { up: "ascending", down: "descending", both: "harmonic" }[Q.dir];
-    $("int-status").className = "status " + (ok ? "good" : "bad");
-    $("int-status").textContent = (ok ? "Correct! " : "Not quite. ") + `That was a ${correct.name} (${dirName}): ${noteName(Q.first)} ${Q.dir === "both" ? "+" : "→"} ${noteName(Q.second)}. Click any interval to hear it from the same starting note.`;
-    const mom = Q.dir === "both" ? [[Q.lo, Q.hi]] : [[Q.first], [Q.second]];
+    const v = nearness(n, Q.n);
+    $("int-status").className = "status " + v;
+    $("int-status").textContent = VERDICT[v];
     drawIntervalVisuals();
     $("int-next").disabled = false;
   }
@@ -1050,15 +1064,37 @@ details.settings summary { cursor: pointer; font-size: 11px; letter-spacing: 0.1
     showScore();
   }
   document.addEventListener("pointerdown", () => { gestured = true; }, { once: true });
-  for (const kbdId of ["int-kbd", "cq-kbd"]) $(kbdId).addEventListener("pointerdown", (e) => {
-    const k = e.target.closest && e.target.closest("[data-midi]");
-    if (!k) return;
+  // Keys pressed on the on-screen piano. Several can ring at once, but the louder they stack the more the output clips (a crackle),
+  // so each new one comes in a little quieter the more are still sounding, and past three the oldest fades out.
+  let taps = [];
+  function pressKey(k) {
     gestured = true;
-    tone(+k.dataset.midi, audio().currentTime + 0.01, 1.3, 0.26);
+    const now = audio().currentTime;
+    taps = taps.filter((v) => v.end > now);
+    while (taps.length >= 3) fadeOut(taps.shift());
+    taps.push(tone(+k.dataset.midi, now + 0.01, 1.3, 0.26 / Math.sqrt(taps.length + 1)));
     const was = k.getAttribute("fill");                       // brief press feedback
     k.setAttribute("fill", was === "#fff" ? "#e0d7c4" : "#6b6658");
     setTimeout(() => k.setAttribute("fill", was), 180);
-  });
+  }
+  for (const kbdId of ["int-kbd", "cq-kbd"]) {
+    const el = $(kbdId); let down = null;
+    // a mouse plays on press; a finger plays when it lifts, and only if it didn't move or scroll the keyboard (a swipe to scroll plays nothing)
+    el.addEventListener("pointerdown", (e) => {
+      const k = e.target.closest && e.target.closest("[data-midi]");
+      if (!k) return;
+      if (e.pointerType === "mouse") { pressKey(k); return; }
+      down = { k, x: e.clientX, y: e.clientY, scroll: el.scrollLeft, id: e.pointerId };
+    });
+    el.addEventListener("pointerup", (e) => {
+      const d = down; down = null;
+      if (!d || d.id !== e.pointerId) return;
+      if (Math.hypot(e.clientX - d.x, e.clientY - d.y) > 10 || Math.abs(el.scrollLeft - d.scroll) > 2) return;
+      pressKey(d.k);
+    });
+    el.addEventListener("pointercancel", () => { down = null; });   // the browser took the touch over for a scroll
+    el.addEventListener("scroll", () => { down = null; }, { passive: true });
+  }
   $("mode-int").addEventListener("click", () => setMode("int"));
   $("mode-cq").addEventListener("click", () => setMode("cq"));
   $("mode-chd").addEventListener("click", () => setMode("chd"));
