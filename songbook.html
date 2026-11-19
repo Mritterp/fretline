@@ -65,11 +65,17 @@ main { max-width: 1300px; margin: 0 auto; padding: 14px 16px 90px; }
 .seg button { font: inherit; font-size: 10px; letter-spacing: 0.14em; text-transform: uppercase; padding: 8px 12px; border: 0; background: transparent; color: var(--moss); cursor: pointer; }
 .seg button + button { border-left: 1px solid var(--wheat); }
 .seg button[aria-pressed="true"] { background: var(--bark); color: var(--parchment); }
-.paper { background: #fff; border: 1px solid var(--wheat); padding: 6px 4px; overflow-x: auto; }
-#score svg { display: block; }
-#score .hit { fill: transparent; cursor: pointer; }
-#score .hit:hover { fill: rgba(176, 122, 90, 0.08); }
-#score .hit.on { fill: rgba(176, 122, 90, 0.22); }
+/* the notation looks as it does on the Sightreading page */
+.stage-card { border: 1px solid var(--wheat); background: var(--parchment); padding: 26px 22px 22px; }
+#score { overflow-x: auto; }
+#score svg { display: block; max-width: 100%; }
+.notation-svg * { fill: var(--bark); stroke: var(--bark); }
+.notation-svg .measure-hit { fill: transparent; stroke: none; pointer-events: all; cursor: pointer; }
+.notation-svg .measure-hit:hover { fill: color-mix(in srgb, var(--sage) 14%, transparent); }
+.notation-svg .measure-hit.measure-selected { fill: color-mix(in srgb, var(--clay) 20%, transparent); }
+.notation-svg .measure-number { fill: var(--sage); font-family: var(--font-body); }
+.notation-svg .note-active rect, .notation-svg .note-active path, .notation-svg .note-active ellipse { fill: var(--clay); stroke: var(--clay); }
+.notation-svg .vf-annotation text { stroke: none; }
 .credit { margin: 12px 0 0; font-size: 12px; line-height: 1.6; color: var(--moss); max-width: 900px; }
 .credit a { color: var(--clay); }
 .credit .fine { color: var(--sage); }
@@ -123,7 +129,7 @@ main { max-width: 1300px; margin: 0 auto; padding: 14px 16px 90px; }
       <label class="ctl"><input type="checkbox" id="names"> Note names</label>
     </div>
     <div class="status" id="status"></div>
-    <div class="paper"><div id="score"></div></div>
+    <div class="stage-card"><div id="score"></div></div>
     <p class="credit" id="credit"></p>
     <p class="keys"><span><kbd>Space</kbd> play / pause</span><span><kbd>Esc</kbd> stop</span><span>click a bar to start from it</span></p>
   </section>
@@ -222,20 +228,56 @@ main { max-width: 1300px; margin: 0 auto; padding: 14px 16px 90px; }
   $("back").addEventListener("click", () => { stopPlayback(true); piece = null; $("piece").hidden = true; $("list").hidden = false; saved.piece = null; save(); drawList(); });
 
   // ---------- drawing the score ----------
-  const STAFF_H = 80, ROWH = 150, TOP = 50;
-  let barHits = [], rowOf = [];
+  // Sightreading's layout rules (fretline_body.html): bar sizes from VexFlow's own minimum widths, every row the same number of bars, bars scaled up (never down) to fill the row
+  const MIN_BAR_WIDTH = 130;
+  const SPACING_SOFTMAX_FACTOR = 5;
+  const MEASURE_PADDING = 30;
+  const ROW_HEIGHT = 200, TOP_MARGIN = 40;
+  function computeRows(measureMinWidths, containerWidth) {
+    const ROW_EXTRA = 85; // clef + key signature, repeated at the start of every row
+    const TIME_SIG_EXTRA = 34; // extra room for the time signature, only on the piece's first measure
+    const MARGIN = 20;
+
+    const total = measureMinWidths.length;
+    const extraFor = (rowIdx) => ROW_EXTRA + (rowIdx === 0 ? TIME_SIG_EXTRA : 0);
+    const availFor = (rowIdx) => Math.max(containerWidth - extraFor(rowIdx) - MARGIN, MIN_BAR_WIDTH);
+    const sum = (from, count) => measureMinWidths.slice(from, from + count).reduce((a, b) => a + b, 0);
+    // k bars per row fits if every row's content fits its width (a single bar always "fits": it can't go any smaller)
+    const fits = (k) => {
+      for (let start = 0, r = 0; start < total; start += k, r++) {
+        if (k > 1 && sum(start, Math.min(k, total - start)) > availFor(r)) return false;
+      }
+      return true;
+    };
+    let perRow = 1;
+    for (let k = total; k > 1; k--) {
+      if (fits(k)) { perRow = k; break; }   // (Sightreading also requires k to divide the bar count, which suits its 4/8/12/16-bar lines but leaves most songs at one bar a row: here the last row may be shorter)
+    }
+
+    const rows = [];
+    for (let idx = 0, rowIdx = 0; idx < total; idx += perRow, rowIdx++) {
+      const count = Math.min(perRow, total - idx);
+      const extra = extraFor(rowIdx);
+      const scale = Math.max(1, availFor(rowIdx) / sum(idx, count));
+      const widths = [];
+      for (let i = 0; i < count; i++) widths.push(measureMinWidths[idx + i] * scale);
+      rows.push({ startIndex: idx, count, extra, widths });
+    }
+    return rows;
+  }
+  let barHits = [], rowOf = [], barNotes = [], activeNotes = [];
   let showNames = !!saved.names;
   $("names").checked = showNames;
   $("names").addEventListener("change", () => { showNames = $("names").checked; saved.names = showNames; save(); if (piece) safeRender(); });
   const NAMES = "CDEFGAB";
-  const noteName = (n) => NAMES[n[0]] + (n[1] > 0 ? "♯".repeat(n[1]) : n[1] < 0 ? "♭".repeat(-n[1]) : "");
+  const noteName = (n) => NAMES[n[0]] + (n[1] > 0 ? "\u266f".repeat(n[1]) : n[1] < 0 ? "\u266d".repeat(-n[1]) : "");
   function safeRender() {
     try { render(); } catch (e) { console.error(e); $("status").className = "status bad"; $("status").textContent = "This piece could not be drawn (" + (e && e.message ? e.message : e) + ")."; }
   }
   function render() {
-    const host = $("score"); host.innerHTML = ""; barHits = []; rowOf = [];
+    const host = $("score"); host.innerHTML = ""; barHits = []; rowOf = []; barNotes = []; activeNotes = [];
     if (!piece) return;
-    const SCREEN = Math.max(300, ($("score").parentElement.clientWidth || 800) - 14), W = Math.max(SCREEN, 560);   // a narrow screen gets the layout of a 560 px page, scaled down to fit
+    const containerWidth = Math.max($("score").clientWidth || 640, 260);
     // 1. one set of VexFlow notes per bar, and how wide each needs to be
     let keyNow = piece.bars[0].ks || "C"; const built = [], keyAtCache = [];
     // a pitch tied from the note before it keeps its accidental
@@ -246,48 +288,46 @@ main { max-width: 1300px; margin: 0 auto; padding: 14px 16px 90px; }
       lastTie[vi] = new Set(it.n.filter((n) => n[3]).map(writtenMidi));
     })));
     piece.bars.forEach((bar, bi) => { if (bar.ks) keyNow = bar.ks; keyAtCache[bi] = keyNow; built.push(makeBar(bar, bi, keyAlters(keyNow), cont)); });
-    const MARGIN = 14, minW = built.map((b) => Math.max(70, b.width + 28));
-    // 2. rows: clef and key signature at the start of each, a time signature wherever it changes
-    const extraFor = (bi, first) => (first ? 74 + 11 * Math.abs(KEY_SIG[keyAtCache[bi]] || 0) : 0) + (piece.bars[bi].ts ? 30 : 0);
-    const rows = []; let cur = [], used = 0;
-    piece.bars.forEach((bar, bi) => {
-      const need = minW[bi] + extraFor(bi, cur.length === 0);
-      if (cur.length && used + need > W - MARGIN) { rows.push(cur); cur = []; used = 0; }
-      cur.push(bi); used += minW[bi] + extraFor(bi, cur.length === 1);
-    });
-    if (cur.length) rows.push(cur);
-    const height = TOP + rows.length * ROWH + 10;
-    const renderer = new Renderer(host, Renderer.Backends.SVG); renderer.resize(W, height);
-    const ctx = renderer.getContext(), svg = host.querySelector("svg");
-    svg.setAttribute("viewBox", "0 0 " + W + " " + height); svg.setAttribute("width", SCREEN); svg.setAttribute("height", Math.round((height * SCREEN) / W)); svg.style.width = SCREEN + "px"; svg.style.height = Math.round((height * SCREEN) / W) + "px";
+    // a bar's minimum width: what its notes need, never less than Sightreading's minimum (a time signature in mid-piece needs room too)
+    const measureMinWidths = built.map((b, bi) => Math.max(MIN_BAR_WIDTH, b.width + MEASURE_PADDING) + (bi > 0 && piece.bars[bi].ts ? 34 : 0));
+    const rows = computeRows(measureMinWidths, containerWidth);
+    const totalHeight = TOP_MARGIN + rows.length * ROW_HEIGHT + 30;
+    const renderer = new Renderer(host, Renderer.Backends.SVG); renderer.resize(containerWidth, totalHeight);
+    const ctx = renderer.getContext(), svg = host.querySelector("svg"); svg.classList.add("notation-svg");
     // 3. draw
     const placed = new Map();   // item -> {note, row}
     rows.forEach((row, ri) => {
-      const y0 = TOP + ri * ROWH - 18;
-      const natural = row.map((bi, k) => minW[bi] + extraFor(bi, k === 0)), sum = natural.reduce((a, b) => a + b, 0), avail = W - MARGIN, last = ri === rows.length - 1;
-      const scale = last ? Math.min(1.3, Math.max(1, avail / sum)) : Math.max(1, avail / sum);
-      let x = 6;
-      row.forEach((bi, k) => {
-        const bar = piece.bars[bi], b = built[bi], first = k === 0, w = Math.round(natural[k] * scale);
-        const st = new Stave(x, y0, w);
-        if (first) { st.addClef("treble", "default", "8vb"); st.addKeySignature(keyAtCache[bi]); st.setMeasure(bi + 1); }
+      const rowY = TOP_MARGIN + ri * ROW_HEIGHT;
+      let x = 10; const rowStartX = x;
+      const numEl = document.createElementNS(SVG_NS, "text");
+      numEl.setAttribute("x", String(rowStartX + 1)); numEl.setAttribute("y", String(rowY - 8)); numEl.setAttribute("class", "measure-number");
+      numEl.setAttribute("font-size", "8.5"); numEl.setAttribute("letter-spacing", "0.14em"); numEl.textContent = String(row.startIndex + 1).padStart(2, "0");
+      svg.appendChild(numEl);
+      const ovaEl = document.createElementNS(SVG_NS, "text");   // the 8 under the clef: guitar sounds an octave below where it is written
+      ovaEl.setAttribute("x", String(rowStartX + 18)); ovaEl.setAttribute("y", String(rowY + 40 + 22)); ovaEl.setAttribute("font-family", "Georgia, serif"); ovaEl.setAttribute("font-size", "13"); ovaEl.textContent = "8";
+      svg.appendChild(ovaEl);
+      for (let i = 0; i < row.count; i++) {
+        const bi = row.startIndex + i, bar = piece.bars[bi], b = built[bi], isRowFirst = i === 0, w = row.widths[i] + (isRowFirst ? row.extra : 0);
+        const hit = document.createElementNS(SVG_NS, "rect");
+        hit.setAttribute("x", String(x)); hit.setAttribute("y", String(rowY - 35)); hit.setAttribute("width", String(w)); hit.setAttribute("height", String(ROW_HEIGHT - 15)); hit.setAttribute("class", "measure-hit");
+        hit.addEventListener("click", () => startFrom(bi)); svg.appendChild(hit); barHits[bi] = hit; rowOf[bi] = ri;
+        const st = new Stave(x, rowY, w);
+        if (isRowFirst) { st.addClef("treble"); st.addKeySignature(keyAtCache[bi]); if (bi === 0) st.addTimeSignature(bar.ts[0] + "/" + bar.ts[1]); }
         else if (bar.ks) st.addKeySignature(bar.ks);
-        if (bar.ts) st.addTimeSignature(bar.ts[0] + "/" + bar.ts[1]);
+        if (bar.ts && bi > 0) st.addTimeSignature(bar.ts[0] + "/" + bar.ts[1]);
         if (bar.rs) st.setBegBarType(Barline.type.REPEAT_BEGIN);
         if (bar.re) st.setEndBarType(Barline.type.REPEAT_END); else if (bar.fin) st.setEndBarType(Barline.type.END);
         if (bar.vo) st.setVoltaType({ b: Volta.type.BEGIN, m: Volta.type.MID, e: Volta.type.END, be: Volta.type.BEGIN_END }[bar.vo.p], bar.vo.t, 0);
         st.setContext(ctx).draw();
+        x += w;
         if (b.staffVoices.length) {
-          new Formatter().joinVoices(b.staffVoices).format(b.staffVoices, Math.max(30, st.getNoteEndX() - st.getNoteStartX() - 8));
+          new Formatter({ softmaxFactor: SPACING_SOFTMAX_FACTOR }).joinVoices(b.staffVoices).format(b.staffVoices, w - (isRowFirst ? row.extra + 20 : 20));
           b.staffVoices.forEach((v) => v.draw(ctx, st));
           b.beams.forEach((bm) => bm.setContext(ctx).draw()); b.staffTuplets.forEach((t) => t.setContext(ctx).draw());
         }
         b.chain.forEach((c) => placed.set(c.item, { note: c.note, row: ri }));
-        // a clickable cover for the bar
-        const hit = document.createElementNS(SVG_NS, "rect"); hit.setAttribute("x", x); hit.setAttribute("y", y0 + 10); hit.setAttribute("width", w); hit.setAttribute("height", STAFF_H + 50); hit.setAttribute("class", "hit");
-        hit.addEventListener("click", () => startFrom(bi)); svg.appendChild(hit); barHits[bi] = hit; rowOf[bi] = ri;
-        x += w;
-      });
+        barNotes[bi] = b.chain.map((c) => ({ note: c.note, o: c.item.o, u: c.item.u, r: c.item.r }));
+      }
     });
     // 4. ties, within a row and across row ends
     piece.bars.forEach((bar, bi) => bar.v.forEach((items, vi) => items.forEach((it, idx) => {
@@ -429,21 +469,27 @@ main { max-width: 1300px; margin: 0 auto; padding: 14px 16px 90px; }
       if (!playing) return;
       const now = c.currentTime - t0; let cur = schedule[0] ? schedule[0][1] : bi;
       for (const [t, b] of schedule) { if (t <= now) cur = b; else break; }
-      if (cur !== playBar || !barHits[cur] || !barHits[cur].classList.contains("on")) { playBar = cur; highlight(cur); }
+      if (cur !== playBar || !barHits[cur] || !barHits[cur].classList.contains("measure-selected")) { playBar = cur; highlight(cur); }
+      // the notes sounding now
+      const entry = schedule.filter(([t]) => t <= now).pop(), off = entry ? (now - entry[0]) / secPerUnit : 0;
+      const sounding = (barNotes[cur] || []).filter((n) => !n.r && n.o <= off && off < n.o + n.u).map((n) => { try { return n.note.getSVGElement(); } catch (e) { return null; } }).filter(Boolean);
+      activeNotes.forEach((el) => { if (!sounding.includes(el)) el.classList.remove("note-active"); });
+      sounding.forEach((el) => el.classList.add("note-active")); activeNotes = sounding;
       if (now > total + 0.4) { stopPlayback(true); return; }
       raf = requestAnimationFrame(tick);
     };
     raf = requestAnimationFrame(tick);
   }
   function highlight(bi) {
-    barHits.forEach((h) => h && h.classList.remove("on"));
-    const h = barHits[bi]; if (!h) return; h.classList.add("on");
+    barHits.forEach((h) => h && h.classList.remove("measure-selected"));
+    const h = barHits[bi]; if (!h) return; h.classList.add("measure-selected");
     try { const r = h.getBoundingClientRect(), ph = (window.innerHeight || 700); if (r.top < 120 || r.bottom > ph - 80) h.scrollIntoView({ block: "center", behavior: "smooth" }); } catch (e) {}
   }
   function stopPlayback(reset) {
     playing = false; cancelAnimationFrame(raf);
     voicesOn.forEach((o) => { try { o.stop(); } catch (e) {} }); voicesOn = [];
-    barHits.forEach((h) => h && h.classList.remove("on"));
+    barHits.forEach((h) => h && h.classList.remove("measure-selected"));
+    activeNotes.forEach((el) => el.classList.remove("note-active")); activeNotes = [];
     if (reset) resumeBar = 0;
     else if (playBar != null) resumeBar = playBar;
     $("play").textContent = "Play";
@@ -456,7 +502,7 @@ main { max-width: 1300px; margin: 0 auto; padding: 14px 16px 90px; }
     if (e.code === "Space") { e.preventDefault(); $("play").click(); } else if (e.key === "Escape") stopPlayback(true);
   });
   let resizeTimer = null, lastW = 0;
-  window.addEventListener("resize", () => { clearTimeout(resizeTimer); resizeTimer = setTimeout(() => { const w = $("score").parentElement.clientWidth; if (piece && Math.abs(w - lastW) > 20) { lastW = w; safeRender(); } }, 200); });
+  window.addEventListener("resize", () => { clearTimeout(resizeTimer); resizeTimer = setTimeout(() => { const w = $("score").clientWidth; if (piece && Math.abs(w - lastW) > 20) { lastW = w; safeRender(); } }, 200); });
 
   // ---------- go ----------
   fetch("songs/index.json").then((r) => r.json()).then((j) => {
