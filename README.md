@@ -43,6 +43,9 @@ Live app: https://claude.ai/code/artifact/b0f71811-d152-4e1b-a595-7abeb8a99003
 - `piano_body.html` — source for the Piano page: an 88-key keyboard and a grand staff that show what you play (on a MIDI piano through Web MIDI,
   with the on-screen keys, or with the computer keyboard), and a readout that names the chord. It plays through the shared Playback synth (`fl-audio.js`).
   `splice.js` builds it into `piano.html` with the same VexFlow bundle. Edit the `_body` file, then run `node splice.js`.
+- `songbook_body.html` — source for the Songbook page: guitar sheet music with tab for folk songs, classical guitar pieces and Bach canons, ranked by an
+  estimated difficulty, with playback (tempo, metronome). The music is in `songs/`, built from the Mutopia Project's editions by `tools/songs/` (see its
+  README); credits and licenses are in `songs/CREDITS.md`. `splice.js` builds it into `songbook.html`.
 - `fretline.html` — the built, publish-ready file. **Generated — don't edit
   directly**, run `node splice.js` after editing `fretline_body.html` instead.
 - `serve.js` — a tiny static file server for local preview (no dependencies).

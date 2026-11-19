@@ -1,0 +1,450 @@
+[
+ {
+  "id": "109",
+  "section": "folk",
+  "title": "Greensleeves",
+  "composer": "Traditional",
+  "license": {
+   "name": "Public Domain",
+   "url": "https://creativecommons.org/licenses/publicdomain/"
+  },
+  "mutopiaId": "109",
+  "ly": "https://www.mutopiaproject.org/ftp/Traditional/Greensleaves/Greensleaves.ly",
+  "mid": "https://www.mutopiaproject.org/ftp/Traditional/Greensleaves/Greensleaves.mid",
+  "info": "https://www.mutopiaproject.org/cgibin/piece-info.cgi?id=109"
+ },
+ {
+  "id": "529",
+  "section": "folk",
+  "title": "Red Apple Rag",
+  "composer": "Traditional",
+  "license": {
+   "name": "Public Domain",
+   "url": "https://creativecommons.org/licenses/publicdomain/"
+  },
+  "mutopiaId": "529",
+  "ly": "https://www.mutopiaproject.org/ftp/Traditional/RedAppleRag/RedAppleRag.ly",
+  "mid": "https://www.mutopiaproject.org/ftp/Traditional/RedAppleRag/RedAppleRag.mid",
+  "info": "https://www.mutopiaproject.org/cgibin/piece-info.cgi?id=529"
+ },
+ {
+  "id": "510",
+  "section": "folk",
+  "title": "Soldier's Joy",
+  "composer": "Traditional",
+  "license": {
+   "name": "Public Domain",
+   "url": "https://creativecommons.org/licenses/publicdomain/"
+  },
+  "mutopiaId": "510",
+  "ly": "https://www.mutopiaproject.org/ftp/Traditional/soldiers-joy/soldiers-joy.ly",
+  "mid": "https://www.mutopiaproject.org/ftp/Traditional/soldiers-joy/soldiers-joy.mid",
+  "info": "https://www.mutopiaproject.org/cgibin/piece-info.cgi?id=510"
+ },
+ {
+  "id": "1121",
+  "section": "folk",
+  "title": "Auld Lang Syne",
+  "composer": "Scottish air, arr. F. Horetzky",
+  "license": {
+   "name": "Public Domain",
+   "url": "https://creativecommons.org/licenses/publicdomain/"
+  },
+  "mutopiaId": "1121",
+  "ly": "https://www.mutopiaproject.org/ftp/HoretzkyF/horetzky31/horetzky31.ly",
+  "mid": "https://www.mutopiaproject.org/ftp/HoretzkyF/horetzky31/horetzky31.mid",
+  "info": "https://www.mutopiaproject.org/cgibin/piece-info.cgi?id=1121"
+ },
+ {
+  "id": "1093",
+  "section": "folk",
+  "title": "The Last Rose of Summer",
+  "composer": "Irish air, arr. F. Horetzky",
+  "license": {
+   "name": "Public Domain",
+   "url": "https://creativecommons.org/licenses/publicdomain/"
+  },
+  "mutopiaId": "1093",
+  "ly": "https://www.mutopiaproject.org/ftp/HoretzkyF/horetzky4/horetzky4.ly",
+  "mid": "https://www.mutopiaproject.org/ftp/HoretzkyF/horetzky4/horetzky4.mid",
+  "info": "https://www.mutopiaproject.org/cgibin/piece-info.cgi?id=1093"
+ },
+ {
+  "id": "1111",
+  "section": "folk",
+  "title": "Au Clair de la Lune",
+  "composer": "French air, arr. F. Horetzky",
+  "license": {
+   "name": "Public Domain",
+   "url": "https://creativecommons.org/licenses/publicdomain/"
+  },
+  "mutopiaId": "1111",
+  "ly": "https://www.mutopiaproject.org/ftp/HoretzkyF/horetzky21/horetzky21.ly",
+  "mid": "https://www.mutopiaproject.org/ftp/HoretzkyF/horetzky21/horetzky21.mid",
+  "info": "https://www.mutopiaproject.org/cgibin/piece-info.cgi?id=1111"
+ },
+ {
+  "id": "1103",
+  "section": "folk",
+  "title": "John Anderson, My Jo",
+  "composer": "Scottish air, arr. F. Horetzky",
+  "license": {
+   "name": "Public Domain",
+   "url": "https://creativecommons.org/licenses/publicdomain/"
+  },
+  "mutopiaId": "1103",
+  "ly": "https://www.mutopiaproject.org/ftp/HoretzkyF/horetzky13/horetzky13.ly",
+  "mid": "https://www.mutopiaproject.org/ftp/HoretzkyF/horetzky13/horetzky13.mid",
+  "info": "https://www.mutopiaproject.org/cgibin/piece-info.cgi?id=1103"
+ },
+ {
+  "id": "1118",
+  "section": "folk",
+  "title": "Pleyel's Hymn",
+  "composer": "Ignaz Pleyel, arr. F. Horetzky",
+  "license": {
+   "name": "Public Domain",
+   "url": "https://creativecommons.org/licenses/publicdomain/"
+  },
+  "mutopiaId": "1118",
+  "ly": "https://www.mutopiaproject.org/ftp/HoretzkyF/horetzky28/horetzky28.ly",
+  "mid": "https://www.mutopiaproject.org/ftp/HoretzkyF/horetzky28/horetzky28.mid",
+  "info": "https://www.mutopiaproject.org/cgibin/piece-info.cgi?id=1118"
+ },
+ {
+  "id": "1123",
+  "section": "folk",
+  "title": "Scots Wha Hae",
+  "composer": "Scottish air, arr. F. Horetzky",
+  "license": {
+   "name": "Public Domain",
+   "url": "https://creativecommons.org/licenses/publicdomain/"
+  },
+  "mutopiaId": "1123",
+  "ly": "https://www.mutopiaproject.org/ftp/HoretzkyF/horetzky33/horetzky33.ly",
+  "mid": "https://www.mutopiaproject.org/ftp/HoretzkyF/horetzky33/horetzky33.mid",
+  "info": "https://www.mutopiaproject.org/cgibin/piece-info.cgi?id=1123"
+ },
+ {
+  "id": "1142",
+  "section": "folk",
+  "title": "Rule, Britannia!",
+  "composer": "Thomas Arne, arr. F. Horetzky",
+  "license": {
+   "name": "Public Domain",
+   "url": "https://creativecommons.org/licenses/publicdomain/"
+  },
+  "mutopiaId": "1142",
+  "ly": "https://www.mutopiaproject.org/ftp/HoretzkyF/horetzky45/horetzky45.ly",
+  "mid": "https://www.mutopiaproject.org/ftp/HoretzkyF/horetzky45/horetzky45.mid",
+  "info": "https://www.mutopiaproject.org/cgibin/piece-info.cgi?id=1142"
+ },
+ {
+  "id": "1058",
+  "section": "classical",
+  "title": "Progressive Study No. 1",
+  "composer": "Francesco Knjze",
+  "license": {
+   "name": "Public Domain",
+   "url": "https://creativecommons.org/licenses/publicdomain/"
+  },
+  "mutopiaId": "1058",
+  "ly": "https://www.mutopiaproject.org/ftp/KnjzeF/SixStudiesA/SixStudiesA.ly",
+  "mid": "https://www.mutopiaproject.org/ftp/KnjzeF/SixStudiesA/SixStudiesA.mid",
+  "info": "https://www.mutopiaproject.org/cgibin/piece-info.cgi?id=1058"
+ },
+ {
+  "id": "1059",
+  "section": "classical",
+  "title": "Progressive Study No. 2",
+  "composer": "Francesco Knjze",
+  "license": {
+   "name": "Public Domain",
+   "url": "https://creativecommons.org/licenses/publicdomain/"
+  },
+  "mutopiaId": "1059",
+  "ly": "https://www.mutopiaproject.org/ftp/KnjzeF/SixStudiesB/SixStudiesB.ly",
+  "mid": "https://www.mutopiaproject.org/ftp/KnjzeF/SixStudiesB/SixStudiesB.mid",
+  "info": "https://www.mutopiaproject.org/cgibin/piece-info.cgi?id=1059"
+ },
+ {
+  "id": "1060",
+  "section": "classical",
+  "title": "Progressive Study No. 3",
+  "composer": "Francesco Knjze",
+  "license": {
+   "name": "Public Domain",
+   "url": "https://creativecommons.org/licenses/publicdomain/"
+  },
+  "mutopiaId": "1060",
+  "ly": "https://www.mutopiaproject.org/ftp/KnjzeF/SixStudiesC/SixStudiesC.ly",
+  "mid": "https://www.mutopiaproject.org/ftp/KnjzeF/SixStudiesC/SixStudiesC.mid",
+  "info": "https://www.mutopiaproject.org/cgibin/piece-info.cgi?id=1060"
+ },
+ {
+  "id": "1061",
+  "section": "classical",
+  "title": "Progressive Study No. 4",
+  "composer": "Francesco Knjze",
+  "license": {
+   "name": "Public Domain",
+   "url": "https://creativecommons.org/licenses/publicdomain/"
+  },
+  "mutopiaId": "1061",
+  "ly": "https://www.mutopiaproject.org/ftp/KnjzeF/SixStudiesD/SixStudiesD.ly",
+  "mid": "https://www.mutopiaproject.org/ftp/KnjzeF/SixStudiesD/SixStudiesD.mid",
+  "info": "https://www.mutopiaproject.org/cgibin/piece-info.cgi?id=1061"
+ },
+ {
+  "id": "1062",
+  "section": "classical",
+  "title": "Progressive Study No. 5",
+  "composer": "Francesco Knjze",
+  "license": {
+   "name": "Public Domain",
+   "url": "https://creativecommons.org/licenses/publicdomain/"
+  },
+  "mutopiaId": "1062",
+  "ly": "https://www.mutopiaproject.org/ftp/KnjzeF/SixStudiesE/SixStudiesE.ly",
+  "mid": "https://www.mutopiaproject.org/ftp/KnjzeF/SixStudiesE/SixStudiesE.mid",
+  "info": "https://www.mutopiaproject.org/cgibin/piece-info.cgi?id=1062"
+ },
+ {
+  "id": "1329",
+  "section": "classical",
+  "title": "Study, Op. 50 No. 1",
+  "composer": "Mauro Giuliani",
+  "license": {
+   "name": "CC BY 3.0",
+   "url": "https://creativecommons.org/licenses/by/3.0/"
+  },
+  "mutopiaId": "1329",
+  "ly": "https://www.mutopiaproject.org/ftp/GiulianiM/O50/giuliani-op50n01/giuliani-op50n01.ly",
+  "mid": "https://www.mutopiaproject.org/ftp/GiulianiM/O50/giuliani-op50n01/giuliani-op50n01.mid",
+  "info": "https://www.mutopiaproject.org/cgibin/piece-info.cgi?id=1329"
+ },
+ {
+  "id": "1330",
+  "section": "classical",
+  "title": "Study, Op. 50 No. 2",
+  "composer": "Mauro Giuliani",
+  "license": {
+   "name": "CC BY 3.0",
+   "url": "https://creativecommons.org/licenses/by/3.0/"
+  },
+  "mutopiaId": "1330",
+  "ly": "https://www.mutopiaproject.org/ftp/GiulianiM/O50/giuliani-op50n02/giuliani-op50n02.ly",
+  "mid": "https://www.mutopiaproject.org/ftp/GiulianiM/O50/giuliani-op50n02/giuliani-op50n02.mid",
+  "info": "https://www.mutopiaproject.org/cgibin/piece-info.cgi?id=1330"
+ },
+ {
+  "id": "1331",
+  "section": "classical",
+  "title": "Study, Op. 50 No. 3",
+  "composer": "Mauro Giuliani",
+  "license": {
+   "name": "CC BY 3.0",
+   "url": "https://creativecommons.org/licenses/by/3.0/"
+  },
+  "mutopiaId": "1331",
+  "ly": "https://www.mutopiaproject.org/ftp/GiulianiM/O50/giuliani-op50n03/giuliani-op50n03.ly",
+  "mid": "https://www.mutopiaproject.org/ftp/GiulianiM/O50/giuliani-op50n03/giuliani-op50n03.mid",
+  "info": "https://www.mutopiaproject.org/cgibin/piece-info.cgi?id=1331"
+ },
+ {
+  "id": "13",
+  "section": "classical",
+  "title": "Etude, Op. 60 No. 1",
+  "composer": "Matteo Carcassi",
+  "license": {
+   "name": "Public Domain",
+   "url": "https://creativecommons.org/licenses/publicdomain/"
+  },
+  "mutopiaId": "13",
+  "ly": "https://www.mutopiaproject.org/ftp/CarcassiM/O60/carcassi-op60-01/carcassi-op60-01.ly",
+  "mid": "https://www.mutopiaproject.org/ftp/CarcassiM/O60/carcassi-op60-01/carcassi-op60-01.mid",
+  "info": "https://www.mutopiaproject.org/cgibin/piece-info.cgi?id=13"
+ },
+ {
+  "id": "300",
+  "section": "classical",
+  "title": "Etude, Op. 60 No. 7",
+  "composer": "Matteo Carcassi",
+  "license": {
+   "name": "Public Domain",
+   "url": "https://creativecommons.org/licenses/publicdomain/"
+  },
+  "mutopiaId": "300",
+  "ly": "https://www.mutopiaproject.org/ftp/CarcassiM/O60/carcassi-op60-07/carcassi-op60-07.ly",
+  "mid": "https://www.mutopiaproject.org/ftp/CarcassiM/O60/carcassi-op60-07/carcassi-op60-07.mid",
+  "info": "https://www.mutopiaproject.org/cgibin/piece-info.cgi?id=300"
+ },
+ {
+  "id": "15",
+  "section": "classical",
+  "title": "Etude, Op. 60 No. 8",
+  "composer": "Matteo Carcassi",
+  "license": {
+   "name": "Public Domain",
+   "url": "https://creativecommons.org/licenses/publicdomain/"
+  },
+  "mutopiaId": "15",
+  "ly": "https://www.mutopiaproject.org/ftp/CarcassiM/O60/carcassi-op60-08/carcassi-op60-08.ly",
+  "mid": "https://www.mutopiaproject.org/ftp/CarcassiM/O60/carcassi-op60-08/carcassi-op60-08.mid",
+  "info": "https://www.mutopiaproject.org/cgibin/piece-info.cgi?id=15"
+ },
+ {
+  "id": "306",
+  "section": "classical",
+  "title": "Etude, Op. 60 No. 9",
+  "composer": "Matteo Carcassi",
+  "license": {
+   "name": "Public Domain",
+   "url": "https://creativecommons.org/licenses/publicdomain/"
+  },
+  "mutopiaId": "306",
+  "ly": "https://www.mutopiaproject.org/ftp/CarcassiM/O60/carcassi-op60-09/carcassi-op60-09.ly",
+  "mid": "https://www.mutopiaproject.org/ftp/CarcassiM/O60/carcassi-op60-09/carcassi-op60-09.mid",
+  "info": "https://www.mutopiaproject.org/cgibin/piece-info.cgi?id=306"
+ },
+ {
+  "id": "16",
+  "section": "classical",
+  "title": "Etude, Op. 60 No. 15",
+  "composer": "Matteo Carcassi",
+  "license": {
+   "name": "Public Domain",
+   "url": "https://creativecommons.org/licenses/publicdomain/"
+  },
+  "mutopiaId": "16",
+  "ly": "https://www.mutopiaproject.org/ftp/CarcassiM/O60/carcassi-op60-15/carcassi-op60-15.ly",
+  "mid": "https://www.mutopiaproject.org/ftp/CarcassiM/O60/carcassi-op60-15/carcassi-op60-15.mid",
+  "info": "https://www.mutopiaproject.org/cgibin/piece-info.cgi?id=16"
+ },
+ {
+  "id": "64",
+  "section": "classical",
+  "title": "Etude, Op. 35 No. 14",
+  "composer": "Fernando Sor",
+  "license": {
+   "name": "Public Domain",
+   "url": "https://creativecommons.org/licenses/publicdomain/"
+  },
+  "mutopiaId": "64",
+  "ly": "https://www.mutopiaproject.org/ftp/SorF/O35/Sor_Etude_Opus35_14/Sor_Etude_Opus35_14.ly",
+  "mid": "https://www.mutopiaproject.org/ftp/SorF/O35/Sor_Etude_Opus35_14/Sor_Etude_Opus35_14.mid",
+  "info": "https://www.mutopiaproject.org/cgibin/piece-info.cgi?id=64"
+ },
+ {
+  "id": "111",
+  "section": "classical",
+  "title": "Etude in A minor",
+  "composer": "Johann Kaspar Mertz",
+  "license": {
+   "name": "Public Domain",
+   "url": "https://creativecommons.org/licenses/publicdomain/"
+  },
+  "mutopiaId": "111",
+  "ly": "https://www.mutopiaproject.org/ftp/MertzJK/mertz_etude/mertz_etude.ly",
+  "mid": "https://www.mutopiaproject.org/ftp/MertzJK/mertz_etude/mertz_etude.mid",
+  "info": "https://www.mutopiaproject.org/cgibin/piece-info.cgi?id=111"
+ },
+ {
+  "id": "695",
+  "section": "classical",
+  "title": "Menuet in G, BWV Anh. 114",
+  "composer": "J. S. Bach",
+  "license": {
+   "name": "Public Domain",
+   "url": "https://creativecommons.org/licenses/publicdomain/"
+  },
+  "mutopiaId": "695",
+  "ly": "https://www.mutopiaproject.org/ftp/BachJS/BWVAnh114/anna-magdalena-04-guitar-tab/anna-magdalena-04-guitar-tab.ly",
+  "mid": "https://www.mutopiaproject.org/ftp/BachJS/BWVAnh114/anna-magdalena-04-guitar-tab/anna-magdalena-04-guitar-tab.mid",
+  "info": "https://www.mutopiaproject.org/cgibin/piece-info.cgi?id=695"
+ },
+ {
+  "id": "60",
+  "section": "classical",
+  "title": "Prelude in D minor, BWV 999",
+  "composer": "J. S. Bach",
+  "license": {
+   "name": "Public Domain",
+   "url": "https://creativecommons.org/licenses/publicdomain/"
+  },
+  "mutopiaId": "60",
+  "ly": "https://www.mutopiaproject.org/ftp/BachJS/BWV999/Bach_Prelude_BWV999/Bach_Prelude_BWV999.ly",
+  "mid": "https://www.mutopiaproject.org/ftp/BachJS/BWV999/Bach_Prelude_BWV999/Bach_Prelude_BWV999.mid",
+  "info": "https://www.mutopiaproject.org/cgibin/piece-info.cgi?id=60"
+ },
+ {
+  "id": "481",
+  "section": "classical",
+  "title": "Lullaby (Cancion de Cuna)",
+  "composer": "Johannes Brahms",
+  "license": {
+   "name": "Public Domain",
+   "url": "https://creativecommons.org/licenses/publicdomain/"
+  },
+  "mutopiaId": "481",
+  "ly": "https://www.mutopiaproject.org/ftp/BrahmsJ/LullabyBrahms-C/LullabyBrahms-C.ly",
+  "mid": "https://www.mutopiaproject.org/ftp/BrahmsJ/LullabyBrahms-C/LullabyBrahms-C.mid",
+  "info": "https://www.mutopiaproject.org/cgibin/piece-info.cgi?id=481"
+ },
+ {
+  "id": "1430",
+  "section": "canons",
+  "title": "Canon 1 on the Goldberg Ground, BWV 1087",
+  "composer": "J. S. Bach",
+  "license": {
+   "name": "CC BY-SA 3.0",
+   "url": "https://creativecommons.org/licenses/by-sa/3.0/"
+  },
+  "mutopiaId": "1430",
+  "ly": "https://www.mutopiaproject.org/ftp/BachJS/BWV1087/bwv-1087-01-g/bwv-1087-01-g.ly",
+  "mid": "https://www.mutopiaproject.org/ftp/BachJS/BWV1087/bwv-1087-01-g/bwv-1087-01-g.mid",
+  "info": "https://www.mutopiaproject.org/cgibin/piece-info.cgi?id=1430"
+ },
+ {
+  "id": "1431",
+  "section": "canons",
+  "title": "Canon 2 on the Goldberg Ground, BWV 1087",
+  "composer": "J. S. Bach",
+  "license": {
+   "name": "CC BY-SA 3.0",
+   "url": "https://creativecommons.org/licenses/by-sa/3.0/"
+  },
+  "mutopiaId": "1431",
+  "ly": "https://www.mutopiaproject.org/ftp/BachJS/BWV1087/bwv-1087-02-g/bwv-1087-02-g.ly",
+  "mid": "https://www.mutopiaproject.org/ftp/BachJS/BWV1087/bwv-1087-02-g/bwv-1087-02-g.mid",
+  "info": "https://www.mutopiaproject.org/cgibin/piece-info.cgi?id=1431"
+ },
+ {
+  "id": "1432",
+  "section": "canons",
+  "title": "Canon 3 on the Goldberg Ground, BWV 1087",
+  "composer": "J. S. Bach",
+  "license": {
+   "name": "CC BY-SA 3.0",
+   "url": "https://creativecommons.org/licenses/by-sa/3.0/"
+  },
+  "mutopiaId": "1432",
+  "ly": "https://www.mutopiaproject.org/ftp/BachJS/BWV1087/bwv-1087-03-g/bwv-1087-03-g.ly",
+  "mid": "https://www.mutopiaproject.org/ftp/BachJS/BWV1087/bwv-1087-03-g/bwv-1087-03-g.mid",
+  "info": "https://www.mutopiaproject.org/cgibin/piece-info.cgi?id=1432"
+ },
+ {
+  "id": "1433",
+  "section": "canons",
+  "title": "Canon 4 on the Goldberg Ground, BWV 1087",
+  "composer": "J. S. Bach",
+  "license": {
+   "name": "CC BY-SA 3.0",
+   "url": "https://creativecommons.org/licenses/by-sa/3.0/"
+  },
+  "mutopiaId": "1433",
+  "ly": "https://www.mutopiaproject.org/ftp/BachJS/BWV1087/bwv-1087-04-g/bwv-1087-04-g.ly",
+  "mid": "https://www.mutopiaproject.org/ftp/BachJS/BWV1087/bwv-1087-04-g/bwv-1087-04-g.mid",
+  "info": "https://www.mutopiaproject.org/cgibin/piece-info.cgi?id=1433"
+ }
+]
