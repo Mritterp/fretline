@@ -120,7 +120,7 @@ main { max-width: 1300px; margin: 0 auto; padding: 14px 16px 90px; }
       <button type="button" class="btn ghost" id="stop">Stop</button>
       <label class="ctl">Tempo <input type="range" id="tempo" min="25" max="150" step="1" value="70"><b id="bpm"></b></label>
       <label class="ctl"><input type="checkbox" id="metro"> Metronome</label>
-      <span class="seg" role="group" aria-label="What to show"><button type="button" id="v-both" aria-pressed="true">Notation + tab</button><button type="button" id="v-staff" aria-pressed="false">Notation</button><button type="button" id="v-tab" aria-pressed="false">Tab</button></span>
+      <label class="ctl"><input type="checkbox" id="names"> Note names</label>
     </div>
     <div class="status" id="status"></div>
     <div class="paper"><div id="score"></div></div>
@@ -141,7 +141,7 @@ main { max-width: 1300px; margin: 0 auto; padding: 14px 16px 90px; }
 <script>
 (function () {
   "use strict";
-  const { Renderer, Stave, StaveNote, Voice, Formatter, Beam, Accidental, Dot, StaveConnector, StaveTie, TabStave, TabNote, GhostNote, Tuplet, Barline, Volta, Stem, GraceNote, GraceNoteGroup } = VexFlow;
+  const { Renderer, Stave, StaveNote, Voice, Formatter, Beam, Accidental, Dot, StaveTie, GhostNote, Tuplet, Barline, Volta, Stem, GraceNote, GraceNoteGroup, Annotation } = VexFlow;
   const $ = (id) => document.getElementById(id);
   const SVG_NS = "http://www.w3.org/2000/svg";
   const STORE = "fretline-songbook";
@@ -214,150 +214,105 @@ main { max-width: 1300px; margin: 0 auto; padding: 14px 16px 90px; }
     const pct = saved.tempoPct || 70; $("tempo").value = String(pct); showTempo();
     const lic = piece.license;
     $("credit").innerHTML = 'From the <a href="' + piece.source.url + '" target="_blank" rel="noopener">Mutopia Project</a>' + (piece.maintainer ? ", typeset by " + piece.maintainer : "") + ". License: <a href=\"" + lic.url + "\" target=\"_blank\" rel=\"noopener\">" + lic.name + "</a>" +
-      (lic.name === "CC BY-SA 3.0" ? " (share-alike: this notation carries the same license)" : "") + '.<br><span class="fine">The tab is an automatic suggestion (low frets, small hand movements), not the editor\'s fingering. Notes are checked against the edition\'s own MIDI file' +
+      (lic.name === "CC BY-SA 3.0" ? " (share-alike: this notation carries the same license)" : "") + '.<br><span class="fine">Notes are checked against the edition\'s own MIDI file' +
       (piece.verified === "pitches" ? " by pitch (ornaments make an exact timing check impossible)" : piece.verified === "subset" ? " (the MIDI also plays an accompaniment that is not shown)" : "") + ". Written an octave above where it sounds, as guitar music is." + (meta && piece.notes && piece.notes.length ? " " + piece.notes.join("; ") + "." : "") + "</span>";
-    $("status").textContent = ""; safeRender(); markView(); window.scrollTo(0, 0);
+    $("status").textContent = ""; safeRender(); window.scrollTo(0, 0);
     if (typeof embedHeight === "function") embedHeight();
   }
   $("back").addEventListener("click", () => { stopPlayback(true); piece = null; $("piece").hidden = true; $("list").hidden = false; saved.piece = null; save(); drawList(); });
 
   // ---------- drawing the score ----------
-  let view = saved.view || "both";   // "both" | "staff" | "tab"
-  function markView() { ["both", "staff", "tab"].forEach((k) => $("v-" + k).setAttribute("aria-pressed", String(k === view))); }
-  ["both", "staff", "tab"].forEach((k) => $("v-" + k).addEventListener("click", () => { view = k; saved.view = k; save(); markView(); if (piece) safeRender(); }));
-
-  const STAFF_H = 80, TAB_H = 100, ROW_H = 250, TOP = 50;
+  const STAFF_H = 80, ROWH = 150, TOP = 50;
   let barHits = [], rowOf = [];
+  let showNames = !!saved.names;
+  $("names").checked = showNames;
+  $("names").addEventListener("change", () => { showNames = $("names").checked; saved.names = showNames; save(); if (piece) safeRender(); });
+  const NAMES = "CDEFGAB";
+  const noteName = (n) => NAMES[n[0]] + (n[1] > 0 ? "♯".repeat(n[1]) : n[1] < 0 ? "♭".repeat(-n[1]) : "");
   function safeRender() {
     try { render(); } catch (e) { console.error(e); $("status").className = "status bad"; $("status").textContent = "This piece could not be drawn (" + (e && e.message ? e.message : e) + ")."; }
   }
   function render() {
     const host = $("score"); host.innerHTML = ""; barHits = []; rowOf = [];
     if (!piece) return;
-    const showStaff = view !== "tab", showTab = view !== "staff";
     const SCREEN = Math.max(300, ($("score").parentElement.clientWidth || 800) - 14), W = Math.max(SCREEN, 560);   // a narrow screen gets the layout of a 560 px page, scaled down to fit
     // 1. one set of VexFlow notes per bar, and how wide each needs to be
-    let keyNow = piece.bars[0].ks || "C"; const built = [];
-    // continuation flags: a pitch tied from the item before it keeps its accidental and shows its fret in brackets
-    const contFlags = new Map(); piece.bars.forEach((b) => b.v.forEach((items, vi) => { /* filled below */ })); void contFlags;
-    const lastTie = []; const cont = new Map();
-    piece.bars.forEach((b, bi) => b.v.forEach((items, vi) => {
-      items.forEach((it) => {
-        if (it.r) { lastTie[vi] = null; return; }
-        const prev = lastTie[vi], flags = it.n.map((n) => !!(prev && prev.has(writtenMidi(n))));
-        cont.set(it, flags);
-        lastTie[vi] = new Set(it.n.filter((n) => n[3]).map(writtenMidi));
-      });
-    }));
-    piece.bars.forEach((bar, bi) => {
-      if (bar.ks) keyNow = bar.ks;
-      built.push(makeBar(bar, bi, keyAlters(keyNow), cont, showStaff, showTab));
-    });
+    let keyNow = piece.bars[0].ks || "C"; const built = [], keyAtCache = [];
+    // a pitch tied from the note before it keeps its accidental
+    const lastTie = [], cont = new Map();
+    piece.bars.forEach((b) => b.v.forEach((items, vi) => items.forEach((it) => {
+      if (it.r) { lastTie[vi] = null; return; }
+      const prev = lastTie[vi]; cont.set(it, it.n.map((n) => !!(prev && prev.has(writtenMidi(n)))));
+      lastTie[vi] = new Set(it.n.filter((n) => n[3]).map(writtenMidi));
+    })));
+    piece.bars.forEach((bar, bi) => { if (bar.ks) keyNow = bar.ks; keyAtCache[bi] = keyNow; built.push(makeBar(bar, bi, keyAlters(keyNow), cont)); });
     const MARGIN = 14, minW = built.map((b) => Math.max(70, b.width + 28));
-    // 2. rows
-    const extraFor = (bi, first) => (first ? 74 + 11 * Math.abs(KEY_SIG[keyAt(bi)] || 0) : 0) + (piece.bars[bi].ts && (first || bi > 0) ? 30 : 0) + (first && bi === 0 ? 0 : 0);
-    const keyAtCache = []; { let k = piece.bars[0].ks || "C"; piece.bars.forEach((b, i) => { if (b.ks) k = b.ks; keyAtCache[i] = k; }); }
-    function keyAt(i) { return keyAtCache[i]; }
+    // 2. rows: clef and key signature at the start of each, a time signature wherever it changes
+    const extraFor = (bi, first) => (first ? 74 + 11 * Math.abs(KEY_SIG[keyAtCache[bi]] || 0) : 0) + (piece.bars[bi].ts ? 30 : 0);
     const rows = []; let cur = [], used = 0;
     piece.bars.forEach((bar, bi) => {
-      const need = minW[bi] + (cur.length === 0 ? extraFor(bi, true) : extraFor(bi, false)) ;
+      const need = minW[bi] + extraFor(bi, cur.length === 0);
       if (cur.length && used + need > W - MARGIN) { rows.push(cur); cur = []; used = 0; }
-      const add = minW[bi] + (cur.length === 0 ? extraFor(bi, true) : extraFor(bi, false));
-      cur.push(bi); used += add;
+      cur.push(bi); used += minW[bi] + extraFor(bi, cur.length === 1);
     });
     if (cur.length) rows.push(cur);
-    const ROWH = showStaff && showTab ? ROW_H : showStaff ? 150 : 135;   // one staff takes less room than both
     const height = TOP + rows.length * ROWH + 10;
     const renderer = new Renderer(host, Renderer.Backends.SVG); renderer.resize(W, height);
-    const ctx = renderer.getContext(), svg = host.querySelector("svg"); svg.setAttribute("viewBox", "0 0 " + W + " " + height); svg.setAttribute("width", SCREEN); svg.setAttribute("height", Math.round((height * SCREEN) / W)); svg.style.width = SCREEN + "px"; svg.style.height = Math.round((height * SCREEN) / W) + "px";
+    const ctx = renderer.getContext(), svg = host.querySelector("svg");
+    svg.setAttribute("viewBox", "0 0 " + W + " " + height); svg.setAttribute("width", SCREEN); svg.setAttribute("height", Math.round((height * SCREEN) / W)); svg.style.width = SCREEN + "px"; svg.style.height = Math.round((height * SCREEN) / W) + "px";
     // 3. draw
-    const tied = [];   // {voice, bar, row, noteObj, tab, k}
-    const placed = new Map();   // item -> {note, tab, row}
+    const placed = new Map();   // item -> {note, row}
     rows.forEach((row, ri) => {
-      const y0 = TOP + ri * ROWH - 18, ty = y0 + STAFF_H + (showStaff ? 34 : -34), yTab = showStaff ? ty : y0 + 6;
-      const natural = row.map((bi, k) => minW[bi] + extraFor(bi, k === 0) - (k === 0 ? 0 : 0));
-      const sum = natural.reduce((a, b) => a + b, 0), avail = W - MARGIN, last = ri === rows.length - 1;
+      const y0 = TOP + ri * ROWH - 18;
+      const natural = row.map((bi, k) => minW[bi] + extraFor(bi, k === 0)), sum = natural.reduce((a, b) => a + b, 0), avail = W - MARGIN, last = ri === rows.length - 1;
       const scale = last ? Math.min(1.3, Math.max(1, avail / sum)) : Math.max(1, avail / sum);
       let x = 6;
       row.forEach((bi, k) => {
-        const bar = piece.bars[bi], b = built[bi], w = Math.round((minW[bi] + (k === 0 ? extraFor(bi, true) : extraFor(bi, false))) * scale) - (k === 0 ? 0 : 0);
-        const first = k === 0;
-        const st = showStaff ? new Stave(x, y0, w) : null, tb = showTab ? new TabStave(x, yTab, w) : null;
-        if (st) {
-          if (first) { st.addClef("treble", "default", "8vb"); st.addKeySignature(keyAt(bi)); }
-          else if (bar.ks) st.addKeySignature(bar.ks);
-          if (bar.ts) st.addTimeSignature(bar.ts[0] + "/" + bar.ts[1]);
-          if (first) st.setMeasure(bi + 1);
-          if (bar.rs) st.setBegBarType(Barline.type.REPEAT_BEGIN);
-          if (bar.re) st.setEndBarType(Barline.type.REPEAT_END); else if (bar.fin) st.setEndBarType(Barline.type.END);
-          if (bar.vo) st.setVoltaType({ b: Volta.type.BEGIN, m: Volta.type.MID, e: Volta.type.END, be: Volta.type.BEGIN_END }[bar.vo.p], bar.vo.t, 0);
-          st.setContext(ctx);
+        const bar = piece.bars[bi], b = built[bi], first = k === 0, w = Math.round(natural[k] * scale);
+        const st = new Stave(x, y0, w);
+        if (first) { st.addClef("treble", "default", "8vb"); st.addKeySignature(keyAtCache[bi]); st.setMeasure(bi + 1); }
+        else if (bar.ks) st.addKeySignature(bar.ks);
+        if (bar.ts) st.addTimeSignature(bar.ts[0] + "/" + bar.ts[1]);
+        if (bar.rs) st.setBegBarType(Barline.type.REPEAT_BEGIN);
+        if (bar.re) st.setEndBarType(Barline.type.REPEAT_END); else if (bar.fin) st.setEndBarType(Barline.type.END);
+        if (bar.vo) st.setVoltaType({ b: Volta.type.BEGIN, m: Volta.type.MID, e: Volta.type.END, be: Volta.type.BEGIN_END }[bar.vo.p], bar.vo.t, 0);
+        st.setContext(ctx).draw();
+        if (b.staffVoices.length) {
+          new Formatter().joinVoices(b.staffVoices).format(b.staffVoices, Math.max(30, st.getNoteEndX() - st.getNoteStartX() - 8));
+          b.staffVoices.forEach((v) => v.draw(ctx, st));
+          b.beams.forEach((bm) => bm.setContext(ctx).draw()); b.staffTuplets.forEach((t) => t.setContext(ctx).draw());
         }
-        if (tb) {
-          if (first) tb.addTabGlyph();
-          if (bar.ts && !st) tb.addTimeSignature(bar.ts[0] + "/" + bar.ts[1]);
-          if (!st && first) tb.setMeasure(bi + 1);
-          if (bar.rs) tb.setBegBarType(Barline.type.REPEAT_BEGIN);
-          if (bar.re) tb.setEndBarType(Barline.type.REPEAT_END); else if (bar.fin) tb.setEndBarType(Barline.type.END);
-          tb.setContext(ctx);
-        }
-        // the notes of both staves start at the same x
-        const startX = Math.max(st ? st.getNoteStartX() : 0, tb ? tb.getNoteStartX() : 0);
-        if (st) st.setNoteStartX(startX); if (tb) tb.setNoteStartX(startX);
-        if (st) st.draw(); if (tb) tb.draw();
-        if (st && tb) {
-          if (first) { new StaveConnector(st, tb).setType(StaveConnector.type.SINGLE_LEFT).setContext(ctx).draw(); new StaveConnector(st, tb).setType(StaveConnector.type.BRACKET).setContext(ctx).draw(); }
-          new StaveConnector(st, tb).setType(bar.fin ? StaveConnector.type.BOLD_DOUBLE_RIGHT : StaveConnector.type.SINGLE_RIGHT).setContext(ctx).draw();
-        }
-        const ref = st || tb, width = ref.getNoteEndX() - startX - 8;
-        const voices = (showStaff ? b.staffVoices : []).concat(showTab ? b.tabVoices : []);
-        if (voices.length) {
-          new Formatter().joinVoices(showStaff ? b.staffVoices : []).joinVoices(showTab ? b.tabVoices : []).format(voices, Math.max(30, width));
-          if (st) b.staffVoices.forEach((v) => v.draw(ctx, st));
-          if (tb) b.tabVoices.forEach((v) => v.draw(ctx, tb));
-          if (st) { b.beams.forEach((bm) => bm.setContext(ctx).draw()); b.staffTuplets.forEach((t) => t.setContext(ctx).draw()); }
-        }
-        // remember the notes of this bar for the ties
-        b.chain.forEach((c) => placed.set(c.item, { note: c.note, tab: c.tab, row: ri, vi: c.vi, bi }));
+        b.chain.forEach((c) => placed.set(c.item, { note: c.note, row: ri }));
         // a clickable cover for the bar
-        const top = (st ? y0 + 10 : yTab - 10), bottom = (tb ? yTab + TAB_H - 8 : y0 + STAFF_H + 40);
-        const hit = document.createElementNS(SVG_NS, "rect"); hit.setAttribute("x", x); hit.setAttribute("y", top); hit.setAttribute("width", w); hit.setAttribute("height", bottom - top); hit.setAttribute("class", "hit");
+        const hit = document.createElementNS(SVG_NS, "rect"); hit.setAttribute("x", x); hit.setAttribute("y", y0 + 10); hit.setAttribute("width", w); hit.setAttribute("height", STAFF_H + 50); hit.setAttribute("class", "hit");
         hit.addEventListener("click", () => startFrom(bi)); svg.appendChild(hit); barHits[bi] = hit; rowOf[bi] = ri;
         x += w;
       });
     });
     // 4. ties, within a row and across row ends
-    if (showStaff) {
-      piece.bars.forEach((bar, bi) => bar.v.forEach((items, vi) => {
-        const seq = items.filter((it) => !it.r);
-        items.forEach((it, idx) => {
-          if (it.r) return;
-          const from = placed.get(it); if (!from) return;
-          // the next sounding item of this voice (in this bar or the next one)
-          let nxt = null;
-          for (let j = idx + 1; j < items.length && !nxt; j++) if (!items[j].r) nxt = items[j]; else if (items[j].r && !items[j].h) break;
-          if (!nxt && !items.slice(idx + 1).some((x) => !x.r || !x.h)) { const nb = piece.bars[bi + 1]; if (nb && nb.v[vi]) nxt = nb.v[vi].find((x) => !x.r) || null; }
-          it.n.forEach((n, k) => {
-            if (!n[3]) return;
-            const m = writtenMidi(n); let to = null, tk = -1;
-            if (nxt) { tk = nxt.n.findIndex((q) => writtenMidi(q) === m); if (tk >= 0) to = placed.get(nxt); }
-            const sorted = from.note.getKeys ? from.order : null; void sorted;
-            const fi = from.note.__order ? from.note.__order.indexOf(k) : k, ti = to && to.note.__order ? to.note.__order.indexOf(tk) : tk;
-            try {
-              if (to && to.row === from.row) new StaveTie({ first_note: from.note, last_note: to.note, first_indices: [fi], last_indices: [ti] }).setContext(ctx).draw();
-              else { new StaveTie({ first_note: from.note, last_note: null, first_indices: [fi], last_indices: [fi] }).setContext(ctx).draw(); if (to) new StaveTie({ first_note: null, last_note: to.note, first_indices: [ti], last_indices: [ti] }).setContext(ctx).draw(); }
-            } catch (e) { /* a tie that cannot be drawn is left out */ }
-          });
-        });
-        void seq;
-      }));
-    }
-    // bar highlight follows playback
+    piece.bars.forEach((bar, bi) => bar.v.forEach((items, vi) => items.forEach((it, idx) => {
+      if (it.r) return;
+      const from = placed.get(it); if (!from) return;
+      // the next sounding item of this voice (in this bar or the next one)
+      let nxt = null;
+      for (let j = idx + 1; j < items.length && !nxt; j++) { if (!items[j].r) nxt = items[j]; else if (!items[j].h) break; }
+      if (!nxt && !items.slice(idx + 1).some((x) => !x.r || !x.h)) { const nb = piece.bars[bi + 1]; if (nb && nb.v[vi]) nxt = nb.v[vi].find((x) => !x.r) || null; }
+      it.n.forEach((n, k) => {
+        if (!n[3]) return;
+        const m = writtenMidi(n); let to = null, tk = -1;
+        if (nxt) { tk = nxt.n.findIndex((q) => writtenMidi(q) === m); if (tk >= 0) to = placed.get(nxt); }
+        const fi = from.note.__order.indexOf(k), ti = to ? to.note.__order.indexOf(tk) : -1;
+        try {
+          if (to && to.row === from.row) new StaveTie({ first_note: from.note, last_note: to.note, first_indices: [fi], last_indices: [ti] }).setContext(ctx).draw();
+          else { new StaveTie({ first_note: from.note, last_note: null, first_indices: [fi], last_indices: [fi] }).setContext(ctx).draw(); if (to) new StaveTie({ first_note: null, last_note: to.note, first_indices: [ti], last_indices: [ti] }).setContext(ctx).draw(); }
+        } catch (e) { /* a tie that cannot be drawn is left out */ }
+      });
+    })));
     if (playing && playBar != null) highlight(playBar);
   }
 
   // one bar's worth of VexFlow objects
-  function makeBar(bar, bi, alters, cont, showStaff, showTab) {
+  function makeBar(bar, bi, alters, cont) {
     const visible = bar.v.map((items, vi) => ({ items, vi })).filter((x) => x.items.length);
     const multi = visible.length > 1;
     // accidentals, in the order the notes are played across all voices
@@ -369,54 +324,45 @@ main { max-width: 1300px; margin: 0 auto; padding: 14px 16px 90px; }
       const flags = cont.get(it) || [];
       acc.set(it, it.n.map((n, k) => { const key = n[0] + ":" + n[2], expect = state.has(key) ? state.get(key) : alters[n[0]]; state.set(key, n[1]); return n[1] !== expect && !flags[k] ? ACC[String(n[1])] : null; }));
     });
-    const staffVoices = [], tabVoices = [], beams = [], staffTuplets = [], chain = [];
+    const staffVoices = [], beams = [], staffTuplets = [], chain = [];
     const beats = bar.len / QUARTER;
     visible.forEach(({ items, vi }) => {
-      const sn = [], tn = [], groups = [];
-      let g = null;
+      const sn = [], groups = []; let g = null;
       items.forEach((it) => {
         const dur = it.d + "d".repeat(it.dt || 0);
-        let note, tab;
+        let note;
         if (it.r) {
-          if (it.h) { note = new GhostNote({ duration: dur }); tab = new GhostNote({ duration: dur }); }
+          if (it.h) note = new GhostNote({ duration: dur });
           else {
             note = new StaveNote({ keys: [vi === 0 ? "b/4" : "d/4"], duration: dur + "r", clef: "treble", align_center: !!it.fm });
             for (let k = 0; k < (it.dt || 0); k++) Dot.buildAndAttach([note], { all: true });
-            tab = new GhostNote({ duration: dur });
           }
         } else {
           // chord notes in ascending order
           const order = it.n.map((n, k) => k).sort((a, b) => writtenMidi(it.n[a]) - writtenMidi(it.n[b]));
-          const keys = order.map((k) => vfKey(it.n[k]));
-          note = new StaveNote({ keys, duration: dur, clef: "treble", stem_direction: multi ? (vi === 0 ? Stem.UP : Stem.DOWN) : undefined });
+          note = new StaveNote({ keys: order.map((k) => vfKey(it.n[k])), duration: dur, clef: "treble", stem_direction: multi ? (vi === 0 ? Stem.UP : Stem.DOWN) : undefined });
           note.__order = order;
           const flags = acc.get(it);
           order.forEach((k, idx) => { if (flags[k]) note.addModifier(new Accidental(flags[k]), idx); });
           for (let k = 0; k < (it.dt || 0); k++) Dot.buildAndAttach([note], { all: true });
+          if (showNames) { const lab = new Annotation(order.map((k) => noteName(it.n[k])).join(" ")).setFont("Helvetica", 10, "bold"); lab.setVerticalJustification(Annotation.VerticalJustify.BOTTOM); note.addModifier(lab, 0); }
           if (it.g && it.g.length) {   // grace notes before this one (small notes, slashed for an acciaccatura)
             try {
-              const gns = it.g.map((g, gi) => { const ord = g.n.map((n, k) => k).sort((a, b) => writtenMidi(g.n[a]) - writtenMidi(g.n[b])); const gn = new GraceNote({ keys: ord.map((k) => vfKey(g.n[k])), duration: g.d, slash: !!g.s, clef: "treble" }); ord.forEach((k, idx) => { const a = (graceAcc.get(it) || [])[gi]; if (a && a[k]) gn.addModifier(new Accidental(a[k]), idx); }); return gn; });
+              const gns = it.g.map((gr, gi) => { const ord = gr.n.map((n, k) => k).sort((a, b) => writtenMidi(gr.n[a]) - writtenMidi(gr.n[b])); const gn = new GraceNote({ keys: ord.map((k) => vfKey(gr.n[k])), duration: gr.d, slash: !!gr.s, clef: "treble" }); ord.forEach((k, idx) => { const a = (graceAcc.get(it) || [])[gi]; if (a && a[k]) gn.addModifier(new Accidental(a[k]), idx); }); return gn; });
               note.addModifier(new GraceNoteGroup(gns, true), 0);
             } catch (e) { /* a grace note that cannot be drawn is left out */ }
           }
-          const cf = cont.get(it) || [];
-          tab = new TabNote({ positions: it.n.map((n, k) => ({ str: n[4], fret: cf[k] ? "(" + n[5] + ")" : n[5] })), duration: dur });
         }
-        sn.push(note); tn.push(tab); chain.push({ item: it, note, tab, vi });
-        if (it.tp) { if (g && g.id === it.tp[2]) { g.s.push(note); g.t.push(tab); } else { g = { id: it.tp[2], n: it.tp[0], d: it.tp[1], s: [note], t: [tab] }; groups.push(g); } } else g = null;
+        sn.push(note); chain.push({ item: it, note, vi });
+        if (it.tp) { if (g && g.id === it.tp[2]) g.s.push(note); else { g = { id: it.tp[2], n: it.tp[0], d: it.tp[1], s: [note] }; groups.push(g); } } else g = null;
       });
-      groups.forEach((gr) => { staffTuplets.push(new Tuplet(gr.s, { num_notes: gr.n, notes_occupied: gr.d })); new Tuplet(gr.t, { num_notes: gr.n, notes_occupied: gr.d }); });
-      const mk = () => new Voice({ num_beats: beats, beat_value: 4 }).setStrict(false);
-      const sv = mk().addTickables(sn), tv = mk().addTickables(tn);
-      staffVoices.push(sv); tabVoices.push(tv);
+      groups.forEach((gr) => staffTuplets.push(new Tuplet(gr.s, { num_notes: gr.n, notes_occupied: gr.d })));
+      staffVoices.push(new Voice({ num_beats: beats, beat_value: 4 }).setStrict(false).addTickables(sn));
       try { Beam.generateBeams(sn, { stem_direction: multi ? (vi === 0 ? Stem.UP : Stem.DOWN) : undefined }).forEach((b) => beams.push(b)); } catch (e) {}
     });
     let width = 60;
-    try {
-      const f = new Formatter(); const vs = (showStaff ? staffVoices : []).concat(showTab ? tabVoices : []);
-      if (vs.length) { f.joinVoices(showStaff ? staffVoices : []).joinVoices(showTab ? tabVoices : []); width = f.preCalculateMinTotalWidth(vs); }
-    } catch (e) { width = 90; }
-    return { staffVoices, tabVoices, beams, staffTuplets, chain, width };
+    try { if (staffVoices.length) width = new Formatter().joinVoices(staffVoices).preCalculateMinTotalWidth(staffVoices); } catch (e) { width = 90; }
+    return { staffVoices, beams, staffTuplets, chain, width };
   }
 
   // ---------- playback ----------
@@ -517,6 +463,6 @@ main { max-width: 1300px; margin: 0 auto; padding: 14px 16px 90px; }
     index = j; drawList();
     if (saved.piece && index.pieces.some((p) => p.id === saved.piece)) openPiece(saved.piece);
   }).catch(() => { $("sec-note").textContent = "The song list could not be loaded."; });
-  window.__songbook = { render: safeRender, openPiece, setView: (v) => { view = v; }, get piece() { return piece; }, startFrom, stopPlayback, get playing() { return playing; } };
+  window.__songbook = { render: safeRender, openPiece, get piece() { return piece; }, startFrom, stopPlayback, get playing() { return playing; } };
 })();
 </script>

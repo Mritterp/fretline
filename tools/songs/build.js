@@ -120,6 +120,8 @@ function buildPiece(p) {
     return o;
   });
   const stats = measure({ bars: outBars.map((b) => ({ len: b.len, voices: b.v })), tempo }, fingered);
+  // the page shows notation only: the fingering was needed for the difficulty estimate, and is not kept
+  outBars.forEach((b) => b.v.forEach((items) => items.forEach((it) => { if (it.n) it.n.forEach((n) => { n.length = 4; }); })));
   return {
     id: p.id, title: p.title, composer: p.composer, section: p.section, license: p.license, source: { name: "Mutopia Project", url: p.info },
     maintainer: ((ly.match(/maintainer\s*=\s*"([^"]*)"/) || [])[1] || "").trim(), tempo, tempoMarked: marked, stats, verified: v.verified, notes: v.note, bars: outBars, play,
@@ -146,7 +148,7 @@ if (!only.length) {
     pieces: built.map((b) => ({ id: b.id, title: b.title, composer: b.composer, section: b.section, level: b.level, score: b.stats.score, bars: b.stats.bars, minutes: b.stats.minutes, tempo: b.tempo,
       ts: b.bars[0].ts, ks: b.bars[0].ks, license: b.license, verified: b.verified })) };
   fs.writeFileSync(path.join(OUT, "index.json"), JSON.stringify(index));
-  const lines = ["# Songbook credits", "", "Every piece in the Songbook is an arrangement read from the LilyPond source of an edition in the [Mutopia Project](https://www.mutopiaproject.org), and checked against the MIDI file Mutopia made from the same source. The notation and tab here are derived from those editions. The tab (string and fret) is an automatic suggestion and is not part of the original editions.", "", "- **Public Domain**: the typesetters placed their editions in the public domain.", "- **CC BY 3.0**: [Creative Commons Attribution 3.0](https://creativecommons.org/licenses/by/3.0/). Credit the typesetter named below.", "- **CC BY-SA 3.0**: [Creative Commons Attribution-ShareAlike 3.0](https://creativecommons.org/licenses/by-sa/3.0/). Credit the typesetter and share any adaptation (including these data files) under the same license.", "", "| Piece | Composer | Typeset by | License | Source |", "|---|---|---|---|---|"];
+  const lines = ["# Songbook credits", "", "Every piece in the Songbook is an arrangement read from the LilyPond source of an edition in the [Mutopia Project](https://www.mutopiaproject.org), and checked against the MIDI file Mutopia made from the same source. The notation and tab here are derived from those editions.", "", "- **Public Domain**: the typesetters placed their editions in the public domain.", "- **CC BY 3.0**: [Creative Commons Attribution 3.0](https://creativecommons.org/licenses/by/3.0/). Credit the typesetter named below.", "- **CC BY-SA 3.0**: [Creative Commons Attribution-ShareAlike 3.0](https://creativecommons.org/licenses/by-sa/3.0/). Credit the typesetter and share any adaptation (including these data files) under the same license.", "", "| Piece | Composer | Typeset by | License | Source |", "|---|---|---|---|---|"];
   built.forEach((b) => lines.push("| " + b.title + " | " + b.composer + " | " + (b.maintainer || "") + " | [" + b.license.name + "](" + b.license.url + ") | [Mutopia " + b.id + "](" + b.source.url + ") |"));
   fs.writeFileSync(path.join(OUT, "CREDITS.md"), lines.join("\n") + "\n");
   const counts = [1, 2, 3, 4].map((l) => built.filter((b) => b.level === l).length);

@@ -1,6 +1,6 @@
 # Songbook credits
 
-Every piece in the Songbook is an arrangement read from the LilyPond source of an edition in the [Mutopia Project](https://www.mutopiaproject.org), and checked against the MIDI file Mutopia made from the same source. The notation and tab here are derived from those editions. The tab (string and fret) is an automatic suggestion and is not part of the original editions.
+Every piece in the Songbook is an arrangement read from the LilyPond source of an edition in the [Mutopia Project](https://www.mutopiaproject.org), and checked against the MIDI file Mutopia made from the same source. The notation and tab here are derived from those editions.
 
 - **Public Domain**: the typesetters placed their editions in the public domain.
 - **CC BY 3.0**: [Creative Commons Attribution 3.0](https://creativecommons.org/licenses/by/3.0/). Credit the typesetter named below.

@@ -20,12 +20,12 @@ CC BY-SA pieces (the Bach canons) keep their license: their data files are CC BY
    so on) are tried until one matches. A piece is only built if it matches, and the result is recorded as `exact`, `subset` (the MIDI also plays chords or a tab staff that are not shown)
    or `pitches` (ornaments shift the timing, so only how often each pitch sounds is compared: weaker evidence).
 3. `score.js` turns the notes into bars: the bar grid (time signatures, pickups, short bars before repeats), voices, ties, tuplets, graces.
-4. `tab.js` chooses a string and fret for every note: a Viterbi-style search favouring low frets, small hand movements, chords within about four frets and one note per string.
-   It is an automatic guess, not the editor's fingering.
-5. `difficulty.js` estimates a score from speed, chords, hand movement, stretches, high positions, accidentals, rhythm and length; `build.js` cuts it into four levels.
+4. `tab.js` chooses a string and fret for every note (a Viterbi-style search favouring low frets, small hand movements and chords within about four frets). The page shows notation only, so this
+   fingering is used only to feed the difficulty estimate, and is not kept in the data.
+5. `difficulty.js` estimates a score from speed, chords, hand movement (from the fingering), stretches, high positions, accidentals, rhythm and length; `build.js` cuts it into four levels.
    It is a proxy, so any one piece can be a level off.
 
-Pitch convention: guitar music is written an octave above where it sounds. The notation shows the pitch as engraved; the tab uses the sounding pitch (written minus an octave).
+Pitch convention: guitar music is written an octave above where it sounds. The notation shows the pitch as engraved; the fingering uses the sounding pitch (written minus an octave).
 
 ## Adding a piece
 
