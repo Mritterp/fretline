@@ -358,7 +358,20 @@ main { max-width: 1300px; margin: 0 auto; padding: 14px 16px 90px; }
 
   // one bar's worth of VexFlow objects
   function makeBar(bar, bi, alters, cont) {
-    const visible = bar.v.map((items, vi) => ({ items, vi })).filter((x) => x.items.length);
+    // A voice's rest is left out while another voice sounds right through it (the canons keep every rest: there the entries are the point).
+    const hid = new Set();
+    if (piece.section !== "canons" && bar.v.filter((x) => x.length).length > 1) {
+      bar.v.forEach((items, vi) => items.forEach((it) => {
+        if (!it.r || it.h) return;
+        const segs = [];
+        bar.v.forEach((other, j) => { if (j !== vi) other.forEach((x) => { if (!x.r) { const s = Math.max(it.o, x.o), e = Math.min(it.o + it.u, x.o + x.u); if (e > s) segs.push([s, e]); } }); });
+        segs.sort((a, b) => a[0] - b[0]);
+        let cur = it.o; segs.forEach(([s, e]) => { if (s <= cur && e > cur) cur = e; });
+        if (cur >= it.o + it.u) hid.add(it);
+      }));
+    }
+    // a voice that is only hidden rests in this bar is not drawn at all
+    const visible = bar.v.map((items, vi) => ({ items, vi })).filter((x) => x.items.some((it) => !it.r || (!it.h && !hid.has(it))));
     const multi = visible.length > 1;
     // accidentals, in the order the notes are played across all voices
     const all = []; visible.forEach(({ items, vi }) => items.forEach((it) => { if (!it.r) all.push({ it, vi }); }));
@@ -393,7 +406,7 @@ main { max-width: 1300px; margin: 0 auto; padding: 14px 16px 90px; }
         const dur = it.d + "d".repeat(it.dt || 0);
         let note;
         if (it.r) {
-          if (it.h) note = new GhostNote({ duration: dur });
+          if (it.h || hid.has(it)) note = new GhostNote({ duration: dur });
           else {
             note = new StaveNote({ keys: [restKey(vi, it)], duration: dur + "r", clef: "treble", alignCenter: !!it.fm });
             for (let k = 0; k < (it.dt || 0); k++) Dot.buildAndAttach([note], { all: true });
