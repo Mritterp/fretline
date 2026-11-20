@@ -317,6 +317,7 @@ main { max-width: 1300px; margin: 0 auto; padding: 14px 16px 90px; }
         x += w;
         if (b.staffVoices.length) {
           new Formatter({ softmaxFactor: SPACING_SOFTMAX_FACTOR }).joinVoices(b.staffVoices).format(b.staffVoices, w - (isRowFirst ? row.extra + 20 : 20));
+          separateSeconds(b.chain, b.upperVi);
           b.staffVoices.forEach((v) => v.draw(ctx, st));
           b.beams.forEach((bm) => bm.setContext(ctx).draw()); b.staffTuplets.forEach((t) => t.setContext(ctx).draw());
         }
@@ -338,8 +339,8 @@ main { max-width: 1300px; margin: 0 auto; padding: 14px 16px 90px; }
         if (nxt) { tk = nxt.n.findIndex((q) => writtenMidi(q) === m); if (tk >= 0) to = placed.get(nxt); }
         const fi = from.note.__order.indexOf(k), ti = to ? to.note.__order.indexOf(tk) : -1;
         try {
-          if (to && to.row === from.row) new StaveTie({ first_note: from.note, last_note: to.note, first_indices: [fi], last_indices: [ti] }).setContext(ctx).draw();
-          else { new StaveTie({ first_note: from.note, last_note: null, first_indices: [fi], last_indices: [fi] }).setContext(ctx).draw(); if (to) new StaveTie({ first_note: null, last_note: to.note, first_indices: [ti], last_indices: [ti] }).setContext(ctx).draw(); }
+          if (to && to.row === from.row) new StaveTie({ firstNote: from.note, lastNote: to.note, firstIndexes: [fi], lastIndexes: [ti] }).setContext(ctx).draw();
+          else { new StaveTie({ firstNote: from.note, lastNote: null, firstIndexes: [fi], lastIndexes: [fi] }).setContext(ctx).draw(); if (to) new StaveTie({ firstNote: null, lastNote: to.note, firstIndexes: [ti], lastIndexes: [ti] }).setContext(ctx).draw(); }
         } catch (e) { /* a tie that cannot be drawn is left out */ }
       });
     })));
@@ -361,6 +362,22 @@ main { max-width: 1300px; margin: 0 auto; padding: 14px 16px 90px; }
     });
     const staffVoices = [], beams = [], staffTuplets = [], chain = [];
     const beats = bar.len / QUARTER;
+    const stemOf = (vi) => (vi === visible[0].vi ? Stem.UP : Stem.DOWN);
+    // Where a rest goes. Alone on the staff: the middle. With other voices: the upper voice's rests sit high and the lower voices'
+    // low, and a rest moves further out when another voice has a note sounding across it (so it never lands on a notehead).
+    const lineOf = (n) => 1 + ((n[2] + 3) * 7 + n[0] - 30) / 2;          // E4 is the bottom line (1); each step is half a line
+    const keyOfLine = (ln) => { const dn = Math.round(30 + (ln - 1) * 2); return STEP[((dn % 7) + 7) % 7] + "/" + Math.floor(dn / 7); };
+    const REST_HALF = { w: 0.5, h: 0.5, q: 1.5, 8: 1, 16: 1.5, 32: 2, 64: 2 };
+    function restKey(vi, it) {
+      if (!multi) return "b/4";
+      const upper = vi === visible[0].vi;
+      let line = upper ? 3.5 : -0.5;
+      const c = (REST_HALF[it.d] || 1.5) + 0.75;
+      const others = [];
+      visible.forEach((x) => { if (x.vi !== vi) x.items.forEach((o) => { if (!o.r && o.o < it.o + it.u && it.o < o.o + o.u) o.n.forEach((n) => others.push(lineOf(n))); }); });
+      if (others.some((l) => Math.abs(l - line) < c)) line = upper ? Math.min(7.5, Math.max(...others) + c) : Math.max(-2.5, Math.min(...others) - c);
+      return keyOfLine(line);
+    }
     visible.forEach(({ items, vi }) => {
       const sn = [], groups = []; let g = null;
       items.forEach((it) => {
@@ -369,13 +386,15 @@ main { max-width: 1300px; margin: 0 auto; padding: 14px 16px 90px; }
         if (it.r) {
           if (it.h) note = new GhostNote({ duration: dur });
           else {
-            note = new StaveNote({ keys: [vi === 0 ? "b/4" : "d/4"], duration: dur + "r", clef: "treble", align_center: !!it.fm });
+            note = new StaveNote({ keys: [restKey(vi, it)], duration: dur + "r", clef: "treble", alignCenter: !!it.fm });
             for (let k = 0; k < (it.dt || 0); k++) Dot.buildAndAttach([note], { all: true });
           }
         } else {
           // chord notes in ascending order
           const order = it.n.map((n, k) => k).sort((a, b) => writtenMidi(it.n[a]) - writtenMidi(it.n[b]));
-          note = new StaveNote({ keys: order.map((k) => vfKey(it.n[k])), duration: dur, clef: "treble", stem_direction: multi ? (vi === 0 ? Stem.UP : Stem.DOWN) : undefined });
+          // one voice: VexFlow picks the stem (above the middle line down, below up; a chord by its farthest note).
+          // Several voices on the staff: the upper voice's stems go up, the others' down.
+          note = new StaveNote(Object.assign({ keys: order.map((k) => vfKey(it.n[k])), duration: dur, clef: "treble" }, multi ? { stemDirection: stemOf(vi) } : { autoStem: true }));
           note.__order = order;
           const flags = acc.get(it);
           order.forEach((k, idx) => { if (flags[k]) note.addModifier(new Accidental(flags[k]), idx); });
@@ -391,13 +410,37 @@ main { max-width: 1300px; margin: 0 auto; padding: 14px 16px 90px; }
         sn.push(note); chain.push({ item: it, note, vi });
         if (it.tp) { if (g && g.id === it.tp[2]) g.s.push(note); else { g = { id: it.tp[2], n: it.tp[0], d: it.tp[1], s: [note] }; groups.push(g); } } else g = null;
       });
-      groups.forEach((gr) => staffTuplets.push(new Tuplet(gr.s, { num_notes: gr.n, notes_occupied: gr.d })));
-      staffVoices.push(new Voice({ num_beats: beats, beat_value: 4 }).setStrict(false).addTickables(sn));
-      try { Beam.generateBeams(sn, { stem_direction: multi ? (vi === 0 ? Stem.UP : Stem.DOWN) : undefined }).forEach((b) => beams.push(b)); } catch (e) {}
+      groups.forEach((gr) => staffTuplets.push(new Tuplet(gr.s, { numNotes: gr.n, notesOccupied: gr.d })));
+      staffVoices.push(new Voice({ numBeats: beats, beatValue: 4 }).setStrict(false).addTickables(sn));
+      try { Beam.generateBeams(sn, multi ? { stemDirection: stemOf(vi), maintainStemDirections: true } : {}).forEach((b) => beams.push(b)); } catch (e) {}
     });
     let width = 60;
     try { if (staffVoices.length) width = new Formatter().joinVoices(staffVoices).preCalculateMinTotalWidth(staffVoices); } catch (e) { width = 90; }
-    return { staffVoices, beams, staffTuplets, chain, width };
+    return { staffVoices, beams, staffTuplets, chain, width, upperVi: visible.length ? visible[0].vi : 0 };
+  }
+
+  // Two voices on one staff, heads a second apart on the same beat: they must not sit on top of each other (Gould, Behind Bars:
+  // offset the lower part to the right). VexFlow does this for one note against one note, but not when either voice has a chord,
+  // so look at the formatted heads here and move the lower voice's note aside by one head width where they still overlap.
+  function separateSeconds(chain, upperVi) {
+    const byOnset = new Map();
+    chain.forEach((c) => { if (c.item.r) return; if (!byOnset.has(c.item.o)) byOnset.set(c.item.o, []); byOnset.get(c.item.o).push(c); });
+    byOnset.forEach((list) => {
+      if (list.length < 2) return;
+      // the upper voice first, then the others in voice order; each is checked against every voice before it
+      const order = list.slice().sort((a, b) => (a.vi === upperVi ? -1 : b.vi === upperVi ? 1 : a.vi - b.vi));
+      const hx = (n, i) => n.noteHeads[i].getAbsoluteX() + n.getXShift();
+      order.forEach((L, li) => {
+        if (L.vi === upperVi) return;
+        const ups = order.slice(0, li).filter((c) => c.vi !== L.vi);
+        const hw = L.note.noteHeads[0].getWidth();
+        const overlap = ups.some((U) => U.note.getKeyProps().some((pu, iu) => L.note.getKeyProps().some((pl, il) => {
+          const dl = Math.abs(pu.line - pl.line);
+          return dl > 0 && dl <= 0.5 && Math.abs(hx(U.note, iu) - hx(L.note, il)) < hw * 0.9;
+        })));
+        if (overlap) L.note.setXShift(L.note.getXShift() + hw + 2);
+      });
+    });
   }
 
   // ---------- playback ----------
