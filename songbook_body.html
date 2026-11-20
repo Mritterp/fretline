@@ -76,6 +76,7 @@ main { max-width: 1300px; margin: 0 auto; padding: 14px 16px 90px; }
 .notation-svg .measure-number { fill: var(--sage); font-family: var(--font-body); }
 .notation-svg .note-active rect, .notation-svg .note-active path, .notation-svg .note-active ellipse { fill: var(--clay); stroke: var(--clay); }
 .notation-svg .vf-annotation text { stroke: none; }
+.notation-svg .note-name { stroke: none; pointer-events: none; }
 .credit { margin: 12px 0 0; font-size: 12px; line-height: 1.6; color: var(--moss); max-width: 900px; }
 .credit a { color: var(--clay); }
 .credit .fine { color: var(--sage); }
@@ -126,12 +127,12 @@ main { max-width: 1300px; margin: 0 auto; padding: 14px 16px 90px; }
       <button type="button" class="btn ghost" id="stop">Stop</button>
       <label class="ctl">Tempo <input type="range" id="tempo" min="25" max="150" step="1" value="70"><b id="bpm"></b></label>
       <label class="ctl"><input type="checkbox" id="metro"> Metronome</label>
-      <label class="ctl"><input type="checkbox" id="names"> Note names</label>
+      <label class="ctl"><input type="checkbox" id="names"> Note names (N)</label>
     </div>
     <div class="status" id="status"></div>
     <div class="stage-card"><div id="score"></div></div>
     <p class="credit" id="credit"></p>
-    <p class="keys"><span><kbd>Space</kbd> play / pause</span><span><kbd>Esc</kbd> stop</span><span>click a bar to start from it</span></p>
+    <p class="keys"><span><kbd>Space</kbd> play / pause</span><span><kbd>Esc</kbd> stop</span><span><kbd>N</kbd> note names</span><span>click a bar to start from it</span></p>
   </section>
 </main>
 
@@ -215,8 +216,7 @@ main { max-width: 1300px; margin: 0 auto; padding: 14px 16px 90px; }
     const pct = saved.tempoPct || 70; $("tempo").value = String(pct); showTempo();
     const lic = piece.license;
     $("credit").innerHTML = 'From the <a href="' + piece.source.url + '" target="_blank" rel="noopener">Mutopia Project</a>' + (piece.maintainer ? ", typeset by " + piece.maintainer : "") + ". License: <a href=\"" + lic.url + "\" target=\"_blank\" rel=\"noopener\">" + lic.name + "</a>" +
-      (lic.name === "CC BY-SA 3.0" ? " (share-alike: this notation carries the same license)" : "") + '.<br><span class="fine">Notes are checked against the edition\'s own MIDI file' +
-      (piece.verified === "pitches" ? " by pitch (ornaments make an exact timing check impossible)" : piece.verified === "subset" ? " (the MIDI also plays an accompaniment that is not shown)" : "") + ". Written an octave above where it sounds, as guitar music is." + (meta && piece.notes && piece.notes.length ? " " + piece.notes.join("; ") + "." : "") + "</span>";
+      (lic.name === "CC BY-SA 3.0" ? " (share-alike: this notation carries the same license)" : "") + ".";
     $("status").textContent = ""; safeRender(); window.scrollTo(0, 0);
     if (typeof embedHeight === "function") embedHeight();
   }
@@ -264,6 +264,13 @@ main { max-width: 1300px; margin: 0 auto; padding: 14px 16px 90px; }
   let showNames = !!saved.names;
   $("names").checked = showNames;
   $("names").addEventListener("change", () => { showNames = $("names").checked; saved.names = showNames; save(); if (piece) safeRender(); });
+  window.addEventListener("keydown", (e) => {   // N: note names on / off (works anywhere except while typing)
+    if (e.key !== "n" && e.key !== "N") return;
+    if (e.ctrlKey || e.metaKey || e.altKey || e.repeat) return;
+    const t = e.target, tag = (t && t.tagName) || "";
+    if (tag === "TEXTAREA" || tag === "SELECT" || (tag === "INPUT" && !/^(checkbox|range|button)$/.test(t.type)) || (t && t.isContentEditable)) return;
+    e.preventDefault(); $("names").checked = !$("names").checked; $("names").dispatchEvent(new Event("change"));
+  });
   const NAMES = "CDEFGAB";
   const noteName = (n) => NAMES[n[0]] + (n[1] > 0 ? "\u266f".repeat(n[1]) : n[1] < 0 ? "\u266d".repeat(-n[1]) : "");
   function safeRender() {
@@ -286,13 +293,14 @@ main { max-width: 1300px; margin: 0 auto; padding: 14px 16px 90px; }
     // a bar's minimum width: what its notes need, never less than Sightreading's minimum (a time signature in mid-piece needs room too)
     const measureMinWidths = built.map((b, bi) => Math.max(MIN_BAR_WIDTH, b.width + MEASURE_PADDING) + (bi > 0 && piece.bars[bi].ts ? 34 : 0));
     const rows = computeRows(measureMinWidths, containerWidth);
-    const totalHeight = TOP_MARGIN + rows.length * ROW_HEIGHT + 30;
+    const topM = TOP_MARGIN + (showNames ? 45 : 0), rowH = ROW_HEIGHT + (showNames ? 35 : 0);   // room above each row for the name stacks
+    const totalHeight = topM + rows.length * rowH + 30;
     const renderer = new Renderer(host, Renderer.Backends.SVG); renderer.resize(containerWidth, totalHeight);
     const ctx = renderer.getContext(), svg = host.querySelector("svg"); svg.classList.add("notation-svg");
     // 3. draw
     const placed = new Map();   // item -> {note, row}
     rows.forEach((row, ri) => {
-      const rowY = TOP_MARGIN + ri * ROW_HEIGHT;
+      const rowY = topM + ri * rowH;
       let x = 10; const rowStartX = x;
       const numEl = document.createElementNS(SVG_NS, "text");
       numEl.setAttribute("x", String(rowStartX + 1)); numEl.setAttribute("y", String(rowY - 8)); numEl.setAttribute("class", "measure-number");
@@ -304,7 +312,7 @@ main { max-width: 1300px; margin: 0 auto; padding: 14px 16px 90px; }
       for (let i = 0; i < row.count; i++) {
         const bi = row.startIndex + i, bar = piece.bars[bi], b = built[bi], isRowFirst = i === 0, w = row.widths[i] + (isRowFirst ? row.extra : 0);
         const hit = document.createElementNS(SVG_NS, "rect");
-        hit.setAttribute("x", String(x)); hit.setAttribute("y", String(rowY - 35)); hit.setAttribute("width", String(w)); hit.setAttribute("height", String(ROW_HEIGHT - 15)); hit.setAttribute("class", "measure-hit");
+        hit.setAttribute("x", String(x)); hit.setAttribute("y", String(rowY - 35)); hit.setAttribute("width", String(w)); hit.setAttribute("height", String(rowH - 15)); hit.setAttribute("class", "measure-hit");
         hit.addEventListener("click", () => startFrom(bi)); svg.appendChild(hit); barHits[bi] = hit; rowOf[bi] = ri;
         const st = new Stave(x, rowY, w);
         if (isRowFirst) { st.addClef("treble"); st.addKeySignature(keyAtCache[bi]); if (bi === 0) st.addTimeSignature(bar.ts[0] + "/" + bar.ts[1]); }
@@ -320,6 +328,7 @@ main { max-width: 1300px; margin: 0 auto; padding: 14px 16px 90px; }
           separateSeconds(b.chain, b.upperVi);
           b.staffVoices.forEach((v) => v.draw(ctx, st));
           b.beams.forEach((bm) => bm.setContext(ctx).draw()); b.staffTuplets.forEach((t) => t.setContext(ctx).draw());
+          if (showNames) drawNames(b.chain, svg);
         }
         b.chain.forEach((c) => placed.set(c.item, { note: c.note, row: ri }));
         barNotes[bi] = b.chain.map((c) => ({ note: c.note, o: c.item.o, u: c.item.u, r: c.item.r }));
@@ -399,7 +408,6 @@ main { max-width: 1300px; margin: 0 auto; padding: 14px 16px 90px; }
           const flags = acc.get(it);
           order.forEach((k, idx) => { if (flags[k]) note.addModifier(new Accidental(flags[k]), idx); });
           for (let k = 0; k < (it.dt || 0); k++) Dot.buildAndAttach([note], { all: true });
-          if (showNames) { const lab = new Annotation(order.map((k) => noteName(it.n[k])).join(" ")).setFont("Helvetica", 10, "bold"); lab.setVerticalJustification(Annotation.VerticalJustify.BOTTOM); note.addModifier(lab, 0); }
           if (it.g && it.g.length) {   // grace notes before this one (small notes, slashed for an acciaccatura)
             try {
               const gns = it.g.map((gr, gi) => { const ord = gr.n.map((n, k) => k).sort((a, b) => writtenMidi(gr.n[a]) - writtenMidi(gr.n[b])); const gn = new GraceNote({ keys: ord.map((k) => vfKey(gr.n[k])), duration: gr.d, slash: !!gr.s, clef: "treble" }); ord.forEach((k, idx) => { const a = (graceAcc.get(it) || [])[gi]; if (a && a[k]) gn.addModifier(new Accidental(a[k]), idx); }); return gn; });
@@ -417,6 +425,32 @@ main { max-width: 1300px; margin: 0 auto; padding: 14px 16px 90px; }
     let width = 60;
     try { if (staffVoices.length) width = new Formatter().joinVoices(staffVoices).preCalculateMinTotalWidth(staffVoices); } catch (e) { width = 90; }
     return { staffVoices, beams, staffTuplets, chain, width, upperVi: visible.length ? visible[0].vi : 0 };
+  }
+
+  // Note names, stacked above each beat's notes (all voices that sound together share one stack, highest pitch on top).
+  // The stack starts above the highest head, stem or beam of that beat so it never sits on the music.
+  function drawNames(chain, svg) {
+    const groups = new Map();
+    chain.forEach((c) => { if (c.item.r) return; if (!groups.has(c.item.o)) groups.set(c.item.o, []); groups.get(c.item.o).push(c); });
+    groups.forEach((list) => {
+      let top = Infinity; const xs = [], names = new Map();
+      list.forEach(({ item, note }) => {
+        try {
+          note.getYs().forEach((y) => { top = Math.min(top, y - 6); });
+          if (note.hasStem()) { const e = note.getStemExtents(); top = Math.min(top, e.topY - 3, e.baseY - 3); }
+          note.noteHeads.forEach((h) => xs.push(h.getAbsoluteX() + note.getXShift() + h.getWidth() / 2));
+        } catch (e) { return; }
+        item.n.forEach((n) => names.set(writtenMidi(n), noteName(n)));
+      });
+      if (!isFinite(top) || !xs.length) return;
+      const cx = (Math.min(...xs) + Math.max(...xs)) / 2;
+      [...names.keys()].sort((a, b) => a - b).forEach((m, j) => {
+        const t = document.createElementNS(SVG_NS, "text");
+        t.setAttribute("x", String(cx)); t.setAttribute("y", String(top - 3 - j * 11)); t.setAttribute("text-anchor", "middle");
+        t.setAttribute("class", "note-name"); t.setAttribute("font-size", "10"); t.setAttribute("font-weight", "700"); t.setAttribute("font-family", "Helvetica, Arial, sans-serif");
+        t.textContent = names.get(m); svg.appendChild(t);
+      });
+    });
   }
 
   // Two voices on one staff, heads a second apart on the same beat: they must not sit on top of each other (Gould, Behind Bars:
