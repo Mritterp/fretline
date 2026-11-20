@@ -333,7 +333,7 @@ main { max-width: 1300px; margin: 0 auto; padding: 14px 16px 90px; }
           separateSeconds(b.chain, b.upperVi);
           b.staffVoices.forEach((v) => v.draw(ctx, st));
           b.beams.forEach((bm) => bm.setContext(ctx).draw()); b.staffTuplets.forEach((t) => t.setContext(ctx).draw());
-          if (showNames) drawNames(b.chain, svg);
+          if (showNames) drawNames(b.chain, svg, st.getYForLine(0));
         }
         b.chain.forEach((c) => placed.set(c.item, { note: c.note, row: ri }));
         barNotes[bi] = b.chain.map((c) => ({ note: c.note, o: c.item.o, u: c.item.u, r: c.item.r }));
@@ -433,12 +433,12 @@ main { max-width: 1300px; margin: 0 auto; padding: 14px 16px 90px; }
   }
 
   // Note names, stacked above each beat's notes (all voices that sound together share one stack, highest pitch on top).
-  // The stack starts above the highest head, stem or beam of that beat so it never sits on the music.
-  function drawNames(chain, svg) {
+  // The stack starts above the top staff line, or above the highest head, stem or beam of that beat if that reaches higher.
+  function drawNames(chain, svg, staffTop) {
     const groups = new Map();
     chain.forEach((c) => { if (c.item.r) return; if (!groups.has(c.item.o)) groups.set(c.item.o, []); groups.get(c.item.o).push(c); });
     groups.forEach((list) => {
-      let top = Infinity; const xs = [], names = new Map();
+      let top = staffTop - 8; const xs = [], names = new Map();   // never lower than just above the top staff line
       list.forEach(({ item, note }) => {
         try {
           note.getYs().forEach((y) => { top = Math.min(top, y - 6); });
@@ -447,7 +447,7 @@ main { max-width: 1300px; margin: 0 auto; padding: 14px 16px 90px; }
         } catch (e) { return; }
         item.n.forEach((n) => names.set(writtenMidi(n), noteName(n)));
       });
-      if (!isFinite(top) || !xs.length) return;
+      if (!xs.length) return;
       const cx = (Math.min(...xs) + Math.max(...xs)) / 2;
       [...names.keys()].sort((a, b) => a - b).forEach((m, j) => {
         const t = document.createElementNS(SVG_NS, "text");
