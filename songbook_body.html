@@ -380,7 +380,7 @@ main { max-width: 1300px; margin: 0 auto; padding: 14px 16px 90px; }
     function restKey(vi, it) {
       if (!multi) return "b/4";
       const upper = vi === visible[0].vi;
-      let line = upper ? 3.5 : -0.5;
+      let line = upper ? 4 : 2;   // upper voice: top half of the staff; lower voice: bottom half (as in the Mutopia editions)
       const c = (REST_HALF[it.d] || 1.5) + 0.75;
       const others = [];
       visible.forEach((x) => { if (x.vi !== vi) x.items.forEach((o) => { if (!o.r && o.o < it.o + it.u && it.o < o.o + o.u) o.n.forEach((n) => others.push(lineOf(n))); }); });
