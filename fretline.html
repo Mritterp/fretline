@@ -2448,15 +2448,27 @@ button.mode-chip.active:hover { color: var(--parchment); }
     const i = list.findIndex((p) => p.voicing.every((v) => !v || (v.fret >= pinnedModeBox.lo && v.fret <= pinnedModeBox.hi)));
     return i < 0 ? 0 : i;
   }
+  // Where on the neck a shape sits: the middle of its fretted notes (open strings do not count), so shapes of different qualities can be compared.
+  function posCenter(voicing) {
+    const f = voicing.filter(Boolean).map((v) => v.fret).filter((x) => x > 0);
+    return f.length ? (Math.min(...f) + Math.max(...f)) / 2 : 0;
+  }
   // Draws one placement of the chord's patterns on the fretboard (ctx.posIdx) and keeps the position control in step.
   function showChordPosition(ctx, qualityKey) {
     const fretWindow = currentFretWindow || { lo: 0, hi: 4 }, bar = document.getElementById("pos-cycle");
     const list = patternPlacements(ctx.rootPc, qualityKey, fretWindow.lo, fretWindow.hi, true);   // the primary positions only
     ctx.posCount = list.length;
     if (!list.length) { highlightFretboardVoicing(findChordVoicing(ctx.rootPc, qualityKey, fretWindow.lo, fretWindow.hi)); bar.hidden = true; return; }
-    if (ctx.posIdx == null) ctx.posIdx = defaultPositionIndex(list);
+    let followed = false;
+    if (ctx.posIdx == null) {
+      // a new chord starts on its default position; a new quality of the same chord goes to the shape nearest the frets you chose
+      const keep = ctx.posKeep; ctx.posKeep = null;
+      if (keep != null) { let best = 0; list.forEach((p, i) => { if (Math.abs(posCenter(p.voicing) - keep) < Math.abs(posCenter(list[best].voicing) - keep)) best = i; }); ctx.posIdx = best; followed = true; }
+      else ctx.posIdx = defaultPositionIndex(list);
+    }
     ctx.posIdx = ((ctx.posIdx % list.length) + list.length) % list.length;
     const cur = list[ctx.posIdx], frets = cur.voicing.filter(Boolean).map((v) => v.fret), lo = Math.min(...frets), hi = Math.max(...frets);
+    if (!followed) ctx.posFret = posCenter(cur.voicing);   // the chosen frets only change when you pick a position (or a new chord), not when a quality has nothing nearby
     highlightFretboardVoicing(cur.voicing);
     document.getElementById("pos-label").textContent = "Pos " + (ctx.posIdx + 1) + " · " + (lo === hi ? "fret " + lo : "frets " + lo + "–" + hi);
     document.getElementById("pos-count").textContent = "of " + list.length;
@@ -2506,7 +2518,10 @@ button.mode-chip.active:hover { color: var(--parchment); }
     });
 
     highlightKeyboardVoicing(ctx.rootPc, qualityKey);
-    if (ctx.posQuality !== qualityKey) { ctx.posQuality = qualityKey; ctx.posIdx = null; }   // a new chord or quality starts on its default position (see defaultPositionIndex)
+    if (ctx.posQuality !== qualityKey) {   // a new chord starts on its default position (see defaultPositionIndex); a new quality of the same chord stays where the shape was
+      ctx.posKeep = ctx.posQuality !== undefined && ctx.posFret != null ? ctx.posFret : null;
+      ctx.posQuality = qualityKey; ctx.posIdx = null;
+    }
     showChordPosition(ctx, qualityKey);
 
     document.getElementById("quality-roman").textContent =
@@ -3446,7 +3461,7 @@ button.mode-chip.active:hover { color: var(--parchment); }
       emphasizeFretRange(lo, hi);
     }
     // a chord that is already showing moves to the default position for the new choice (the pinned mode, or the lowest when none is)
-    if (activeChordCtx && !document.getElementById("quality-panel").hidden) { activeChordCtx.posIdx = null; showChordPosition(activeChordCtx, activeChordCtx.selectedQuality); }
+    if (activeChordCtx && !document.getElementById("quality-panel").hidden) { activeChordCtx.posIdx = null; activeChordCtx.posKeep = null; showChordPosition(activeChordCtx, activeChordCtx.selectedQuality); }
   });
 
   // Wrapping the notation to the available width means the very first render
