@@ -28,11 +28,7 @@ h1 { margin: 0; font-family: var(--font-display); font-weight: 400; font-size: 3
 @media (max-width: 700px) { .site-tabs { display: grid; grid-template-columns: repeat(3, 1fr); gap: 5px; width: 100%; } .site-tab { min-width: 0; font-size: 9px; letter-spacing: 0.1em; padding: 6px 2px; } header { padding: 10px 12px; } h1 { font-size: 26px; } }
 
 main { max-width: 1300px; margin: 0 auto; padding: 14px 16px 90px; }
-.sections { display: flex; margin-bottom: 10px; }
-.sec { flex: 1; font: inherit; font-size: 11px; letter-spacing: 0.16em; text-transform: uppercase; padding: 10px 8px; border: 1px solid var(--wheat); background: transparent; color: var(--moss); cursor: pointer; }
-.sec + .sec { border-left: 0; }
-.sec[aria-pressed="true"] { background: var(--bark); border-color: var(--bark); color: var(--parchment); }
-.sec small { opacity: 0.65; letter-spacing: 0.05em; margin-left: 6px; }
+#sections { margin-bottom: 8px; }
 .filters { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 8px; margin-bottom: 14px; }
 .filters .lbl { font-size: 10px; letter-spacing: 0.2em; text-transform: uppercase; color: var(--sage); margin-right: 4px; }
 .chip { font: inherit; font-size: 12px; padding: 6px 12px; border: 1px solid var(--wheat); background: transparent; color: var(--sage); cursor: pointer; border-radius: 14px; }
@@ -108,7 +104,7 @@ main { max-width: 1300px; margin: 0 auto; padding: 14px 16px 90px; }
 <main>
   <!-- ===== the list ===== -->
   <section id="list">
-    <div class="sections" id="sections" role="group" aria-label="Section"></div>
+    <div class="filters" id="sections" role="group" aria-label="Style"></div>
     <div class="filters" id="filters" role="group" aria-label="Level"></div>
     <p class="note" id="sec-note"></p>
     <div class="grid" id="grid"></div>
@@ -176,10 +172,12 @@ main { max-width: 1300px; margin: 0 auto; padding: 14px 16px 90px; }
     canons: "Two-voice canons by J. S. Bach (BWV 1087, on the Goldberg ground): the second voice copies the first, a few beats behind.",
   };
   function drawList() {
-    const sec = saved.section && index.sections.some((s) => s.id === saved.section) ? saved.section : index.sections[0].id, lv = saved.level || 0;
-    $("sections").innerHTML = ""; index.sections.forEach((s) => {
-      const n = index.pieces.filter((p) => p.section === s.id).length, b = document.createElement("button");
-      b.type = "button"; b.className = "sec"; b.setAttribute("aria-pressed", String(s.id === sec)); b.innerHTML = s.name + "<small>" + n + "</small>";
+    // style: "" shows every style together
+    const sec = saved.section && index.sections.some((s) => s.id === saved.section) ? saved.section : "", lv = saved.level || 0;
+    $("sections").innerHTML = '<span class="lbl">Style</span>';
+    [{ id: "", name: "All", n: index.pieces.length }].concat(index.sections.map((s) => ({ id: s.id, name: s.name, n: index.pieces.filter((p) => p.section === s.id).length }))).forEach((s) => {
+      const b = document.createElement("button"); b.type = "button"; b.className = "chip"; b.setAttribute("aria-pressed", String(s.id === sec));
+      b.innerHTML = s.name.replace(/&/g, "&amp;") + ' <small style="opacity:.6">' + s.n + "</small>";
       b.addEventListener("click", () => { saved.section = s.id; save(); drawList(); }); $("sections").appendChild(b);
     });
     $("filters").innerHTML = '<span class="lbl">Level</span>';
@@ -187,14 +185,15 @@ main { max-width: 1300px; margin: 0 auto; padding: 14px 16px 90px; }
       const b = document.createElement("button"); b.type = "button"; b.className = "chip"; b.textContent = name; b.setAttribute("aria-pressed", String(lv === l));
       b.addEventListener("click", () => { saved.level = l; save(); drawList(); }); $("filters").appendChild(b);
     });
-    $("sec-note").textContent = SEC_NOTES[sec] || "";
-    const list = index.pieces.filter((p) => p.section === sec && (!lv || p.level === lv)).sort((a, b) => a.score - b.score);
+    $("sec-note").textContent = sec ? SEC_NOTES[sec] || "" : "Every style together, easiest first. Pick a style to narrow it down.";
+    const styleName = {}; index.sections.forEach((s) => { styleName[s.id] = s.name; });
+    const list = index.pieces.filter((p) => (!sec || p.section === sec) && (!lv || p.level === lv)).sort((a, b) => a.score - b.score);
     $("grid").innerHTML = "";
-    if (!list.length) { $("grid").innerHTML = '<p class="note">No pieces at that level in this section. Try another level.</p>'; return; }
+    if (!list.length) { $("grid").innerHTML = '<p class="note">No pieces at that level in this style. Try another level or style.</p>'; return; }
     list.forEach((p) => {
       const b = document.createElement("button"); b.type = "button"; b.className = "song";
       b.innerHTML = '<span class="lvl"><span class="pips">' + pips(p.level) + "</span>" + LEVELS[p.level - 1] + '</span><span class="t"></span><span class="c"></span><span class="m"></span>';
-      b.querySelector(".t").textContent = p.title; b.querySelector(".c").textContent = p.composer;
+      b.querySelector(".t").textContent = p.title; b.querySelector(".c").textContent = p.composer + (sec ? "" : " · " + (styleName[p.section] || ""));
       b.querySelector(".m").textContent = p.bars + " bars · about " + (p.minutes < 1 ? "under a minute" : p.minutes.toFixed(1).replace(/\.0$/, "") + " min") + " · " + (p.ts ? p.ts[0] + "/" + p.ts[1] : "") + " · " + keyLabel(p.ks);
       b.addEventListener("click", () => openPiece(p.id)); $("grid").appendChild(b);
     });
