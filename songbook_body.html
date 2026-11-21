@@ -346,9 +346,10 @@ main { max-width: 1300px; margin: 0 auto; padding: 14px 16px 90px; }
         const m = writtenMidi(n); let to = null, tk = -1;
         if (nxt) { tk = nxt.n.findIndex((q) => writtenMidi(q) === m); if (tk >= 0) to = placed.get(nxt); }
         const fi = from.note.__order.indexOf(k), ti = to ? to.note.__order.indexOf(tk) : -1;
+        const dir = tieDir(from.note, fi);   // both halves of a tie that runs over a row end go the same way
         try {
-          if (to && to.row === from.row) new StaveTie({ firstNote: from.note, lastNote: to.note, firstIndexes: [fi], lastIndexes: [ti] }).setContext(ctx).draw();
-          else { new StaveTie({ firstNote: from.note, lastNote: null, firstIndexes: [fi], lastIndexes: [fi] }).setContext(ctx).draw(); if (to) new StaveTie({ firstNote: null, lastNote: to.note, firstIndexes: [ti], lastIndexes: [ti] }).setContext(ctx).draw(); }
+          if (to && to.row === from.row) new StaveTie({ firstNote: from.note, lastNote: to.note, firstIndexes: [fi], lastIndexes: [ti] }).setDirection(dir).setContext(ctx).draw();
+          else { new StaveTie({ firstNote: from.note, lastNote: null, firstIndexes: [fi], lastIndexes: [fi] }).setDirection(dir).setContext(ctx).draw(); if (to) new StaveTie({ firstNote: null, lastNote: to.note, firstIndexes: [ti], lastIndexes: [ti] }).setDirection(dir).setContext(ctx).draw(); }
         } catch (e) { /* a tie that cannot be drawn is left out */ }
       });
     })));
@@ -416,7 +417,7 @@ main { max-width: 1300px; margin: 0 auto; padding: 14px 16px 90px; }
           // one voice: VexFlow picks the stem (above the middle line down, below up; a chord by its farthest note).
           // Several voices on the staff: the upper voice's stems go up, the others' down.
           note = new StaveNote(Object.assign({ keys: order.map((k) => vfKey(it.n[k])), duration: dur, clef: "treble" }, multi ? { stemDirection: stemOf(vi) } : { autoStem: true }));
-          note.__order = order;
+          note.__order = order; note.__multi = multi; note.__upper = vi === visible[0].vi;
           const flags = acc.get(it);
           order.forEach((k, idx) => { if (flags[k]) note.addModifier(new Accidental(flags[k]), idx); });
           for (let k = 0; k < (it.dt || 0); k++) Dot.buildAndAttach([note], { all: true });
@@ -437,6 +438,16 @@ main { max-width: 1300px; margin: 0 auto; padding: 14px 16px 90px; }
     let width = 60;
     try { if (staffVoices.length) width = new Formatter().joinVoices(staffVoices).preCalculateMinTotalWidth(staffVoices); } catch (e) { width = 90; }
     return { staffVoices, beams, staffTuplets, chain, width, upperVi: visible.length ? visible[0].vi : 0 };
+  }
+
+  // Which way a tie curves (VexFlow: -1 above the notes, 1 below). Two voices on the staff: on the stem side, so the upper voice's ties curve
+  // up and the lower voice's down, away from each other (VexFlow's own default, opposite the stem, would make them cross). A chord in one
+  // voice: the lower notes' ties curve down and the upper notes' up. A single note: opposite the stem, on the head side.
+  function tieDir(note, i) {
+    if (note.__multi) return note.__upper ? -1 : 1;
+    const m = note.getKeyProps().length;
+    if (m > 1) { if (i < (m - 1) / 2) return 1; if (i > (m - 1) / 2) return -1; }
+    return note.getStemDirection() === Stem.UP ? 1 : -1;
   }
 
   // Note names, stacked above each beat's notes (all voices that sound together share one stack, highest pitch on top).
