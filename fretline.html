@@ -2519,7 +2519,7 @@ button.mode-chip.active:hover { color: var(--parchment); }
 
     highlightKeyboardVoicing(ctx.rootPc, qualityKey);
     if (ctx.posQuality !== qualityKey) {   // a new chord starts on its default position (see defaultPositionIndex); a new quality of the same chord stays where the shape was
-      ctx.posKeep = ctx.posQuality !== undefined && ctx.posFret != null ? ctx.posFret : null;
+      ctx.posKeep = ctx.posFret != null ? ctx.posFret : null;   // (a chord picked fresh, with nothing active before it, has no posFret yet and starts at its default)
       ctx.posQuality = qualityKey; ctx.posIdx = null;
     }
     showChordPosition(ctx, qualityKey);
@@ -2545,6 +2545,7 @@ button.mode-chip.active:hover { color: var(--parchment); }
     }
     btn.classList.add("active");
     const nativeQuality = btn.dataset.quality;
+    const carryFret = activeChordCtx ? activeChordCtx.posFret : null;   // stepping from one modal chord to the next stays at the frets the last shape was on
     activeChordCtx = {
       rootPc: parseInt(btn.dataset.root, 10),
       parentDegree: parseInt(btn.dataset.parentDegree, 10),
@@ -2554,6 +2555,7 @@ button.mode-chip.active:hover { color: var(--parchment); }
       keyObj: lastSettings.keyObj,
       nativeQuality,
       modeFullName: currentModeInfo.rootName + " " + currentModeInfo.name,
+      posFret: carryFret != null ? carryFret : null,
     };
     // Selecting a new modal chord always resets the quality override back
     // to that chord's own native, diatonic quality.
