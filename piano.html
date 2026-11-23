@@ -2,6 +2,7 @@
 <script src="embed.js"></script>
 <script src="fl-audio.js"></script>
 <script src="fl-notes.js"></script>
+<script src="harmony-core.js"></script>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Fretline — Piano</title>
 <link rel="manifest" href="manifest.webmanifest">
@@ -74,6 +75,50 @@ main { max-width: 1300px; margin: 0 auto; padding: 14px 16px 30px; }
 .history { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 8px; margin-top: 12px; font-size: 12px; color: var(--moss); }
 .history .h-label { font-size: 10px; letter-spacing: 0.2em; text-transform: uppercase; color: var(--sage); margin-right: 4px; }
 .history .chip { font-family: var(--font-display); font-size: 15px; padding: 3px 10px; border: 1px solid var(--wheat); color: var(--bark); background: #fff; }
+.a-actions { margin-top: auto; align-self: flex-end; padding-top: 6px; }
+.a-actions .btn { padding: 7px 14px; font-size: 10px; }
+.a-actions .btn:disabled { opacity: 0.45; cursor: default; }
+.a-actions .btn.added { border-color: var(--sage); color: var(--moss); }
+.prog { margin-top: 12px; }
+.prog-top { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 8px; }
+.prog .h-label { font-size: 10px; letter-spacing: 0.2em; text-transform: uppercase; color: var(--sage); margin-right: 4px; }
+.prog-chips { display: contents; }
+.prog-empty { font-size: 12px; color: var(--moss); }
+.pchip { display: inline-flex; align-items: baseline; gap: 6px; font-family: var(--font-display); font-size: 17px; padding: 4px 4px 4px 12px; border: 1px solid var(--wheat); background: #fff; color: var(--bark); cursor: pointer; }
+.pchip:hover { border-color: var(--sage); }
+.pchip.playing { background: var(--bark); border-color: var(--bark); color: var(--parchment); }
+.pchip .rn { font-family: var(--font-body); font-size: 11px; color: var(--moss); letter-spacing: 0.04em; }
+.pchip.playing .rn { color: var(--wheat); }
+.pchip .x { font: inherit; font-size: 15px; line-height: 1; border: 0; background: transparent; color: var(--sage); cursor: pointer; padding: 0 5px; }
+.pchip .x:hover { color: #a6433d; }
+.prog-bar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px; margin-top: 10px; }
+.prog-bar .btn:disabled { opacity: 0.45; cursor: default; }
+.prog-ctl { display: flex; align-items: center; gap: 8px; font-size: 10px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--moss); }
+.prog-ctl input[type=range] { width: 140px; accent-color: var(--bark); }
+.prog-ctl b { font-family: var(--font-display); font-size: 15px; letter-spacing: 0; text-transform: none; font-weight: 400; color: var(--bark); min-width: 58px; }
+.prog-ctl select { font: inherit; font-size: 13px; padding: 5px 8px; background: var(--parchment); border: 1px solid var(--wheat); color: var(--bark); }
+.prog-analysis { margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--wheat); display: grid; grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); gap: 16px 28px; }
+.prog-analysis[hidden] { display: none; }
+.pa-head { font-size: 10px; letter-spacing: 0.2em; text-transform: uppercase; color: var(--sage); margin: 0 0 6px; }
+.pa-block + .pa-block { margin-top: 14px; }
+.pa-key { font-family: var(--font-display); font-size: 24px; line-height: 1.15; }
+.pa-key small { font-family: var(--font-body); font-size: 12px; color: var(--moss); margin-left: 6px; }
+.pa-note { font-size: 12px; color: var(--moss); line-height: 1.55; margin-top: 4px; }
+.pa-note .btn { padding: 4px 10px; font-size: 9px; margin-left: 6px; }
+.pa-row { display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 10px; padding: 3px 0; font-size: 13px; }
+.pa-row .c { font-family: var(--font-display); font-size: 17px; min-width: 70px; }
+.pa-row .n { font-family: var(--font-display); font-size: 17px; color: var(--clay); min-width: 60px; }
+.pa-row .f { color: var(--moss); flex: 1 1 200px; }
+.pa-move { font-size: 13px; line-height: 1.55; color: var(--moss); padding: 2px 0; }
+.pa-move b { color: var(--bark); font-weight: 600; }
+.pa-scale { padding: 4px 0; }
+.pa-scale .s1 { display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 12px; }
+.pa-scale .sn { font-family: var(--font-display); font-size: 17px; min-width: 150px; }
+.pa-scale .sx { color: var(--moss); letter-spacing: 0.04em; font-size: 13px; }
+.pa-scale .sy { font-size: 12px; color: var(--moss); margin-top: 1px; }
+.pa-chord { font-family: var(--font-display); font-size: 17px; margin-top: 10px; }
+.pa-chord .rn { font-family: var(--font-body); font-size: 11px; color: var(--clay); margin-left: 6px; letter-spacing: 0.04em; }
+@media (max-width: 560px) { .prog-analysis { grid-template-columns: minmax(0, 1fr); } .pa-scale .sn { min-width: 0; } }
 .keys { display: flex; flex-wrap: wrap; gap: 6px 22px; margin: 14px 0 0; font-size: 11px; color: var(--moss); }
 .keys kbd { font: inherit; font-size: 10px; letter-spacing: 0.06em; padding: 2px 6px; border: 1px solid var(--wheat); border-bottom-width: 2px; border-radius: 3px; background: #fff; color: var(--bark); }
 </style>
@@ -124,12 +169,25 @@ main { max-width: 1300px; margin: 0 auto; padding: 14px 16px 30px; }
       <div class="a-notes" id="a-notes"></div>
       <div class="a-alt" id="a-alt"></div>
       <div class="a-scales" id="a-scales" hidden></div>
+      <div class="a-actions"><button type="button" class="btn ghost" id="add-prog" disabled title="Play a chord (three or more notes), then add it to the progression">+ Add to progression</button></div>
     </div>
   </div>
 
   <div class="card">
     <div class="kbd" id="kbd" aria-label="Piano keyboard: click keys to play"></div>
     <div class="history" id="history" hidden><span class="h-label">Chords you played</span></div>
+  </div>
+
+  <div class="card prog" id="prog">
+    <div class="prog-top"><span class="h-label">Progression</span><span id="prog-chips" class="prog-chips"></span></div>
+    <div class="prog-bar">
+      <button type="button" class="btn" id="prog-play" disabled>Play loop</button>
+      <label class="prog-ctl">Tempo <input type="range" id="prog-bpm" min="40" max="200" step="1" value="80" aria-label="Progression tempo"> <b id="prog-bpm-val">80 bpm</b></label>
+      <label class="prog-ctl">Hold each <select id="prog-beats" aria-label="Beats per chord"><option value="1">1 beat</option><option value="2">2 beats</option><option value="4">4 beats</option></select></label>
+      <button type="button" class="btn ghost" id="prog-undo" disabled>Remove last</button>
+      <button type="button" class="btn ghost" id="prog-clear" disabled>Clear</button>
+    </div>
+    <div class="prog-analysis" id="prog-analysis" hidden></div>
   </div>
 
   <p class="keys" aria-label="Keyboard shortcuts">
@@ -376,8 +434,8 @@ main { max-width: 1300px; margin: 0 auto; padding: 14px 16px 30px; }
   function paintKeys() {
     if (!keyEls.size) document.querySelectorAll("#kbd .key").forEach((k) => keyEls.set(+k.dataset.midi, k));
     keyEls.forEach((el, m) => {
-      const down = held.has(m), tail = !down && sustained.has(m);
-      el.setAttribute("fill", down ? (isBlack(m) ? "#b07a5a" : "#e0a984") : tail ? (isBlack(m) ? "#7a5c46" : "#f0d9c8") : isBlack(m) ? "#3d3a30" : "#fff");
+      const down = held.has(m), tail = !down && sustained.has(m), lit = !down && !tail && progLit.has(m);   // lit: a note of the progression that is playing
+      el.setAttribute("fill", down ? (isBlack(m) ? "#b07a5a" : "#e0a984") : tail ? (isBlack(m) ? "#7a5c46" : "#f0d9c8") : lit ? (isBlack(m) ? "#5f7a54" : "#c3d4b8") : isBlack(m) ? "#3d3a30" : "#fff");
     });
   }
 
@@ -439,8 +497,8 @@ main { max-width: 1300px; margin: 0 auto; padding: 14px 16px 30px; }
   const saveCenter = () => { try { localStorage.setItem("fretline-piano-center", JSON.stringify(center)); } catch (e) {} };
   const inCenter = (pc) => SCALES[center.scale][0].includes(mod(pc - center.pc));
   const centerName = () => KEY_NAMES[center.pc] + " " + CENTER_SCALES.find((x) => x[0] === center.scale)[2];
-  function numeral(c) {   // the chord's root against the tonal center: case from its third (lower case for a minor third, so dim / half-diminished too), then the kind of chord
-    const base = ROMAN[mod(c.rootPc - center.pc)], minor = c.tones.some(([x]) => x === 3), q = c.sym;
+  function numeral(c, pc) {   // the chord's root against the tonal center (or against pc, for a progression's key): case from its third (lower case for a minor third, so dim / half-diminished too), then the kind of chord
+    const base = ROMAN[mod(c.rootPc - (pc === undefined ? center.pc : pc))], minor = c.tones.some(([x]) => x === 3), q = c.sym;
     const tail = q === "m7♭5" ? "ø7" : q.startsWith("dim") ? "°" + q.slice(3) : q === "aug" ? "+" : q.startsWith("maj") ? "Δ" + q.slice(3) : q[0] === "m" ? q.slice(1) : q;
     return (minor ? base.toLowerCase() : base) + tail;
   }
@@ -502,7 +560,7 @@ main { max-width: 1300px; margin: 0 auto; padding: 14px 16px 30px; }
   function changed() { if (!queued) { queued = true; requestAnimationFrame(update); } }
   function update() {
     queued = false;
-    paintKeys();
+    paintKeys(); syncAdd();
     const live = sounding().length > 0;   // a key is down (or the pedal holds a note): "Playing now"; all up: "Last played", dimmed
     if (snap) {
       const a = snap.a; show(a, live); renderStaff(snap.midis, a);
@@ -518,14 +576,266 @@ main { max-width: 1300px; margin: 0 auto; padding: 14px 16px 30px; }
     h.innerHTML = '<span class="h-label">Chords you played</span>' + historyList.map((h) => `<span class="chip">${h.label}${center.pc === null ? "" : `<span class="rn">${numeral(h.c)}</span>`}</span>`).join("");
   }
 
+  // ================= the progression =================
+  // Chords are added from the "Playing now / Last played" readout, exactly as played (the same notes, in the same octaves). The loop plays them in order,
+  // each held for the chosen number of beats, and starts over. The analysis names each chord the way the Harmony Map does (function, numeral, secondary roles),
+  // says how each chord leads to the next, and suggests scales; see harmony-core.js.
+  const PROG_STORE = "fretline-piano-prog", MAX_PROG = 16;
+  let prog = [], progBpm = 80, progBeats = 2, progPlay = null; const progLit = new Set();
+  try {
+    const s = JSON.parse(localStorage.getItem(PROG_STORE));
+    if (s && Array.isArray(s.chords)) prog = s.chords.filter((c) => Array.isArray(c) && c.length >= 3 && c.every((m) => Number.isInteger(m) && m >= LOW && m <= HIGH)).slice(0, MAX_PROG).map((c) => ({ midis: c.slice().sort((a, b) => a - b) }));
+    if (s && s.bpm >= 40 && s.bpm <= 200) progBpm = Math.round(s.bpm);
+    if (s && [1, 2, 4].includes(s.beats)) progBeats = s.beats;
+  } catch (e) {}
+  const saveProg = () => { try { localStorage.setItem(PROG_STORE, JSON.stringify({ chords: prog.map((p) => p.midis), bpm: progBpm, beats: progBeats })); } catch (e) {} };
+  const MINOR_SCALES = new Set(["Aeolian", "Harmonic minor", "Melodic minor", "Dorian", "Phrygian", "Locrian"]);   // tonal-center scales that make a minor key
+  const MINOR_KEY_NAMES = ["C", "C♯", "D", "E♭", "E", "F", "F♯", "G", "G♯", "A", "B♭", "B"];
+  const HC = window.HarmonyCore;
+
+  // what a slot holds: how its notes are read, and the pieces the Harmony Map needs (root, quality, bass)
+  function readItem(item) {
+    if (!item.d) {
+      const a = analyze(item.midis), c = a && a.kind === "chord" ? a.chords[0] : null, d = { a, c };
+      if (c) {
+        const semis = new Set(c.tones.map((t) => t[0])); if (c.type === "add") semis.add(c.extra);
+        d.rootPc = c.rootPc; d.bassPc = a.bassPc; d.q = HC.qualityOf((x) => semis.has(x));
+      }
+      item.d = d;
+    }
+    return item.d;
+  }
+  function addToProg() {
+    if (!snap || !snap.a || snap.a.kind !== "chord" || snap.midis.length < 3 || prog.length >= MAX_PROG) return;
+    prog.push({ midis: snap.midis.slice() }); saveProg(); renderProg();
+    const b = $("add-prog"); b.classList.add("added"); b.textContent = "Added ✓"; setTimeout(() => { b.classList.remove("added"); b.textContent = "+ Add to progression"; }, 900);
+  }
+  function syncAdd() {
+    const isChord = !!(snap && snap.a && snap.a.kind === "chord" && snap.midis.length >= 3), full = prog.length >= MAX_PROG, b = $("add-prog");
+    b.disabled = !isChord || full;
+    b.title = full ? "The progression holds " + MAX_PROG + " chords" : isChord ? "Add this chord to the progression" : "Play a chord (three or more notes), then add it to the progression";
+  }
+
+  // ---- playing the loop ----
+  function setLit(midis) { progLit.clear(); (midis || []).forEach((m) => progLit.add(m)); paintKeys(); }
+  function markPlaying(i) { document.querySelectorAll("#prog-chips .pchip").forEach((el) => el.classList.toggle("playing", +el.dataset.i === i)); setLit(i === null || !prog[i] ? [] : prog[i].midis); }
+  function scheduleChord(item, t, dur) {
+    const c = audio();
+    item.midis.forEach((m) => progPlay.handles.push({ end: t + dur + 1.5, h: FretlineAudio.note(c, { midi: m, t, dur, level: 0.12 }) }));
+  }
+  function progTick() {
+    const P = progPlay; if (!P || !ctx) return;
+    if (!prog.length) { stopProg(); return; }
+    const dur = (60 / progBpm) * progBeats;
+    while (P.next < ctx.currentTime + 0.25) {
+      const i = P.idx % prog.length;
+      scheduleChord(prog[i], P.next, dur * 0.96); P.queue.push({ t: P.next, i }); P.next += dur; P.idx++;
+    }
+    let cur = null; while (P.queue.length && P.queue[0].t <= ctx.currentTime + 0.01) cur = P.queue.shift();
+    if (cur) { P.cur = cur.i; markPlaying(cur.i); }
+    P.handles = P.handles.filter((x) => x.end > ctx.currentTime);
+  }
+  function startProg() {
+    if (!prog.length || progPlay) return;
+    const c = audio();
+    progPlay = { next: c.currentTime + 0.08, idx: 0, queue: [], handles: [], timer: setInterval(progTick, 25) };
+    progTick(); syncProgButtons();
+  }
+  function stopProg() {
+    if (!progPlay) return;
+    clearInterval(progPlay.timer); progPlay.handles.forEach((x) => { try { x.h.release(true); } catch (e) {} }); progPlay = null;
+    markPlaying(null); syncProgButtons();
+  }
+  function syncProgButtons() {
+    $("prog-play").textContent = progPlay ? "Stop" : "Play loop"; $("prog-play").disabled = !prog.length;
+    $("prog-undo").disabled = !prog.length; $("prog-clear").disabled = !prog.length;
+  }
+  function auditionItem(item) {   // a click on a chord of the progression plays it once
+    const c = audio(), t = c.currentTime + 0.02;
+    item.midis.forEach((m) => FretlineAudio.note(c, { midi: m, t, dur: 1.1, level: 0.12 }));
+    setLit(item.midis); setTimeout(() => { if (!progPlay) setLit([]); }, 1200);
+  }
+
+  // ---- reading the progression with the Harmony Map ----
+  const KEY_SCALE = { major: [0, 2, 4, 5, 7, 9, 11], minor: [0, 2, 3, 5, 7, 8, 10, 11] };   // a minor key may also use the raised 7th (the dominant)
+  // The key the progression is read in: the tonal center when one is set; otherwise a guess.
+  // The guess is a HEURISTIC, not a measurement: every major and minor key is scored by how many chord notes lie in its scale, how many chords the map can name there
+  // (more for the diatonic ones), and whether the first / last chord is its tonic. Failure modes: a major key and its relative minor share every note, so they are told
+  // apart only by the first / last chord and the dominants; very short or chromatic progressions can score several keys alike (the close ones are listed).
+  function progKey(ds) {
+    if (center.pc !== null) return { pc: center.pc, minor: MINOR_SCALES.has(center.scale), source: "center", alts: [] };
+    const real = ds.filter((d) => d.c); if (!real.length) return null;
+    const cands = [];
+    for (let pc = 0; pc < 12; pc++) [false, true].forEach((minor) => {
+      const scale = new Set(KEY_SCALE[minor ? "minor" : "major"].map((x) => mod(pc + x))), k = { pc, minor }; let score = 0;
+      const ms = real.map((d) => HC.classify(d, k));
+      real.forEach((d, i) => {
+        const pcs = [...d.a.pcs]; score += 3 * pcs.filter((p) => scale.has(p)).length / pcs.length;
+        const m = ms[i];
+        if (m) score += m.kind === "main" ? (m.borrowed ? 0.4 : 1) : 0.3;
+        if (m && m.kind === "main" && m.region === "T" && m.off === 0) { if (i === real.length - 1) score += 1.2; if (i === 0) score += 0.8; }
+      });
+      if (real.length > 1) for (let i = 0; i < real.length; i++) {   // a dominant resolving to its tonic (the loop's last chord into its first counts too) is evidence for that tonic
+        const rel = HC.relation(ms[i], ms[(i + 1) % real.length]);
+        if (/^(authentic|tritone-substitute) resolution/.test(rel)) score += 0.8; else if (/^ii(–V| → sub V7)/.test(rel)) score += 0.3;
+      }
+      cands.push({ pc, minor, score });
+    });
+    cands.sort((x, y) => y.score - x.score);
+    // keys within 0.1 of the best are a tie: the one whose tonic is the first chord wins, then the last chord, then major
+    const anchor = (c) => (real[0].rootPc === c.pc ? 2 : real[real.length - 1].rootPc === c.pc ? 1 : 0);
+    const near = cands.filter((x) => cands[0].score - x.score < 0.1).sort((a, b) => anchor(b) - anchor(a) || (a.minor ? 1 : 0) - (b.minor ? 1 : 0)), top = near[0];
+    return { pc: top.pc, minor: top.minor, source: "estimate", alts: cands.filter((x) => x !== top && top.score - x.score < 0.8).slice(0, 2).map((x) => ({ pc: x.pc, minor: x.minor })) };
+  }
+  const keyLabel = (k) => (k.minor ? MINOR_KEY_NAMES[k.pc] + " minor" : KEY_NAMES[k.pc] + " major");
+  function analyzeProg() {
+    const ds = prog.map(readItem), key = progKey(ds); if (!key) return null;
+    const entries = ds.map((d) => ({ d, m: d.c ? HC.classify(d, key) : null }));
+    entries.forEach((e) => { e.label = e.m ? e.m.label : e.d.c ? numeral(e.d.c, key.pc) : ""; });
+    return { ds, key, entries };
+  }
+
+  // scales: the mode of the key that sits on the chord, then the scales the map's role suggests (a dominant by where it goes), then the page's usual scales for that kind of chord
+  const MODE_AT = { major: { 0: "Ionian", 2: "Dorian", 4: "Phrygian", 5: "Lydian", 7: "Mixolydian", 9: "Aeolian", 11: "Locrian" }, minor: { 0: "Aeolian", 2: "Locrian", 3: "Ionian", 5: "Dorian", 7: "Phrygian", 8: "Lydian", 10: "Mixolydian" } };
+  function chordScales(e, next, key) {
+    const d = e.d, picks = [], off = mod(d.rootPc - key.pc), mode = MODE_AT[key.minor ? "minor" : "major"][off], kn = keyLabel(key);
+    if (mode && hasAll(d.rootPc, mode, d.a.pcs)) picks.push([mode, "a mode of " + kn + " (its own notes)"]);
+    if (d.q === "dom7" || d.q === "dom7b5") {
+      const toMinor = next && next.d.c && mod(next.d.rootPc - d.rootPc) === 5 && ["m", "h", "d7"].includes(HC.FAMILY[next.d.q]);
+      if (e.m && e.m.role === "N7") picks.push(["Lydian dominant", "the usual scale over a tritone substitute"]);
+      else if (toMinor) { picks.push(["Phrygian dominant", "the dominant of a minor chord"]); picks.push(["Altered", "maximum tension before a minor chord"]); picks.push(["Half-whole diminished", "a symmetrical, tense dominant sound"]); }
+      else { picks.push(["Mixolydian", "the plain dominant sound"]); picks.push(["Lydian dominant", "the dominant with a raised 4th"]); picks.push(["Altered", "more tension, when it resolves down a fifth"]); }
+    }
+    (SCALE_FOR[d.c.sym] || MAJ).forEach((n) => picks.push([n, "usual over a " + (d.c.sym || "major") + " chord"]));
+    const seen = new Set(), rows = [];
+    picks.forEach(([n, why]) => { if (seen.has(n) || !hasAll(d.rootPc, n, d.a.pcs)) return; seen.add(n); const r = scaleRow(d.rootPc, n, d.c.rootSp); rows.push({ name: r.name, notes: r.notes, why }); });
+    return rows.slice(0, 4);
+  }
+  // scales that hold every note of every chord, on any root. Scales with the same notes are one entry (C Ionian = D Dorian = A Aeolian ...); the key's own comes first.
+  function wholeScales(an) {
+    const need = new Set(); an.ds.forEach((d) => { if (d.a) d.a.pcs.forEach((p) => need.add(p)); });
+    const groups = new Map(), lastRoot = an.ds.length && an.ds[an.ds.length - 1].c ? an.ds[an.ds.length - 1].rootPc : -1;
+    for (let r = 0; r < 12; r++) SCALE_ORDER.forEach((name, i) => {
+      const set = SCALES[name][0].map((x) => mod(r + x)), key = set.slice().sort((a, b) => a - b).join(), miss = [...need].filter((p) => !set.includes(p));
+      if (!groups.has(key)) groups.set(key, { miss, members: [] }); groups.get(key).members.push({ r, name, i });
+    });
+    const home = an.key.minor ? ["Aeolian", "Harmonic minor", "Melodic minor"] : ["Ionian"];
+    const rank = (g) => {
+      const m = g.members, hit = m.find((x) => x.r === an.key.pc && home.includes(x.name));
+      if (hit) return [0, home.indexOf(hit.name)];
+      if (m.some((x) => x.r === an.key.pc)) return [1, 0];
+      if (m.some((x) => x.r === lastRoot)) return [2, 0];
+      return [3, Math.min(...m.map((x) => x.i))];
+    };
+    const all = [...groups.values()].map((g) => ({ g, rk: rank(g) })), best = Math.min(...all.map((x) => x.g.miss.length));
+    const exact = best === 0, pick = all.filter((x) => x.g.miss.length === best).sort((a, b) => a.rk[0] - b.rk[0] || a.rk[1] - b.rk[1]).slice(0, exact ? 4 : 3);
+    return { exact, outside: best, rows: pick.map(({ g, rk }) => {
+      const head = g.members.slice().sort((a, b) => (a.r === an.key.pc ? 0 : 1) - (b.r === an.key.pc ? 0 : 1) || a.i - b.i)[0], row = scaleRow(head.r, head.name);
+      const same = g.members.filter((x) => x !== head).sort((a, b) => a.i - b.i).slice(0, 6).map((x) => scaleRow(x.r, x.name).name);
+      return { name: row.name, notes: row.notes, same, miss: g.miss, home: rk[0] === 0 };
+    }) };
+  }
+
+  // ---- drawing ----
+  const esc = (s) => String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;");
+  function renderProg() {
+    const host = $("prog-chips"), an = prog.length ? analyzeProg() : null;
+    $("prog-bpm").value = String(progBpm); $("prog-bpm-val").textContent = progBpm + " bpm"; $("prog-beats").value = String(progBeats);
+    host.innerHTML = prog.length ? "" : '<span class="prog-empty">Play a chord, then press “+ Add to progression” in the readout above. Add a few and press Play loop.</span>';
+    prog.forEach((item, i) => {
+      const d = readItem(item), e = an && an.entries[i], el = document.createElement("span");
+      el.className = "pchip"; el.dataset.i = i; el.title = "Click to hear this chord";
+      el.innerHTML = esc(d.c ? d.c.label : "?") + (e && e.label ? '<span class="rn">' + esc(e.label) + "</span>" : "") + '<button type="button" class="x" title="Remove this chord" aria-label="Remove this chord">×</button>';
+      host.appendChild(el);
+    });
+    syncProgButtons(); syncAdd();
+    const box = $("prog-analysis");
+    if (!an) { box.hidden = true; box.innerHTML = ""; return; }
+    box.hidden = false; box.innerHTML = analysisHtml(an);
+    if (progPlay && progPlay.cur != null && prog[progPlay.cur]) markPlaying(progPlay.cur);   // a list redrawn while the loop plays keeps its highlight
+  }
+  function analysisHtml(an) {
+    const key = an.key, n = an.entries.length, L = [];
+    // left: key, chords, movement
+    let keyBlock = '<div class="pa-block"><div class="pa-head">Key</div><div class="pa-key">' + esc(key.source === "center" ? centerName() : keyLabel(key)) + "<small>" + (key.source === "center" ? "your tonal center" : "estimated") + "</small></div>";
+    if (key.source === "estimate") {
+      const alts = key.alts.map((k) => keyLabel(k));
+      keyBlock += '<div class="pa-note">A best guess from the chord notes and the first and last chords (a heuristic: a major key and its relative minor share every note)' + (alts.length ? "; also close: " + esc(alts.join(", ")) : "") + '. <button type="button" class="btn ghost" id="use-key">Use as tonal center</button></div>';
+    }
+    keyBlock += "</div>";
+    let chords = '<div class="pa-block"><div class="pa-head">Chords, by the Harmony Map</div>';
+    an.entries.forEach((e) => {
+      const m = e.m, c = e.d.c;
+      if (!c) { chords += '<div class="pa-row"><span class="c">?</span><span class="f">not read as a chord</span></div>'; return; }
+      let fn;
+      if (m && m.kind === "main") {
+        fn = HC.REGION_NAME[m.region] + (m.borrowed ? ", borrowed from the " + m.borrowed : "");
+        if (m.id === "I64" || m.id === "i64") fn = "the tonic in 2nd inversion: a cadential 6/4 when it leads to the dominant";
+        else if (m.id === "N6") fn = "Neapolitan sixth (♭II in 1st inversion), leading to the dominant";
+        else if (m.id === "N7") fn = "tritone substitute for the dominant (a half step above the tonic)";
+        else if (m.id === "V7sus4") fn = "suspended dominant";
+      } else if (m) fn = m.text;
+      else fn = "not on the map: a chromatic chord, read from the key";
+      chords += '<div class="pa-row"><span class="c">' + esc(c.label) + '</span><span class="n">' + esc(e.label) + '</span><span class="f">' + esc(fn) + "</span></div>";
+    });
+    chords += "</div>";
+    let moves = "";
+    if (n > 1) {
+      const regions = an.entries.map((e) => (e.m ? e.m.region : "·")).join(" → ");
+      moves = '<div class="pa-block"><div class="pa-head">How the chords lead</div>';
+      for (let i = 0; i < n; i++) {
+        const A = an.entries[i], B = an.entries[(i + 1) % n], wrap = i === n - 1;
+        moves += '<div class="pa-move"><b>' + esc(A.d.c ? A.d.c.label : "?") + " → " + esc(B.d.c ? B.d.c.label : "?") + "</b>" + (wrap ? " (back to the start of the loop)" : "") + ": " + esc(HC.relation(A.m, B.m)) + "</div>";
+      }
+      moves += '<div class="pa-note">Functions around the loop: ' + esc(regions.replace(/T/g, "tonic").replace(/S/g, "subdominant").replace(/D/g, "dominant")) + "</div></div>";
+    }
+    L.push('<div>' + keyBlock + chords + moves + "</div>");
+    // right: scales
+    const w = wholeScales(an);
+    let sc = '<div class="pa-block"><div class="pa-head">' + (w.exact ? "One scale over the whole loop" : "Closest single scales (no scale holds every note)") + "</div>";
+    if (!w.rows.length) sc += '<div class="pa-note">No scale on the list fits.</div>';
+    w.rows.forEach((r) => {
+      sc += '<div class="pa-scale"><div class="s1"><span class="sn">' + esc(r.name) + '</span><span class="sx">' + esc(r.notes) + "</span></div>" +
+        (r.same.length ? '<div class="sy">same notes: ' + esc(r.same.join(" · ")) + "</div>" : "") + (r.miss.length ? '<div class="sy">leaves out ' + r.miss.length + " chord note" + (r.miss.length > 1 ? "s" : "") + ": " + esc(r.miss.map((p) => pcSpelled(p, an.ds.find((d) => d.a && d.a.pcs.includes(p)).a)).join(", ")) + "</div>" : "") + "</div>";
+    });
+    sc += "</div>";
+    let per = '<div class="pa-block"><div class="pa-head">Scales chord by chord</div>';
+    an.entries.forEach((e, i) => {
+      if (!e.d.c) return;
+      per += '<div class="pa-chord">' + esc(e.d.c.label) + (e.label ? '<span class="rn">' + esc(e.label) + "</span>" : "") + "</div>";
+      chordScales(e, an.entries[(i + 1) % n], key).forEach((r) => {
+        per += '<div class="pa-scale"><div class="s1"><span class="sn">' + esc(r.name) + '</span><span class="sx">' + esc(r.notes) + '</span></div><div class="sy">' + esc(r.why) + "</div></div>";
+      });
+    });
+    per += '<div class="pa-note">Suggestions, not rules: every scale listed contains all the notes of its chord, ordered by how common it is for that chord and by where the chord goes next.</div></div>';
+    L.push("<div>" + sc + per + "</div>");
+    return L.join("");
+  }
+  $("add-prog").addEventListener("click", addToProg);
+  $("prog-play").addEventListener("click", () => (progPlay ? stopProg() : startProg()));
+  $("prog-undo").addEventListener("click", () => { prog.pop(); saveProg(); renderProg(); });
+  $("prog-clear").addEventListener("click", () => { stopProg(); prog = []; saveProg(); renderProg(); });
+  $("prog-bpm").addEventListener("input", () => { progBpm = +$("prog-bpm").value; $("prog-bpm-val").textContent = progBpm + " bpm"; saveProg(); });
+  $("prog-beats").addEventListener("change", () => { progBeats = +$("prog-beats").value; saveProg(); $("prog-beats").blur(); });
+  $("prog-chips").addEventListener("click", (e) => {
+    const chip = e.target.closest(".pchip"); if (!chip) return;
+    const i = +chip.dataset.i;
+    if (e.target.closest(".x")) { prog.splice(i, 1); saveProg(); if (!prog.length) stopProg(); renderProg(); } else auditionItem(prog[i]);
+  });
+  $("prog-analysis").addEventListener("click", (e) => {
+    if (e.target.id === "use-key") { const an = analyzeProg(); if (an && setCenter) setCenter(an.key.pc, an.key.minor ? "Aeolian" : "Ionian"); }
+  });
+
   // ================= tonal center pickers =================
+  let setCenter = null;
   (function () {
     const n = $("center-note"), sc = $("center-scale");
     n.innerHTML = '<option value="">Off</option>' + KEY_NAMES.map((k, i) => '<option value="' + i + '">' + k + "</option>").join("");
     sc.innerHTML = CENTER_SCALES.map((x) => '<option value="' + x[0] + '">' + x[1] + "</option>").join("");
     const sync = () => { n.value = center.pc === null ? "" : String(center.pc); sc.value = center.scale; sc.disabled = center.pc === null; };
-    const apply = () => { center = { pc: n.value === "" ? null : +n.value, scale: sc.value }; saveCenter(); sync(); n.blur(); sc.blur(); drawHistory(); changed(); };
+    const apply = () => { center = { pc: n.value === "" ? null : +n.value, scale: sc.value }; saveCenter(); sync(); n.blur(); sc.blur(); drawHistory(); changed(); renderProg(); };
     n.addEventListener("change", apply); sc.addEventListener("change", apply); sync();
+    setCenter = (pc, scale) => { center = { pc, scale }; saveCenter(); sync(); drawHistory(); changed(); renderProg(); };   // the progression's "use this key" button
   })();
 
   // ================= playing: on-screen keys, computer keys, MIDI =================
@@ -581,12 +891,13 @@ main { max-width: 1300px; margin: 0 auto; padding: 14px 16px 30px; }
   }
   $("midi-connect").addEventListener("click", () => (access ? disconnect() : connect()));
   $("midi-input").addEventListener("change", refreshPorts);
-  $("stop-all").addEventListener("click", allOff);
+  $("stop-all").addEventListener("click", () => { stopProg(); allOff(); });
   // if the browser has already been given MIDI permission for this site, connect without a click
   try { navigator.permissions && navigator.permissions.query({ name: "midi" }).then((r) => { if (r.state === "granted" && !localStorage.getItem("fretline-midi-off")) connect(); }).catch(() => {}); } catch (e) {}
 
-  buildKeyboard(); setOctave(4); update();
-  window.__piano = { noteOn, noteOff, setPedal, allOff, analyze, sounding, held, get history() { return historyList; } };
+  buildKeyboard(); setOctave(4); update(); renderProg();
+  window.__piano = { noteOn, noteOff, setPedal, allOff, analyze, sounding, held, get history() { return historyList; },
+    addToProg, startProg, stopProg, analyzeProg, wholeScales, get prog() { return prog; }, get playing() { return progPlay; } };   // (for testing)
 })();
 </script>
 </body>

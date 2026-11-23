@@ -11,6 +11,7 @@ const PRECACHE_URLS = [
   "./songbook.html",
   "./songs/index.json",
   "./chord-patterns.js",
+  "./harmony-core.js",
   "./shapes_lab.html",
   "./fretline.html",
   "./ear_training.html",

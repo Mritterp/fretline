@@ -42,7 +42,11 @@ Live app: https://claude.ai/code/artifact/b0f71811-d152-4e1b-a595-7abeb8a99003
   fits on the neck for a root). The Sightreading page and the Scale Lab both read it, so it is the one place to edit them.
 - `piano_body.html` — source for the Piano page: an 88-key keyboard and a grand staff that show what you play (on a MIDI piano through Web MIDI,
   with the on-screen keys, or with the computer keyboard), and a readout that names the chord. It plays through the shared Playback synth (`fl-audio.js`).
-  `splice.js` builds it into `piano.html` with the same VexFlow bundle. Edit the `_body` file, then run `node splice.js`.
+  Chords can be added to a progression ("+ Add to progression" in the readout), played back in a loop under the keyboard, and analysed with the
+  Harmony Map's theory (key, function and numeral of each chord, how each leads to the next, and scales to play over it). The key is the tonal center when
+  one is set, otherwise a heuristic guess. `splice.js` builds it into `piano.html` with the same VexFlow bundle. Edit the `_body` file, then run `node splice.js`.
+- `harmony-core.js` — the Harmony Map's theory without its screen layout (functions, approach-chord roles, how one chord relates to the next), used by the Piano
+  page. Its tables are a copy of the ones in `harmony_map.html`; `node tools/harmony-core-data.js check` fails if they drift apart (`print` shows the map's tables).
 - `songbook_body.html` — source for the Songbook page: guitar sheet music (notation, with a note-name toggle) for folk songs, classical guitar pieces and Bach canons, ranked by an
   estimated difficulty, with playback (tempo, metronome). The music is in `songs/`, built from the Mutopia Project's editions by `tools/songs/` (see its
   README); credits and licenses are in `songs/CREDITS.md`. `splice.js` builds it into `songbook.html`.
