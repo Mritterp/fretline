@@ -683,12 +683,13 @@ main { max-width: 1300px; margin: 0 auto; padding: 14px 16px 30px; }
 
   // ---- reading the progression with the Harmony Map ----
   const KEY_SCALE = { major: [0, 2, 4, 5, 7, 9, 11], minor: [0, 2, 3, 5, 7, 8, 10, 11] };   // a minor key may also use the raised 7th (the dominant)
-  // The key the progression is read in: the tonal center when one is set; otherwise a guess.
+  // The key the progression is read in: the tonal center when one is set, otherwise the best guess below. The guess is made either way, so it can be compared with the
+  // tonal center that was set and offered as a new one when the harmonic movement points somewhere else.
   // The guess is a HEURISTIC, not a measurement: every major and minor key is scored by how many chord notes lie in its scale, how many chords the map can name there
-  // (more for the diatonic ones), and whether the first / last chord is its tonic. Failure modes: a major key and its relative minor share every note, so they are told
-  // apart only by the first / last chord and the dominants; very short or chromatic progressions can score several keys alike (the close ones are listed).
-  function progKey(ds) {
-    if (center.pc !== null) return { pc: center.pc, minor: MINOR_SCALES.has(center.scale), source: "center", alts: [] };
+  // (more for the diatonic ones), whether the first / last chord is its tonic, and whether dominants resolve to it. Failure modes: a major key and its relative minor
+  // share every note, so they are told apart only by the first / last chord and the dominants; very short or chromatic progressions can score several keys alike (the
+  // close ones are listed).
+  function estimateKey(ds) {
     const real = ds.filter((d) => d.c); if (!real.length) return null;
     const cands = [];
     for (let pc = 0; pc < 12; pc++) [false, true].forEach((minor) => {
@@ -710,14 +711,33 @@ main { max-width: 1300px; margin: 0 auto; padding: 14px 16px 30px; }
     // keys within 0.1 of the best are a tie: the one whose tonic is the first chord wins, then the last chord, then major
     const anchor = (c) => (real[0].rootPc === c.pc ? 2 : real[real.length - 1].rootPc === c.pc ? 1 : 0);
     const near = cands.filter((x) => cands[0].score - x.score < 0.1).sort((a, b) => anchor(b) - anchor(a) || (a.minor ? 1 : 0) - (b.minor ? 1 : 0)), top = near[0];
-    return { pc: top.pc, minor: top.minor, source: "estimate", alts: cands.filter((x) => x !== top && top.score - x.score < 0.8).slice(0, 2).map((x) => ({ pc: x.pc, minor: x.minor })) };
+    return { top: { pc: top.pc, minor: top.minor }, alts: cands.filter((x) => x !== top && top.score - x.score < 0.8).slice(0, 2).map((x) => ({ pc: x.pc, minor: x.minor })) };
   }
   const keyLabel = (k) => (k.minor ? MINOR_KEY_NAMES[k.pc] + " minor" : KEY_NAMES[k.pc] + " major");
+  // what, in the harmonic movement, makes a key look like home: a dominant resolving to the tonic, the loop starting / ending on it, and how many chords sit inside it
+  function keyEvidence(ds, k) {
+    const real = ds.filter((d) => d.c); if (!real.length) return [];
+    const ms = real.map((d) => HC.classify(d, k)), n = real.length, out = [];
+    const isTonic = (m) => !!m && m.kind === "main" && m.region === "T" && m.off === 0;
+    if (n > 1) for (let i = 0; i < n; i++) {
+      const j = (i + 1) % n;
+      if (isTonic(ms[j]) && /^(authentic|tritone-substitute) resolution/.test(HC.relation(ms[i], ms[j]))) { out.push(real[i].c.label + " → " + real[j].c.label + (i === n - 1 ? " (as the loop repeats)" : "") + " resolves to the tonic"); break; }
+    }
+    if (n > 1 && isTonic(ms[0])) out.push("starts on the tonic, " + real[0].c.label);
+    if (n > 1 && isTonic(ms[n - 1])) out.push("ends on the tonic, " + real[n - 1].c.label);
+    const inKey = ms.filter((m) => m && m.kind === "main" && !m.borrowed).length;
+    out.push(inKey === n ? "every chord is in the key" : inKey + " of " + n + " chord" + (n > 1 ? "s are" : " is") + " in the key");
+    return out.slice(0, 3);
+  }
+  function progKey(ds, est) {
+    if (center.pc !== null) return { pc: center.pc, minor: MINOR_SCALES.has(center.scale), source: "center" };
+    return est ? { pc: est.top.pc, minor: est.top.minor, source: "estimate" } : null;
+  }
   function analyzeProg() {
-    const ds = prog.map(readItem), key = progKey(ds); if (!key) return null;
+    const ds = prog.map(readItem), est = estimateKey(ds), key = progKey(ds, est); if (!key) return null;
     const entries = ds.map((d) => ({ d, m: d.c ? HC.classify(d, key) : null }));
     entries.forEach((e) => { e.label = e.m ? e.m.label : e.d.c ? numeral(e.d.c, key.pc) : ""; });
-    return { ds, key, entries };
+    return { ds, key, est, entries };
   }
 
   // scales: the mode of the key that sits on the chord, then the scales the map's role suggests (a dominant by where it goes), then the page's usual scales for that kind of chord
@@ -782,10 +802,23 @@ main { max-width: 1300px; margin: 0 auto; padding: 14px 16px 30px; }
   function analysisHtml(an) {
     const key = an.key, n = an.entries.length, L = [];
     // left: key, chords, movement
-    let keyBlock = '<div class="pa-block"><div class="pa-head">Key</div><div class="pa-key">' + esc(key.source === "center" ? centerName() : keyLabel(key)) + "<small>" + (key.source === "center" ? "your tonal center" : "estimated") + "</small></div>";
-    if (key.source === "estimate") {
-      const alts = key.alts.map((k) => keyLabel(k));
-      keyBlock += '<div class="pa-note">A best guess from the chord notes and the first and last chords (a heuristic: a major key and its relative minor share every note)' + (alts.length ? "; also close: " + esc(alts.join(", ")) : "") + '. <button type="button" class="btn ghost" id="use-key">Use as tonal center</button></div>';
+    // the key, then what the harmonic movement says about it: agreement with the tonal center set above, or a suggestion for a new one
+    const useBtn = (k, text) => '<button type="button" class="btn ghost use-key" data-pc="' + k.pc + '" data-minor="' + (k.minor ? 1 : 0) + '">' + esc(text || "Use " + keyLabel(k)) + "</button>";
+    const same = (a, b) => a.pc === b.pc && a.minor === b.minor, est = an.est, ev = (k) => esc(keyEvidence(an.ds, k).join(" · "));
+    let keyBlock = '<div class="pa-block"><div class="pa-head">Key</div><div class="pa-key">' + esc(key.source === "center" ? centerName() : keyLabel(key)) + "<small>" + (key.source === "center" ? "your tonal center" : "estimated from the harmonic movement") + "</small></div>";
+    if (est) {
+      const alts = est.alts.filter((k) => !same(k, key));
+      if (key.source === "center" && same(est.top, key)) keyBlock += '<div class="pa-note">The harmonic movement agrees with it: ' + ev(key) + ".</div>";
+      else if (key.source === "center") {
+        const notesOf = (pc, steps) => steps.map((x) => mod(pc + x)).sort((a, b) => a - b).join(), sameNotes = notesOf(center.pc, SCALES[center.scale][0]) === notesOf(est.top.pc, est.top.minor ? [0, 2, 3, 5, 7, 8, 10] : KEY_SCALE.major);
+        const relative = !key.minor && est.top.minor && est.top.pc === mod(key.pc + 9) ? esc(keyLabel(est.top)) + " is the relative minor of " + esc(keyLabel(key))
+          : key.minor && !est.top.minor && est.top.pc === mod(key.pc + 3) ? esc(keyLabel(est.top)) + " is the relative major of " + esc(keyLabel(key)) : esc(centerName()) + " is one of its modes";
+        keyBlock += sameNotes
+          ? '<div class="pa-note">Same notes as <b>' + esc(keyLabel(est.top)) + "</b> (" + relative + "), but the harmonic movement settles on " + esc(keyLabel(est.top)) + ": " + ev(est.top) + ". " + useBtn(est.top) + "</div>"
+          : '<div class="pa-note"><b>The harmonic movement points to ' + esc(keyLabel(est.top)) + " instead</b>: " + ev(est.top) + ". " + useBtn(est.top) + "</div>";
+      }
+      else keyBlock += '<div class="pa-note">Why: ' + ev(key) + '. A heuristic: a major key and its relative minor share every note, so the first and last chords and the dominants decide. ' + useBtn(key, "Use as tonal center") + "</div>";
+      if (alts.length) keyBlock += '<div class="pa-note">Also close: ' + alts.map((k) => esc(keyLabel(k)) + " " + useBtn(k, "Use")).join(" · ") + "</div>";
     }
     keyBlock += "</div>";
     let chords = '<div class="pa-block"><div class="pa-head">Chords, by the Harmony Map</div>';
@@ -848,7 +881,8 @@ main { max-width: 1300px; margin: 0 auto; padding: 14px 16px 30px; }
     if (e.target.closest(".x")) { prog.splice(i, 1); saveProg(); if (!prog.length) stopProg(); renderProg(); } else auditionItem(prog[i]);
   });
   $("prog-analysis").addEventListener("click", (e) => {
-    if (e.target.id === "use-key") { const an = analyzeProg(); if (an && setCenter) setCenter(an.key.pc, an.key.minor ? "Aeolian" : "Ionian"); }
+    const b = e.target.closest && e.target.closest(".use-key");
+    if (b && setCenter) setCenter(+b.dataset.pc, b.dataset.minor === "1" ? "Aeolian" : "Ionian");   // a suggested key becomes the tonal center (major: Ionian, minor: natural minor)
   });
 
   // ================= tonal center pickers =================
